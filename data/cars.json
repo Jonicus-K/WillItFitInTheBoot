@@ -1,0 +1,94 @@
+[
+  {
+    "id": "vw-golf-mk8",
+    "make": "Volkswagen",
+    "model": "Golf (Mk8, 2020+)",
+    "boot": {
+      "seats_up": {
+        "floor_length_cm": 77,
+        "min_width_cm": 100,
+        "max_height_cm": 71,
+        "rake_angle_deg": 28
+      },
+      "seats_down": {
+        "floor_length_cm": 140,
+        "min_width_cm": 100,
+        "max_height_cm": 71,
+        "rake_angle_deg": 28
+      },
+      "aperture": {
+        "width_cm": 102,
+        "height_cm": 67
+      }
+    }
+  },
+  {
+    "id": "ford-focus-mk4",
+    "make": "Ford",
+    "model": "Focus Hatchback (Mk4, 2018+)",
+    "boot": {
+      "seats_up": {
+        "floor_length_cm": 83,
+        "min_width_cm": 102,
+        "max_height_cm": 73,
+        "rake_angle_deg": 26
+      },
+      "seats_down": {
+        "floor_length_cm": 148,
+        "min_width_cm": 102,
+        "max_height_cm": 73,
+        "rake_angle_deg": 26
+      },
+      "aperture": {
+        "width_cm": 104,
+        "height_cm": 71
+      }
+    }
+  },
+  {
+    "id": "nissan-qashqai-mk3",
+    "make": "Nissan",
+    "model": "Qashqai (2021+)",
+    "boot": {
+      "seats_up": {
+        "floor_length_cm": 86,
+        "min_width_cm": 105,
+        "max_height_cm": 78,
+        "rake_angle_deg": 22
+      },
+      "seats_down": {
+        "floor_length_cm": 155,
+        "min_width_cm": 105,
+        "max_height_cm": 78,
+        "rake_angle_deg": 22
+      },
+      "aperture": {
+        "width_cm": 108,
+        "height_cm": 74
+      }
+    }
+  },
+  {
+    "id": "vauxhall-corsa-f",
+    "make": "Vauxhall",
+    "model": "Corsa (2019+)",
+    "boot": {
+      "seats_up": {
+        "floor_length_cm": 66,
+        "min_width_cm": 96,
+        "max_height_cm": 62,
+        "rake_angle_deg": 25
+      },
+      "seats_down": {
+        "floor_length_cm": 125,
+        "min_width_cm": 96,
+        "max_height_cm": 62,
+        "rake_angle_deg": 25
+      },
+      "aperture": {
+        "width_cm": 94,
+        "height_cm": 61
+      }
+    }
+  }
+]

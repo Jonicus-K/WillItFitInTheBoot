@@ -90,5 +90,28 @@
         "height_cm": 61
       }
     }
+  },
+  {
+    "id": "tesla-model-y",
+    "make": "Tesla",
+    "model": "Model Y (2021+)",
+    "boot": {
+      "seats_up": {
+        "floor_length_cm": 108,
+        "min_width_cm": 94,
+        "max_height_cm": 70,
+        "rake_angle_deg": 35
+      },
+      "seats_down": {
+        "floor_length_cm": 195,
+        "min_width_cm": 94,
+        "max_height_cm": 70,
+        "rake_angle_deg": 35
+      },
+      "aperture": {
+        "width_cm": 110,
+        "height_cm": 72
+      }
+    }
   }
 ]

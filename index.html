@@ -14,9 +14,9 @@
     </header>
 
     <main class="grid-layout">
-      <!-- Left Column: Inputs -->
+      <!-- Input Controls -->
       <section class="card">
-        <h2>1. Object Size (cm)</h2>
+        <h2>1. Object Dimensions (cm)</h2>
         
         <div class="presets">
           <span class="preset-label">Quick Presets:</span>
@@ -57,14 +57,23 @@
         </div>
       </section>
 
-      <!-- Right Column: Results -->
+      <!-- Clearance Results & Visualizer -->
       <section class="card result-card">
         <h2>Clearance Result</h2>
         <div id="status-badge" class="badge badge-neutral">Awaiting input</div>
         <p id="status-message">Select a vehicle and provide object dimensions to evaluate clearance.</p>
 
+        <!-- 2D Profile Visualizer -->
+        <div class="visualizer-container" id="visualizer-card" style="display: none;">
+          <div class="visualizer-header">
+            <h3>Side Profile Clearance</h3>
+            <span id="visualizer-legend"></span>
+          </div>
+          <svg id="profile-svg" viewBox="0 0 540 220" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
         <div class="car-specs" id="car-specs" style="display: none;">
-          <h3>Usable Space Specs</h3>
+          <h3>Usable Cargo Space</h3>
           <ul id="specs-list"></ul>
         </div>
       </section>

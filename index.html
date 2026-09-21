@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Will It Fit In The Boot? - Car Boot Clearance Calculator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Will It Fit In The Boot?</h1>
+      <p class="tagline">Check if boxes, TVs, or flat-pack furniture will physically fit in your car.</p>
+    </header>
+
+    <main class="grid-layout">
+      <!-- Left Column: Inputs -->
+      <section class="card">
+        <h2>1. Object Size (cm)</h2>
+        
+        <div class="presets">
+          <span class="preset-label">Quick Presets:</span>
+          <button type="button" class="btn-preset" data-l="160" data-w="95" data-h="18">65" TV Box</button>
+          <button type="button" class="btn-preset" data-l="140" data-w="85" data-h="16">55" TV Box</button>
+          <button type="button" class="btn-preset" data-l="85" data-w="60" data-h="60">Washing Machine</button>
+          <button type="button" class="btn-preset" data-l="106" data-w="40" data-h="28">IKEA Billy (Box)</button>
+        </div>
+
+        <div class="input-grid">
+          <div class="form-group">
+            <label for="item-length">Length (cm)</label>
+            <input type="number" id="item-length" value="140" min="1" />
+          </div>
+          <div class="form-group">
+            <label for="item-width">Width (cm)</label>
+            <input type="number" id="item-width" value="85" min="1" />
+          </div>
+          <div class="form-group">
+            <label for="item-height">Height (cm)</label>
+            <input type="number" id="item-height" value="16" min="1" />
+          </div>
+        </div>
+
+        <h2>2. Vehicle Selection</h2>
+        <div class="form-group">
+          <label for="car-select">Choose Car</label>
+          <select id="car-select">
+            <option value="">Loading car database...</option>
+          </select>
+        </div>
+
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" id="seats-down" checked />
+            Fold rear seats flat
+          </label>
+        </div>
+      </section>
+
+      <!-- Right Column: Results -->
+      <section class="card result-card">
+        <h2>Clearance Result</h2>
+        <div id="status-badge" class="badge badge-neutral">Awaiting input</div>
+        <p id="status-message">Select a vehicle and provide object dimensions to evaluate clearance.</p>
+
+        <div class="car-specs" id="car-specs" style="display: none;">
+          <h3>Usable Space Specs</h3>
+          <ul id="specs-list"></ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

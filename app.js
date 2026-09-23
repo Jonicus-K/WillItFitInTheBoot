@@ -434,7 +434,7 @@ function evaluateFitment() {
     rearBadge.textContent = 'Clears';
 
     lastFitResult = { mode: 'flat', rot: bestFlatFit.rot, angle: 0, status: isComfortable ? 'comfortable' : 'tight' };
-    renderSideSvg(bestFlatFit.rot, floorLength, roofHeight, tanRake, 'flat', 0, seatsFolded, selectedCar.body_type);
+    renderSideSvg(bestFlatFit.rot, floorLength, roofHeight, tanRake, 'flat', 0, seatsFolded, selectedCar);
     renderRearSvg(bestFlatFit.rot, archWidth, roofHeight, apWidth, apHeight, false, selectedCar.body_type);
     update3DStudio(selectedCar, seatsFolded, lastFitResult);
     return;
@@ -510,7 +510,7 @@ function evaluateFitment() {
     rearBadge.textContent = 'Clears';
 
     lastFitResult = { mode: 'pitch', rot: bestPitchFit.rot, angle: bestPitchFit.angle, status: 'angled' };
-    renderSideSvg(bestPitchFit.rot, floorLength, roofHeight, tanRake, 'pitch', bestPitchFit.angle, seatsFolded, selectedCar.body_type);
+    renderSideSvg(bestPitchFit.rot, floorLength, roofHeight, tanRake, 'pitch', bestPitchFit.angle, seatsFolded, selectedCar);
     renderRearSvg(bestPitchFit.rot, archWidth, roofHeight, apWidth, apHeight, false, selectedCar.body_type);
     update3DStudio(selectedCar, seatsFolded, lastFitResult);
     return;
@@ -527,7 +527,7 @@ function evaluateFitment() {
     rearBadge.textContent = 'Diagonal';
 
     lastFitResult = { mode: 'yaw', rot: bestYawFit.rot, angle: bestYawFit.angle, status: 'angled' };
-    renderSideSvg(bestYawFit.rot, floorLength, roofHeight, tanRake, 'yaw', bestYawFit.angle, seatsFolded, selectedCar.body_type);
+    renderSideSvg(bestYawFit.rot, floorLength, roofHeight, tanRake, 'yaw', bestYawFit.angle, seatsFolded, selectedCar);
     renderRearSvg(bestYawFit.rot, archWidth, roofHeight, apWidth, apHeight, false, selectedCar.body_type);
     update3DStudio(selectedCar, seatsFolded, lastFitResult);
     return;
@@ -544,7 +544,7 @@ function evaluateFitment() {
   rearBadge.textContent = rawW > archWidth ? 'Colliding' : 'Clears';
 
   lastFitResult = { mode: 'colliding', rot: { l: rawL, w: rawW, h: rawH }, angle: 0, status: 'colliding' };
-  renderSideSvg({ l: rawL, w: rawW, h: rawH }, floorLength, roofHeight, tanRake, 'colliding', 0, seatsFolded, selectedCar.body_type);
+  renderSideSvg({ l: rawL, w: rawW, h: rawH }, floorLength, roofHeight, tanRake, 'colliding', 0, seatsFolded, selectedCar);
   renderRearSvg({ l: rawL, w: rawW, h: rawH }, archWidth, roofHeight, apWidth, apHeight, rawW > archWidth, selectedCar.body_type);
   update3DStudio(selectedCar, seatsFolded, lastFitResult);
 }
@@ -586,7 +586,7 @@ function initThreeStudio() {
     controls.maxPolarAngle = (Math.PI / 2) + 0.05;
     controls.minDistance = 120;
     controls.maxDistance = 1200;
-    controls.target.set(0, 55, 0);
+    controls.target.set(0, 50, 0);
   } else {
     initFallbackControls(canvas);
   }
@@ -650,7 +650,7 @@ function updateCameraFromSpherical() {
   const sinTheta = Math.sin(fallbackOrbit.theta);
   const cosTheta = Math.cos(fallbackOrbit.theta);
 
-  const targetY = 55;
+  const targetY = 50;
   camera.position.x = fallbackOrbit.radius * sinPhi * cosTheta;
   camera.position.y = targetY + (fallbackOrbit.radius * cosPhi);
   camera.position.z = fallbackOrbit.radius * sinPhi * sinTheta;
@@ -693,11 +693,11 @@ function snapCamera(view) {
   }
 
   if (controls) {
-    if (view === 'side') camera.position.set(0, 55, 480);
-    else if (view === 'rear') camera.position.set(480, 55, 0);
+    if (view === 'side') camera.position.set(0, 50, 480);
+    else if (view === 'rear') camera.position.set(480, 50, 0);
     else if (view === 'top') camera.position.set(0, 580, 0);
     else camera.position.set(340, 220, 290);
-    controls.target.set(0, 55, 0);
+    controls.target.set(0, 50, 0);
     controls.update();
   } else {
     updateCameraFromSpherical();
@@ -748,29 +748,36 @@ function createWheel3D(radius = 32, width = 22) {
   return wheelGroup;
 }
 
-function createSeat3D(width = 46, height = 75) {
+/**
+ * Creates front bucket seats with realistic heights guaranteed to fit inside cabin.
+ */
+function createSeat3D(width = 44, backHeight = 44) {
   const seatGroup = new THREE.Group();
-  const seatMat = new THREE.MeshStandardMaterial({ color: 0x141e30, roughness: 0.7 });
+  const seatMat = new THREE.MeshStandardMaterial({ color: 0x121b2b, roughness: 0.75 });
 
-  const cushionGeo = new THREE.BoxGeometry(45, 12, width);
+  const cushionGeo = new THREE.BoxGeometry(40, 8, width);
   const cushion = new THREE.Mesh(cushionGeo, seatMat);
-  cushion.position.y = 6;
+  cushion.position.y = 4;
   seatGroup.add(cushion);
 
-  const backGeo = new THREE.BoxGeometry(14, height, width - 4);
+  const backGeo = new THREE.BoxGeometry(10, backHeight, width - 4);
   const back = new THREE.Mesh(backGeo, seatMat);
-  back.position.set(16, (height / 2) + 6, 0);
-  back.rotation.z = 0.12;
+  back.position.set(14, (backHeight / 2) + 4, 0);
+  back.rotation.z = 0.1;
   seatGroup.add(back);
 
-  const headrestGeo = new THREE.BoxGeometry(10, 16, 22);
+  const headrestGeo = new THREE.BoxGeometry(8, 11, 18);
   const headrest = new THREE.Mesh(headrestGeo, seatMat);
-  headrest.position.set(22, height + 18, 0);
+  headrest.position.set(18, backHeight + 11, 0);
   seatGroup.add(headrest);
 
   return seatGroup;
 }
 
+/**
+ * Main 3D Studio Update: Fixed automotive datum ensures that folding seats
+ * NEVER changes vehicle size or causes seats to poke through the roof.
+ */
 function update3DStudio(car, seatsFolded, fitResult) {
   if (!scene) return;
 
@@ -779,24 +786,26 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   car3DGroup = new THREE.Group();
 
-  const floorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
+  const maxFoldedLen = car.floor_length_seats_folded; // Static vehicle constant!
+  const currentFloorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
   const archW = car.wheel_arch_width;
   const roofH = car.roof_height;
   const bodyType = car.body_type;
 
   const isSUV = bodyType === 'suv';
   const groundY = 0;
-  const sillY = isSUV ? 64 : 52;
-  const wheelRadius = isSUV ? 36 : 31;
+  const sillY = isSUV ? 58 : 46;
+  const cabinFloorY = sillY - 16;
+  const wheelRadius = isSUV ? 35 : 30;
   const totalCarWidth = Math.max(182, archW + 48);
 
-  const rearSillX = floorLen / 2;
-  const seatFrontX = -floorLen / 2;
-  const carFrontX = seatFrontX - (bodyType === 'estate' ? 180 : 160);
-  const carRearX = rearSillX + 30;
-
+  // FIXED VEHICLE DATUM: Rear sill is always at X = 0!
+  const rearSillX = 0;
+  const rearBumperX = rearSillX + 28;
+  const frontSeatsX = rearSillX - maxFoldedLen - 30;
+  const carFrontX = frontSeatsX - (bodyType === 'estate' ? 180 : 160);
   const frontWheelX = carFrontX + 85;
-  const rearWheelX = rearSillX - 25;
+  const rearWheelX = rearSillX - 35;
 
   const bodyPaintMat = new THREE.MeshStandardMaterial({
     color: 0x0f213d,
@@ -814,6 +823,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     opacity: 0.65
   });
 
+  // Parametric Fixed 3D Silhouette by Body Class
   const shape = new THREE.Shape();
   const roofY = sillY + roofH;
 
@@ -821,48 +831,49 @@ function update3DStudio(car, seatsFolded, fitResult) {
     shape.moveTo(carFrontX, sillY - 14);
     shape.lineTo(carFrontX, sillY + 4);
     shape.lineTo(carFrontX + 85, sillY + 14);
-    shape.lineTo(seatFrontX - 35, roofY - 2);
+    shape.lineTo(frontSeatsX - 10, roofY - 2);
     shape.lineTo(rearSillX - 10, roofY);
     shape.lineTo(rearSillX + 12, roofY - 4);
     shape.lineTo(rearSillX + 2, sillY);
-    shape.lineTo(carRearX, sillY - 6);
-    shape.lineTo(carRearX - 8, sillY - 22);
+    shape.lineTo(rearBumperX, sillY - 6);
+    shape.lineTo(rearBumperX - 8, sillY - 22);
     shape.lineTo(carFrontX + 14, sillY - 22);
     shape.lineTo(carFrontX, sillY - 14);
   } else if (bodyType === 'suv') {
     shape.moveTo(carFrontX, sillY - 12);
     shape.lineTo(carFrontX, sillY + 12);
     shape.lineTo(carFrontX + 80, sillY + 22);
-    shape.lineTo(seatFrontX - 30, roofY);
+    shape.lineTo(frontSeatsX - 8, roofY);
     shape.lineTo(rearSillX - 12, roofY);
     shape.lineTo(rearSillX + 10, roofY - 8);
     shape.lineTo(rearSillX + 4, sillY);
-    shape.lineTo(carRearX, sillY - 4);
-    shape.lineTo(carRearX - 10, sillY - 24);
+    shape.lineTo(rearBumperX, sillY - 4);
+    shape.lineTo(rearBumperX - 10, sillY - 24);
     shape.lineTo(carFrontX + 16, sillY - 24);
     shape.lineTo(carFrontX, sillY - 12);
   } else if (bodyType === 'saloon') {
     shape.moveTo(carFrontX, sillY - 14);
     shape.lineTo(carFrontX, sillY + 4);
     shape.lineTo(carFrontX + 85, sillY + 14);
-    shape.lineTo(seatFrontX - 35, roofY - 4);
-    shape.lineTo(seatFrontX + 40, roofY - 4);
+    shape.lineTo(frontSeatsX - 10, roofY - 4);
+    shape.lineTo(frontSeatsX + 60, roofY - 4);
     shape.lineTo(rearSillX - 45, sillY + 8);
     shape.lineTo(rearSillX + 14, sillY + 7);
-    shape.lineTo(carRearX, sillY - 4);
-    shape.lineTo(carRearX - 8, sillY - 22);
+    shape.lineTo(rearBumperX, sillY - 4);
+    shape.lineTo(rearBumperX - 8, sillY - 22);
     shape.lineTo(carFrontX + 14, sillY - 22);
     shape.lineTo(carFrontX, sillY - 14);
   } else {
+    // Hatchback
     shape.moveTo(carFrontX, sillY - 14);
     shape.lineTo(carFrontX, sillY + 4);
     shape.lineTo(carFrontX + 80, sillY + 12);
-    shape.lineTo(seatFrontX - 30, roofY - 2);
+    shape.lineTo(frontSeatsX - 8, roofY - 2);
     shape.lineTo(rearSillX - 35, roofY - 2);
     shape.lineTo(rearSillX - 15, roofY - 6);
     shape.lineTo(rearSillX + 2, sillY);
-    shape.lineTo(carRearX, sillY - 6);
-    shape.lineTo(carRearX - 8, sillY - 22);
+    shape.lineTo(rearBumperX, sillY - 6);
+    shape.lineTo(rearBumperX - 8, sillY - 22);
     shape.lineTo(carFrontX + 14, sillY - 22);
     shape.lineTo(carFrontX, sillY - 14);
   }
@@ -878,13 +889,14 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(carMesh);
   car3DGroup.add(carWire);
 
+  // Roof Rails (Estate & SUV)
   if (bodyType === 'estate' || bodyType === 'suv') {
-    const railGeo = new THREE.CylinderGeometry(1.8, 1.8, rearSillX - seatFrontX + 20, 12);
+    const railGeo = new THREE.CylinderGeometry(1.8, 1.8, rearSillX - frontSeatsX + 20, 12);
     const railMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.95, roughness: 0.15 });
     
     const leftRail = new THREE.Mesh(railGeo, railMat);
     leftRail.rotation.z = Math.PI / 2;
-    leftRail.position.set(0, roofY + 3.5, (totalCarWidth / 2) - 14);
+    leftRail.position.set((rearSillX + frontSeatsX) / 2, roofY + 3.5, (totalCarWidth / 2) - 14);
     
     const rightRail = leftRail.clone();
     rightRail.position.z = -(totalCarWidth / 2) + 14;
@@ -893,6 +905,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     car3DGroup.add(rightRail);
   }
 
+  // Wheels
   const wheelZOffset = (totalCarWidth / 2) + 1;
   const wheelY = wheelRadius;
 
@@ -910,6 +923,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     car3DGroup.add(wheel);
   });
 
+  // Headlights & Tail Light
   const headGeo = new THREE.BoxGeometry(6, 8, 28);
   const headMat = new THREE.MeshStandardMaterial({
     color: 0x38bdf8,
@@ -932,41 +946,46 @@ function update3DStudio(car, seatsFolded, fitResult) {
     roughness: 0.2
   });
   const tailLight = new THREE.Mesh(tailGeo, tailMat);
-  tailLight.position.set(carRearX - 2, sillY + 2, 0);
+  tailLight.position.set(rearBumperX - 2, sillY + 2, 0);
   car3DGroup.add(tailLight);
 
+  // Front Bucket Seats (Positioned on lowered cabin floor, headrest well below roof)
   const seatZOffset = (totalCarWidth / 4) - 6;
-  const seatX = seatFrontX - 45;
-  const driverSeat = createSeat3D(44, 72);
-  driverSeat.position.set(seatX, sillY, seatZOffset);
-  const passSeat = createSeat3D(44, 72);
-  passSeat.position.set(seatX, sillY, -seatZOffset);
+  const driverSeat = createSeat3D(44, 44);
+  driverSeat.position.set(frontSeatsX, cabinFloorY, seatZOffset);
+  const passSeat = createSeat3D(44, 44);
+  passSeat.position.set(frontSeatsX, cabinFloorY, -seatZOffset);
   car3DGroup.add(driverSeat);
   car3DGroup.add(passSeat);
 
+  // Dynamic Folding Rear Seat Bench
   const rearSeatGroup = new THREE.Group();
-  const rearSeatMat = new THREE.MeshStandardMaterial({ color: 0x111b2b, roughness: 0.7 });
+  const rearSeatMat = new THREE.MeshStandardMaterial({ color: 0x111b2b, roughness: 0.75 });
+  const rearHingeX = rearSillX - car.floor_length_seats_up;
 
   if (seatsFolded) {
-    const foldedGeo = new THREE.BoxGeometry(65, 12, archW + 12);
+    // Folded flat on cargo floor
+    const foldedGeo = new THREE.BoxGeometry(50, 8, archW + 10);
     const foldedMesh = new THREE.Mesh(foldedGeo, rearSeatMat);
-    foldedMesh.position.set(seatFrontX + 32, sillY + 6, 0);
+    foldedMesh.position.set(rearHingeX - 25, sillY + 4, 0);
     rearSeatGroup.add(foldedMesh);
   } else {
-    const benchBaseGeo = new THREE.BoxGeometry(45, 12, archW + 12);
+    // Upright rear bench (backrest stays well below roofline)
+    const benchBaseGeo = new THREE.BoxGeometry(38, 8, archW + 10);
     const benchBase = new THREE.Mesh(benchBaseGeo, rearSeatMat);
-    benchBase.position.set(seatFrontX + 22, sillY + 6, 0);
+    benchBase.position.set(rearHingeX + 16, sillY + 4, 0);
     rearSeatGroup.add(benchBase);
 
-    const benchBackGeo = new THREE.BoxGeometry(14, 68, archW + 8);
+    const benchBackGeo = new THREE.BoxGeometry(10, 44, archW + 8);
     const benchBack = new THREE.Mesh(benchBackGeo, rearSeatMat);
-    benchBack.position.set(seatFrontX + 4, sillY + 40, 0);
-    benchBack.rotation.z = -0.15;
+    benchBack.position.set(rearHingeX + 2, sillY + 22, 0);
+    benchBack.rotation.z = -0.12;
     rearSeatGroup.add(benchBack);
   }
   car3DGroup.add(rearSeatGroup);
 
-  const bootFloorGeo = new THREE.BoxGeometry(floorLen, 2.5, archW);
+  // Boot Cargo Floor Surface
+  const bootFloorGeo = new THREE.BoxGeometry(currentFloorLen, 2.5, archW);
   const bootFloorMat = new THREE.MeshStandardMaterial({
     color: 0x0284c7,
     roughness: 0.3,
@@ -974,33 +993,36 @@ function update3DStudio(car, seatsFolded, fitResult) {
     opacity: 0.65
   });
   const bootFloorMesh = new THREE.Mesh(bootFloorGeo, bootFloorMat);
-  bootFloorMesh.position.set(0, sillY + 1.25, 0);
+  bootFloorMesh.position.set(rearSillX - (currentFloorLen / 2), sillY + 1.25, 0);
   bootFloorMesh.add(new THREE.LineSegments(
     new THREE.EdgesGeometry(bootFloorGeo),
     new THREE.LineBasicMaterial({ color: 0x38bdf8 })
   ));
   car3DGroup.add(bootFloorMesh);
 
+  // Wheel Arch Covers
   const archThick = (totalCarWidth - archW) / 2;
-  const archBoxGeo = new THREE.BoxGeometry(56, 22, archThick);
+  const archBoxGeo = new THREE.BoxGeometry(54, 20, archThick);
   const archBoxMat = new THREE.MeshStandardMaterial({ color: 0x0a1324, roughness: 0.8 });
   
   const leftArchBox = new THREE.Mesh(archBoxGeo, archBoxMat);
-  leftArchBox.position.set(rearWheelX, sillY + 11, (archW / 2) + (archThick / 2));
+  leftArchBox.position.set(rearWheelX, sillY + 10, (archW / 2) + (archThick / 2));
   const rightArchBox = leftArchBox.clone();
   rightArchBox.position.z = -leftArchBox.position.z;
   car3DGroup.add(leftArchBox);
   car3DGroup.add(rightArchBox);
 
-  const shadowGeo = new THREE.PlaneGeometry(carRearX - carFrontX + 40, totalCarWidth + 30);
+  // Ground Ambient Occlusion Plate
+  const shadowGeo = new THREE.PlaneGeometry(rearBumperX - carFrontX + 40, totalCarWidth + 30);
   const shadowMat = new THREE.MeshBasicMaterial({ color: 0x02050b, transparent: true, opacity: 0.75 });
   const shadowPlate = new THREE.Mesh(shadowGeo, shadowMat);
   shadowPlate.rotation.x = -Math.PI / 2;
-  shadowPlate.position.set((carFrontX + carRearX) / 2, groundY + 0.2, 0);
+  shadowPlate.position.set((carFrontX + rearBumperX) / 2, groundY + 0.2, 0);
   car3DGroup.add(shadowPlate);
 
   scene.add(car3DGroup);
 
+  // Physical Cargo Box (Positioned cleanly relative to rear sill)
   if (fitResult && fitResult.rot) {
     const rot = fitResult.rot;
     const boxGeo = new THREE.BoxGeometry(rot.l, rot.h, rot.w);
@@ -1033,19 +1055,21 @@ function update3DStudio(car, seatsFolded, fitResult) {
     ));
 
     if (fitResult.mode === 'pitch') {
+      // Propped on seatback: Pivot at rear sill and pitch front edge UPWARDS
       const pivot = new THREE.Group();
-      pivot.position.set(rearSillX - 6, sillY + 2.5, 0);
+      pivot.position.set(rearSillX - 4, sillY + 2.5, 0);
       cargo3DMesh.position.set(-(rot.l / 2), rot.h / 2, 0);
       pivot.rotation.z = -(fitResult.angle * Math.PI) / 180;
       pivot.add(cargo3DMesh);
       scene.add(pivot);
       cargo3DMesh = pivot;
     } else if (fitResult.mode === 'yaw') {
-      cargo3DMesh.position.set(rearSillX - (rot.l / 2) - 6, sillY + (rot.h / 2) + 2.5, 0);
+      cargo3DMesh.position.set(rearSillX - (rot.l / 2) - 4, sillY + (rot.h / 2) + 2.5, 0);
       cargo3DMesh.rotation.y = (fitResult.angle * Math.PI) / 180;
       scene.add(cargo3DMesh);
     } else {
-      const posX = Math.max(seatFrontX + (rot.l / 2), rearSillX - (rot.l / 2) - 6);
+      // Flat orthogonal placement
+      const posX = rearSillX - (rot.l / 2) - 4;
       cargo3DMesh.position.set(posX, sillY + (rot.h / 2) + 2.5, 0);
       scene.add(cargo3DMesh);
     }
@@ -1053,14 +1077,15 @@ function update3DStudio(car, seatsFolded, fitResult) {
 }
 
 /* ==========================================================================
-   CAD 2D BLUEPRINT VECTOR VISUALIZERS (Upward Pitch & Multi-Body Geometry)
+   CAD 2D BLUEPRINT VECTOR VISUALIZERS (Static Chassis Datum)
    ========================================================================== */
 
-function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seatsFolded, bodyType) {
+function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seatsFolded, car) {
   const groundY = 205;
   const floorY = 165;
-  const rearSillX = 490;
+  const rearSillX = 490; // Fixed rear sill datum!
   const scale = 1.45;
+  const bodyType = car.body_type;
 
   const floorLenPx = floorLength * scale;
   const seatFrontX = rearSillX - floorLenPx;
@@ -1091,7 +1116,7 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
       </text>
     `;
   } else if (mode === 'colliding') {
-    const boxX = seatFrontX;
+    const boxX = Math.max(seatFrontX, rearSillX - boxLPx);
     cargoMarkup = `
       <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
             fill="url(#box-grad-red)" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,3" rx="3" />
@@ -1120,6 +1145,7 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
     `;
   }
 
+  // 2D Chassis Silhouette (Static for this car model)
   let bodyPath = '';
   let greenhousePath = '';
   let roofRail = '';
@@ -1148,6 +1174,7 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
     greenhousePath = `
       M 172 122 L 234 76 L 372 76 L 420 122 Z`;
   } else {
+    // Hatchback
     bodyPath = `
       M 45 192 L 40 176 L 42 160 L 55 145 L 165 122 L 230 68 L 415 70 L 455 74 
       L 445 82 L 495 138 L 515 148 L 510 175 L 488 192 
@@ -1160,20 +1187,20 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
   if (seatsFolded) {
     seatGraphics = `
       <path d="M ${seatFrontX} ${floorY} 
-               L ${seatFrontX - 25} ${floorY - 14} 
-               L ${seatFrontX + 50} ${floorY - 14} 
+               L ${seatFrontX - 25} ${floorY - 12} 
+               L ${seatFrontX + 50} ${floorY - 12} 
                L ${seatFrontX + 42} ${floorY} Z" 
             fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-      <circle cx="${seatFrontX - 2}" cy="${floorY - 7}" r="3" fill="#38bdf8" />
+      <circle cx="${seatFrontX - 2}" cy="${floorY - 6}" r="3" fill="#38bdf8" />
     `;
   } else {
     seatGraphics = `
       <path d="M ${seatFrontX} ${floorY} 
-               L ${seatFrontX - 10} ${floorY - 58} 
-               L ${seatFrontX - 20} ${floorY - 58} 
+               L ${seatFrontX - 10} ${floorY - 45} 
+               L ${seatFrontX - 20} ${floorY - 45} 
                L ${seatFrontX - 16} ${floorY} Z" 
             fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-      <rect x="${seatFrontX - 18}" y="${floorY - 72}" width="14" height="12" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+      <rect x="${seatFrontX - 18}" y="${floorY - 56}" width="14" height="9" rx="2" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
     `;
   }
 

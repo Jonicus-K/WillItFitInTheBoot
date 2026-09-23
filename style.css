@@ -350,7 +350,7 @@ body {
 .viewport-3d-wrap {
   position: relative;
   width: 100%;
-  height: 440px;
+  height: 460px;
   background: #060a14;
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -405,6 +405,13 @@ body {
 .cam-btn.active {
   background: rgba(56, 189, 248, 0.22);
   color: var(--color-cyan);
+}
+
+.cam-btn.x-ray-btn {
+  color: #38bdf8;
+  border-left: 1px solid rgba(56, 189, 248, 0.25);
+  margin-left: 4px;
+  padding-left: 10px;
 }
 
 .viewport-hud-bottom {

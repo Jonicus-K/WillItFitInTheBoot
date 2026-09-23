@@ -9,6 +9,10 @@ const defaultCars = [
     id: "vw-golf-mk8",
     name: "Volkswagen Golf (Mk8, 2020+)",
     body_type: "hatchback",
+    overall_length: 428,
+    overall_width: 179,
+    overall_height: 145,
+    wheelbase: 263,
     floor_length_seats_folded: 140,
     floor_length_seats_up: 77,
     wheel_arch_width: 100,
@@ -21,6 +25,10 @@ const defaultCars = [
     id: "vauxhall-corsa-f",
     name: "Vauxhall Corsa (F, 2019+)",
     body_type: "hatchback",
+    overall_length: 406,
+    overall_width: 176,
+    overall_height: 143,
+    wheelbase: 254,
     floor_length_seats_folded: 125,
     floor_length_seats_up: 66,
     wheel_arch_width: 96,
@@ -33,6 +41,10 @@ const defaultCars = [
     id: "ford-focus-estate",
     name: "Ford Focus Estate (Mk4, 2018+)",
     body_type: "estate",
+    overall_length: 467,
+    overall_width: 182,
+    overall_height: 148,
+    wheelbase: 270,
     floor_length_seats_folded: 175,
     floor_length_seats_up: 104,
     wheel_arch_width: 115,
@@ -45,6 +57,10 @@ const defaultCars = [
     id: "skoda-octavia-estate",
     name: "Škoda Octavia Estate (Mk4, 2020+)",
     body_type: "estate",
+    overall_length: 469,
+    overall_width: 183,
+    overall_height: 147,
+    wheelbase: 268,
     floor_length_seats_folded: 188,
     floor_length_seats_up: 109,
     wheel_arch_width: 101,
@@ -57,6 +73,10 @@ const defaultCars = [
     id: "nissan-qashqai-mk3",
     name: "Nissan Qashqai (Mk3, 2021+)",
     body_type: "suv",
+    overall_length: 442,
+    overall_width: 184,
+    overall_height: 162,
+    wheelbase: 266,
     floor_length_seats_folded: 153,
     floor_length_seats_up: 86,
     wheel_arch_width: 105,
@@ -69,6 +89,10 @@ const defaultCars = [
     id: "tesla-model-y",
     name: "Tesla Model Y (2021+)",
     body_type: "suv",
+    overall_length: 475,
+    overall_width: 192,
+    overall_height: 162,
+    wheelbase: 289,
     floor_length_seats_folded: 195,
     floor_length_seats_up: 108,
     wheel_arch_width: 95,
@@ -81,6 +105,10 @@ const defaultCars = [
     id: "bmw-3-series-saloon",
     name: "BMW 3 Series Saloon (G20, 2019+)",
     body_type: "saloon",
+    overall_length: 471,
+    overall_width: 183,
+    overall_height: 144,
+    wheelbase: 285,
     floor_length_seats_folded: 170,
     floor_length_seats_up: 100,
     wheel_arch_width: 94,
@@ -93,6 +121,10 @@ const defaultCars = [
     id: "audi-a4-saloon",
     name: "Audi A4 Saloon (B9, 2019+)",
     body_type: "saloon",
+    overall_length: 476,
+    overall_width: 184,
+    overall_height: 143,
+    wheelbase: 282,
     floor_length_seats_folded: 168,
     floor_length_seats_up: 98,
     wheel_arch_width: 95,
@@ -106,6 +138,7 @@ const defaultCars = [
 let vehicles = [];
 let selectedCar = null;
 let lastFitResult = null;
+let xRayOpacityLevel = 0.50; // Cycles: 0.50 -> 0.20 -> 0.95 -> 0.50
 
 // DOM Elements
 const cargoLengthInput = document.getElementById('cargo-length');
@@ -133,7 +166,8 @@ const tabBtn3d = document.getElementById('tab-btn-3d');
 const tabBtn2d = document.getElementById('tab-btn-2d');
 const view3dContainer = document.getElementById('view-3d-container');
 const view2dContainer = document.getElementById('view-2d-container');
-const camButtons = document.querySelectorAll('.cam-btn');
+const camButtons = document.querySelectorAll('.cam-btn[data-view]');
+const btnXRayToggle = document.getElementById('btn-xray-toggle');
 
 // Three.js State
 let scene, camera, renderer, controls;
@@ -191,25 +225,28 @@ function normalizeCar(raw, index = 0) {
     'floor_length_seats_folded', 'floorlengthseatsfolded', 'seats_folded_length', 'seatsfoldedlength',
     'folded_length', 'foldedlength', 'seats_down_length', 'seatsdownlength', 'boot_length_folded',
     'bootlengthfolded', 'max_cargo_length', 'maxlength', 'length_folded'
-  ], null);
+  ], 140);
 
   const floorUp = extractNumber(raw, [
     'floor_length_seats_up', 'floorlengthseatsup', 'seats_up_length', 'seatsuplength',
     'floor_length_standard', 'floorlengthstandard', 'floor_length', 'floorlength',
     'boot_length', 'bootlength', 'standard_length', 'min_length', 'minlength', 'length'
-  ], 80);
+  ], 77);
 
-  const resolvedFolded = floorFolded !== null ? floorFolded : Math.round(floorUp * 1.8);
+  const overallLength = extractNumber(raw, ['overall_length', 'overalllength', 'car_length', 'total_length'], Math.max(420, floorFolded + 270));
+  const overallWidth = extractNumber(raw, ['overall_width', 'overallwidth', 'car_width', 'total_width'], 180);
+  const overallHeight = extractNumber(raw, ['overall_height', 'overallheight', 'car_height', 'total_height'], 146);
+  const wheelbase = extractNumber(raw, ['wheelbase', 'wheel_base'], 265);
 
   const archWidth = extractNumber(raw, [
     'wheel_arch_width', 'wheelarchwidth', 'width_between_arches', 'widthbetweenwheelarches',
     'arch_width', 'archwidth', 'min_width', 'minwidth', 'boot_width', 'bootwidth', 'cargo_width', 'width'
-  ], 102);
+  ], 100);
 
   const roofHeight = extractNumber(raw, [
     'roof_height', 'roofheight', 'interior_height', 'interiorheight',
     'boot_height', 'bootheight', 'cargo_height', 'max_height', 'height'
-  ], 74);
+  ], 71);
 
   const apertureWidth = extractNumber(raw, [
     'aperture_width', 'aperturewidth', 'tailgate_width', 'tailgatewidth',
@@ -224,13 +261,17 @@ function normalizeCar(raw, index = 0) {
   const rakeAngle = extractNumber(raw, [
     'rake_angle_deg', 'rakeangledeg', 'rake_angle', 'rakeangle',
     'rear_window_angle', 'rearwindowangle', 'window_angle', 'rake', 'rear_rake'
-  ], 29.0);
+  ], 29.4);
 
   return {
     id,
     name,
     body_type,
-    floor_length_seats_folded: resolvedFolded,
+    overall_length: overallLength,
+    overall_width: overallWidth,
+    overall_height: overallHeight,
+    wheelbase: wheelbase,
+    floor_length_seats_folded: floorFolded,
     floor_length_seats_up: floorUp,
     wheel_arch_width: archWidth,
     roof_height: roofHeight,
@@ -327,6 +368,24 @@ function attachEvents() {
       snapCamera(btn.dataset.view);
     });
   });
+
+  if (btnXRayToggle) {
+    btnXRayToggle.addEventListener('click', () => {
+      if (xRayOpacityLevel === 0.50) {
+        xRayOpacityLevel = 0.20;
+        btnXRayToggle.textContent = 'X-Ray: 20%';
+      } else if (xRayOpacityLevel === 0.20) {
+        xRayOpacityLevel = 0.95;
+        btnXRayToggle.textContent = 'Solid Paint';
+      } else {
+        xRayOpacityLevel = 0.50;
+        btnXRayToggle.textContent = 'X-Ray: 50%';
+      }
+      if (selectedCar && lastFitResult) {
+        update3DStudio(selectedCar, foldSeatsCheckbox.checked, lastFitResult);
+      }
+    });
+  }
 
   window.addEventListener('resize', onWindowResize);
 }
@@ -567,7 +626,7 @@ function initThreeStudio() {
   if (!canvas || typeof THREE === 'undefined') return;
 
   const width = canvas.parentElement.clientWidth || 600;
-  const height = canvas.parentElement.clientHeight || 420;
+  const height = canvas.parentElement.clientHeight || 460;
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x060a14);
@@ -591,10 +650,11 @@ function initThreeStudio() {
     initFallbackControls(canvas);
   }
 
+  // Multi-Source Automotive Studio Lighting
   const ambientLight = new THREE.AmbientLight(0x2a3e66, 1.6);
   scene.add(ambientLight);
 
-  const keySun = new THREE.DirectionalLight(0xffffff, 1.3);
+  const keySun = new THREE.DirectionalLight(0xffffff, 1.4);
   keySun.position.set(250, 400, 250);
   scene.add(keySun);
 
@@ -602,7 +662,7 @@ function initThreeStudio() {
   fillCyan.position.set(-250, 200, -200);
   scene.add(fillCyan);
 
-  const rimLight = new THREE.DirectionalLight(0x60a5fa, 0.7);
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 0.8);
   rimLight.position.set(0, 200, -350);
   scene.add(rimLight);
 
@@ -704,9 +764,13 @@ function snapCamera(view) {
   }
 }
 
+/**
+ * Procedural Realistic 3D Wheel Assembly
+ */
 function createWheel3D(radius = 32, width = 22) {
   const wheelGroup = new THREE.Group();
 
+  // Rubber Tire
   const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 32);
   const tireMat = new THREE.MeshStandardMaterial({
     color: 0x111622,
@@ -717,6 +781,7 @@ function createWheel3D(radius = 32, width = 22) {
   tire.rotation.x = Math.PI / 2;
   wheelGroup.add(tire);
 
+  // Outer Silver Rim Ring
   const rimRingGeo = new THREE.TorusGeometry(radius * 0.72, 2.5, 16, 32);
   const rimMat = new THREE.MeshStandardMaterial({
     color: 0xd8e1ed,
@@ -726,6 +791,7 @@ function createWheel3D(radius = 32, width = 22) {
   const rimRing = new THREE.Mesh(rimRingGeo, rimMat);
   wheelGroup.add(rimRing);
 
+  // 5-Spoke Split Star Design
   const spokeGeo = new THREE.BoxGeometry(4, radius * 1.35, 3);
   for (let i = 0; i < 5; i++) {
     const spoke = new THREE.Mesh(spokeGeo, rimMat);
@@ -733,12 +799,14 @@ function createWheel3D(radius = 32, width = 22) {
     wheelGroup.add(spoke);
   }
 
+  // Steel Brake Rotor Disc
   const discGeo = new THREE.CylinderGeometry(radius * 0.55, radius * 0.55, 2, 24);
   const discMat = new THREE.MeshStandardMaterial({ color: 0x8896a6, metalness: 0.9, roughness: 0.25 });
   const disc = new THREE.Mesh(discGeo, discMat);
   disc.rotation.x = Math.PI / 2;
   wheelGroup.add(disc);
 
+  // Sport Red Caliper
   const caliperGeo = new THREE.BoxGeometry(8, 14, 5);
   const caliperMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
   const caliper = new THREE.Mesh(caliperGeo, caliperMat);
@@ -786,34 +854,37 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   car3DGroup = new THREE.Group();
 
-  const maxFoldedLen = car.floor_length_seats_folded; // Static vehicle constant!
-  const currentFloorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
+  const totalLength = car.overall_length;
+  const totalCarWidth = car.overall_width;
   const archW = car.wheel_arch_width;
   const roofH = car.roof_height;
   const bodyType = car.body_type;
+  const currentFloorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
 
   const isSUV = bodyType === 'suv';
   const groundY = 0;
   const sillY = isSUV ? 58 : 46;
   const cabinFloorY = sillY - 16;
   const wheelRadius = isSUV ? 35 : 30;
-  const totalCarWidth = Math.max(182, archW + 48);
 
-  // FIXED VEHICLE DATUM: Rear sill is always at X = 0!
-  const rearSillX = 0;
-  const rearBumperX = rearSillX + 28;
-  const frontSeatsX = rearSillX - maxFoldedLen - 30;
-  const carFrontX = frontSeatsX - (bodyType === 'estate' ? 180 : 160);
+  // FIXED VEHICLE DATUM: Rear bumper is at +X, front nose is at -X
+  const rearBumperX = 70;
+  const rearSillX = rearBumperX - 25;
+  const carFrontX = rearBumperX - totalLength;
+  const frontSeatsX = rearSillX - car.floor_length_seats_folded - 28;
   const frontWheelX = carFrontX + 85;
   const rearWheelX = rearSillX - 35;
 
-  const bodyPaintMat = new THREE.MeshStandardMaterial({
+  // Glossy Pearlescent / X-Ray Automotive Clearcoat Paint
+  const bodyPaintMat = new THREE.MeshPhysicalMaterial({
     color: 0x0f213d,
-    metalness: 0.88,
-    roughness: 0.18,
+    metalness: 0.85,
+    roughness: 0.20,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.1,
     transparent: true,
-    opacity: 0.42,
-    depthWrite: false,
+    opacity: xRayOpacityLevel,
+    depthWrite: xRayOpacityLevel > 0.8,
     side: THREE.DoubleSide
   });
 

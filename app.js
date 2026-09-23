@@ -616,7 +616,7 @@ let fallbackOrbit = {
   isDragging: false,
   prevX: 0,
   prevY: 0,
-  radius: 460,
+  radius: 260,
   theta: 0.75,
   phi: 1.15
 };
@@ -643,9 +643,9 @@ function initThreeStudio() {
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.maxPolarAngle = (Math.PI / 2) + 0.05;
-    controls.minDistance = 120;
-    controls.maxDistance = 1200;
-    controls.target.set(0, 50, 0);
+    controls.minDistance = 80;
+    controls.maxDistance = 800;
+    controls.target.set(0, 35, 0);
   } else {
     initFallbackControls(canvas);
   }
@@ -698,7 +698,7 @@ function initFallbackControls(canvas) {
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    fallbackOrbit.radius = Math.max(140, Math.min(900, fallbackOrbit.radius + e.deltaY * 0.4));
+    fallbackOrbit.radius = Math.max(80, Math.min(600, fallbackOrbit.radius + e.deltaY * 0.3));
     updateCameraFromSpherical();
   }, { passive: false });
 }
@@ -710,7 +710,7 @@ function updateCameraFromSpherical() {
   const sinTheta = Math.sin(fallbackOrbit.theta);
   const cosTheta = Math.cos(fallbackOrbit.theta);
 
-  const targetY = 50;
+  const targetY = 35;
   camera.position.x = fallbackOrbit.radius * sinPhi * cosTheta;
   camera.position.y = targetY + (fallbackOrbit.radius * cosPhi);
   camera.position.z = fallbackOrbit.radius * sinPhi * sinTheta;
@@ -753,11 +753,11 @@ function snapCamera(view) {
   }
 
   if (controls) {
-    if (view === 'side') camera.position.set(0, 50, 480);
-    else if (view === 'rear') camera.position.set(480, 50, 0);
-    else if (view === 'top') camera.position.set(0, 580, 0);
-    else camera.position.set(340, 220, 290);
-    controls.target.set(0, 50, 0);
+    if (view === 'side') camera.position.set(0, 35, 290);
+    else if (view === 'rear') camera.position.set(290, 35, 0);
+    else if (view === 'top') camera.position.set(0, 340, 0);
+    else camera.position.set(180, 110, 160);
+    controls.target.set(0, 35, 0);
     controls.update();
   } else {
     updateCameraFromSpherical();
@@ -767,7 +767,7 @@ function snapCamera(view) {
 /**
  * Procedural Realistic 3D Wheel Assembly
  */
-function createWheel3D(radius = 32, width = 22) {
+function createWheel3D(radius = 31, width = 22) {
   const wheelGroup = new THREE.Group();
 
   // Rubber Tire
@@ -843,8 +843,8 @@ function createSeat3D(width = 44, backHeight = 44) {
 }
 
 /**
- * Main 3D Studio Update: Fixed automotive datum ensures that folding seats
- * NEVER changes vehicle size or causes seats to poke through the roof.
+ * Main 3D Studio Update: Generates 1:1 scale parametric vehicle chassis,
+ * interior layout, and physical cargo placement.
  */
 function update3DStudio(car, seatsFolded, fitResult) {
   if (!scene) return;
@@ -1245,7 +1245,6 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
     greenhousePath = `
       M 172 122 L 234 76 L 372 76 L 420 122 Z`;
   } else {
-    // Hatchback
     bodyPath = `
       M 45 192 L 40 176 L 42 160 L 55 145 L 165 122 L 230 68 L 415 70 L 455 74 
       L 445 82 L 495 138 L 515 148 L 510 175 L 488 192 

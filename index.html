@@ -4,13 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Will It Fit In The Boot? - Car Boot Clearance Calculator</title>
-  <link rel="stylesheet" href="style.css" />
+  <!-- v=2 forces the browser to bypass old cached files -->
+  <link rel="stylesheet" href="style.css?v=2" />
 </head>
 <body>
   <div class="container">
     <header>
+      <div class="logo-badge">FITMENT CALCULATOR</div>
       <h1>Will It Fit In The Boot?</h1>
-      <p class="tagline">Check if boxes, TVs, or flat-pack furniture will physically fit in your car.</p>
+      <p class="tagline">Check if TVs, furniture, or appliances will physically fit in your car.</p>
     </header>
 
     <main class="grid-layout">
@@ -23,21 +25,21 @@
           <button type="button" class="btn-preset" data-l="160" data-w="95" data-h="18">65" TV Box</button>
           <button type="button" class="btn-preset" data-l="140" data-w="85" data-h="16">55" TV Box</button>
           <button type="button" class="btn-preset" data-l="85" data-w="60" data-h="60">Washing Machine</button>
-          <button type="button" class="btn-preset" data-l="106" data-w="40" data-h="28">IKEA Billy (Box)</button>
+          <button type="button" class="btn-preset" data-l="106" data-w="40" data-h="28">IKEA Billy</button>
         </div>
 
         <div class="input-grid">
           <div class="form-group">
             <label for="item-length">Length (cm)</label>
-            <input type="number" id="item-length" value="160" min="1" />
+            <input type="number" id="item-length" value="140" min="1" />
           </div>
           <div class="form-group">
             <label for="item-width">Width (cm)</label>
-            <input type="number" id="item-width" value="95" min="1" />
+            <input type="number" id="item-width" value="85" min="1" />
           </div>
           <div class="form-group">
             <label for="item-height">Height (cm)</label>
-            <input type="number" id="item-height" value="18" min="1" />
+            <input type="number" id="item-height" value="16" min="1" />
           </div>
         </div>
 
@@ -61,27 +63,27 @@
       <section class="card result-card">
         <h2>Clearance Result</h2>
         <div id="status-badge" class="badge badge-neutral">Awaiting input</div>
-        <p id="status-message">Select a vehicle and provide object dimensions to evaluate clearance.</p>
+        <p id="status-message">Select a vehicle and object dimensions to evaluate clearance.</p>
 
-        <!-- Automotive Dual Visualizer -->
+        <!-- Automotive Blueprint Dual Visualizer -->
         <div class="visualizer-container" id="visualizer-card" style="display: none;">
           <div class="visualizer-grid">
             <!-- Side Profile View -->
             <div class="vis-box">
               <div class="vis-title">
-                <span>Side Profile View</span>
+                <span>Side X-Ray (Length × Height)</span>
                 <span id="side-tag" class="vis-tag"></span>
               </div>
-              <svg id="profile-svg" viewBox="0 0 460 220" preserveAspectRatio="xMidYMid meet"></svg>
+              <svg id="profile-svg" viewBox="0 0 520 230" preserveAspectRatio="xMidYMid meet"></svg>
             </div>
 
             <!-- Rear Cross-Section View -->
             <div class="vis-box">
               <div class="vis-title">
-                <span>Rear Cross-Section</span>
+                <span>Rear Hatch (Width × Height)</span>
                 <span id="rear-tag" class="vis-tag"></span>
               </div>
-              <svg id="rear-svg" viewBox="0 0 420 220" preserveAspectRatio="xMidYMid meet"></svg>
+              <svg id="rear-svg" viewBox="0 0 440 230" preserveAspectRatio="xMidYMid meet"></svg>
             </div>
           </div>
         </div>
@@ -94,6 +96,6 @@
     </main>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

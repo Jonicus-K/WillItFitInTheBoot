@@ -2,6 +2,7 @@
   {
     "id": "vw-golf-mk8",
     "name": "Volkswagen Golf (Mk8, 2020+)",
+    "body_type": "hatchback",
     "floor_length_seats_folded": 140,
     "floor_length_seats_up": 77,
     "wheel_arch_width": 100,
@@ -11,30 +12,9 @@
     "rake_angle_deg": 29.4
   },
   {
-    "id": "ford-focus-mk4",
-    "name": "Ford Focus Hatchback (Mk4, 2018+)",
-    "floor_length_seats_folded": 146,
-    "floor_length_seats_up": 81,
-    "wheel_arch_width": 103,
-    "roof_height": 74,
-    "aperture_width": 104,
-    "aperture_height": 69,
-    "rake_angle_deg": 31.0
-  },
-  {
-    "id": "nissan-qashqai-mk3",
-    "name": "Nissan Qashqai (Mk3, 2021+)",
-    "floor_length_seats_folded": 153,
-    "floor_length_seats_up": 86,
-    "wheel_arch_width": 105,
-    "roof_height": 80,
-    "aperture_width": 108,
-    "aperture_height": 75,
-    "rake_angle_deg": 26.5
-  },
-  {
     "id": "vauxhall-corsa-f",
     "name": "Vauxhall Corsa (F, 2019+)",
+    "body_type": "hatchback",
     "floor_length_seats_folded": 125,
     "floor_length_seats_up": 66,
     "wheel_arch_width": 96,
@@ -44,8 +24,45 @@
     "rake_angle_deg": 32.0
   },
   {
+    "id": "ford-focus-estate",
+    "name": "Ford Focus Estate (Mk4, 2018+)",
+    "body_type": "estate",
+    "floor_length_seats_folded": 175,
+    "floor_length_seats_up": 104,
+    "wheel_arch_width": 115,
+    "roof_height": 78,
+    "aperture_width": 108,
+    "aperture_height": 75,
+    "rake_angle_deg": 18.0
+  },
+  {
+    "id": "skoda-octavia-estate",
+    "name": "Škoda Octavia Estate (Mk4, 2020+)",
+    "body_type": "estate",
+    "floor_length_seats_folded": 188,
+    "floor_length_seats_up": 109,
+    "wheel_arch_width": 101,
+    "roof_height": 82,
+    "aperture_width": 107,
+    "aperture_height": 78,
+    "rake_angle_deg": 16.5
+  },
+  {
+    "id": "nissan-qashqai-mk3",
+    "name": "Nissan Qashqai (Mk3, 2021+)",
+    "body_type": "suv",
+    "floor_length_seats_folded": 153,
+    "floor_length_seats_up": 86,
+    "wheel_arch_width": 105,
+    "roof_height": 80,
+    "aperture_width": 108,
+    "aperture_height": 75,
+    "rake_angle_deg": 26.5
+  },
+  {
     "id": "tesla-model-y",
     "name": "Tesla Model Y (2021+)",
+    "body_type": "suv",
     "floor_length_seats_folded": 195,
     "floor_length_seats_up": 108,
     "wheel_arch_width": 95,
@@ -53,5 +70,29 @@
     "aperture_width": 106,
     "aperture_height": 70,
     "rake_angle_deg": 35.0
+  },
+  {
+    "id": "bmw-3-series-saloon",
+    "name": "BMW 3 Series Saloon (G20, 2019+)",
+    "body_type": "saloon",
+    "floor_length_seats_folded": 170,
+    "floor_length_seats_up": 100,
+    "wheel_arch_width": 94,
+    "roof_height": 52,
+    "aperture_width": 90,
+    "aperture_height": 48,
+    "rake_angle_deg": 48.0
+  },
+  {
+    "id": "audi-a4-saloon",
+    "name": "Audi A4 Saloon (B9, 2019+)",
+    "body_type": "saloon",
+    "floor_length_seats_folded": 168,
+    "floor_length_seats_up": 98,
+    "wheel_arch_width": 95,
+    "roof_height": 53,
+    "aperture_width": 92,
+    "aperture_height": 49,
+    "rake_angle_deg": 46.5
   }
 ]

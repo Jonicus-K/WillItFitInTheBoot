@@ -4,8 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Will It Fit In The Boot? - Car Cargo Space Fitment Calculator</title>
-  <meta name="description" content="Check if TVs, furniture, appliances, or flat-pack boxes physically fit in your car boot with dual blueprint visualizers.">
-  <link rel="stylesheet" href="style.css?v=7">
+  <meta name="description" content="Check if TVs, furniture, appliances, or flat-pack boxes physically fit in your car boot with 3D interactive CAD models and dual blueprint visualizers.">
+  <link rel="stylesheet" href="style.css?v=8">
+  <!-- Three.js & OrbitControls for Client-Side 3D Model Rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -62,34 +65,72 @@
       <!-- Results & Visualizer Column -->
       <section class="results-column">
         <div class="card">
-          <h2 class="card-title">Clearance Result</h2>
+          <div class="card-header-row">
+            <h2 class="card-title">Clearance Result</h2>
+            <!-- View Mode Switcher -->
+            <div class="view-mode-tabs">
+              <button type="button" class="view-tab-btn active" id="tab-btn-3d">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                3D Interactive Studio
+              </button>
+              <button type="button" class="view-tab-btn" id="tab-btn-2d">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                2D Blueprints
+              </button>
+            </div>
+          </div>
+
           <div id="result-banner" class="result-banner will-not-fit">Will Not Fit</div>
           <p id="result-explanation" class="result-explanation">Calculating fitment...</p>
 
-          <div class="visualizers-grid">
-            <div class="visualizer-card">
-              <div class="visualizer-header">
-                <div class="visualizer-title-wrap">
-                  <span class="view-axis-indicator">CAD VIEW A-A</span>
-                  <h3>Side X-Ray (Length × Height)</h3>
-                </div>
-                <span id="side-badge" class="badge badge-colliding">Colliding</span>
+          <!-- 3D Interactive Viewport -->
+          <div id="view-3d-container" class="view-container active">
+            <div class="viewport-3d-wrap">
+              <canvas id="three-canvas"></canvas>
+              
+              <!-- Floating Camera Toolbar -->
+              <div class="camera-toolbar">
+                <button type="button" class="cam-btn active" data-view="orbit">3D Orbit</button>
+                <button type="button" class="cam-btn" data-view="side">Side</button>
+                <button type="button" class="cam-btn" data-view="rear">Rear</button>
+                <button type="button" class="cam-btn" data-view="top">Top</button>
               </div>
-              <div class="blueprint-canvas-wrap">
-                <svg id="side-svg" class="blueprint-svg" viewBox="0 0 600 240"></svg>
+
+              <!-- HUD Hints & Body Type Indicator -->
+              <div class="viewport-hud-bottom">
+                <span class="hud-hint">Drag to rotate • Scroll to zoom • Right-click to pan</span>
+                <span id="hud-body-type" class="body-type-pill">HATCHBACK</span>
               </div>
             </div>
+          </div>
 
-            <div class="visualizer-card">
-              <div class="visualizer-header">
-                <div class="visualizer-title-wrap">
-                  <span class="view-axis-indicator">CAD VIEW B-B</span>
-                  <h3>Rear Hatch (Width × Height)</h3>
+          <!-- 2D CAD Blueprints -->
+          <div id="view-2d-container" class="view-container">
+            <div class="visualizers-grid">
+              <div class="visualizer-card">
+                <div class="visualizer-header">
+                  <div class="visualizer-title-wrap">
+                    <span class="view-axis-indicator">CAD VIEW A-A</span>
+                    <h3>Side X-Ray (Length × Height)</h3>
+                  </div>
+                  <span id="side-badge" class="badge badge-colliding">Colliding</span>
                 </div>
-                <span id="rear-badge" class="badge badge-clears">Clears</span>
+                <div class="blueprint-canvas-wrap">
+                  <svg id="side-svg" class="blueprint-svg" viewBox="0 0 600 240"></svg>
+                </div>
               </div>
-              <div class="blueprint-canvas-wrap">
-                <svg id="rear-svg" class="blueprint-svg" viewBox="0 0 420 240"></svg>
+
+              <div class="visualizer-card">
+                <div class="visualizer-header">
+                  <div class="visualizer-title-wrap">
+                    <span class="view-axis-indicator">CAD VIEW B-B</span>
+                    <h3>Rear Hatch (Width × Height)</h3>
+                  </div>
+                  <span id="rear-badge" class="badge badge-clears">Clears</span>
+                </div>
+                <div class="blueprint-canvas-wrap">
+                  <svg id="rear-svg" class="blueprint-svg" viewBox="0 0 420 240"></svg>
+                </div>
               </div>
             </div>
           </div>
@@ -108,6 +149,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

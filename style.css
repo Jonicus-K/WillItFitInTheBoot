@@ -97,10 +97,59 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .card-title {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-main);
+}
+
+.view-mode-tabs {
+  display: flex;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.view-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-tab-btn svg {
+  opacity: 0.7;
+}
+
+.view-tab-btn:hover {
+  color: var(--text-main);
+}
+
+.view-tab-btn.active {
+  background: rgba(56, 189, 248, 0.16);
+  color: var(--color-cyan);
+}
+
+.view-tab-btn.active svg {
+  opacity: 1;
 }
 
 .form-group {
@@ -288,6 +337,107 @@ body {
   line-height: 1.5;
 }
 
+.view-container {
+  display: none;
+  width: 100%;
+}
+
+.view-container.active {
+  display: block;
+}
+
+/* 3D Interactive Viewport */
+.viewport-3d-wrap {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  background: #060a14;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#three-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+
+#three-canvas:active {
+  cursor: grabbing;
+}
+
+.camera-toolbar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: flex;
+  background: rgba(10, 17, 32, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+  z-index: 10;
+}
+
+.cam-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cam-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cam-btn.active {
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--color-cyan);
+}
+
+.viewport-hud-bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.hud-hint {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.body-type-pill {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--color-cyan);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+/* 2D Blueprints */
 .visualizers-grid {
   display: grid;
   grid-template-columns: 1.35fr 1fr;

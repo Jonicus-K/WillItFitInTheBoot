@@ -3,6 +3,64 @@
  * Pure client-side spatial rotation, 4-gate constraint, and dual angled solver engine.
  */
 
+const defaultCars = [
+  {
+    id: "vw-golf-mk8",
+    name: "Volkswagen Golf (Mk8, 2020+)",
+    floor_length_seats_folded: 140,
+    floor_length_seats_up: 77,
+    wheel_arch_width: 100,
+    roof_height: 71,
+    aperture_width: 102,
+    aperture_height: 67,
+    rake_angle_deg: 29.4
+  },
+  {
+    id: "ford-focus-mk4",
+    name: "Ford Focus Hatchback (Mk4, 2018+)",
+    floor_length_seats_folded: 146,
+    floor_length_seats_up: 81,
+    wheel_arch_width: 103,
+    roof_height: 74,
+    aperture_width: 104,
+    aperture_height: 69,
+    rake_angle_deg: 31.0
+  },
+  {
+    id: "nissan-qashqai-mk3",
+    name: "Nissan Qashqai (Mk3, 2021+)",
+    floor_length_seats_folded: 153,
+    floor_length_seats_up: 86,
+    wheel_arch_width: 105,
+    roof_height: 80,
+    aperture_width: 108,
+    aperture_height: 75,
+    rake_angle_deg: 26.5
+  },
+  {
+    id: "vauxhall-corsa-f",
+    name: "Vauxhall Corsa (F, 2019+)",
+    floor_length_seats_folded: 125,
+    floor_length_seats_up: 66,
+    wheel_arch_width: 96,
+    roof_height: 68,
+    aperture_width: 95,
+    aperture_height: 62,
+    rake_angle_deg: 32.0
+  },
+  {
+    id: "tesla-model-y",
+    name: "Tesla Model Y (2021+)",
+    floor_length_seats_folded: 195,
+    floor_length_seats_up: 108,
+    wheel_arch_width: 95,
+    roof_height: 72,
+    aperture_width: 106,
+    aperture_height: 70,
+    rake_angle_deg: 35.0
+  }
+];
+
 let vehicles = [];
 let selectedCar = null;
 
@@ -27,25 +85,108 @@ const specAperture = document.getElementById('spec-aperture');
 
 const presetButtons = document.querySelectorAll('.preset-btn');
 
+/**
+ * Defensive normalizer ensuring complete schema compatibility across
+ * camelCase, snake_case, or alternative property names.
+ */
+function normalizeCar(raw, index = 0) {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      id: `car-${index}`,
+      name: `Vehicle ${index + 1}`,
+      floor_length_seats_folded: 140,
+      floor_length_seats_up: 77,
+      wheel_arch_width: 100,
+      roof_height: 71,
+      aperture_width: 102,
+      aperture_height: 67,
+      rake_angle_deg: 29.4
+    };
+  }
+
+  const name = raw.name || raw.model || (raw.make ? `${raw.make} ${raw.model || ''}`.trim() : '') || raw.title || raw.vehicle || `Vehicle ${index + 1}`;
+  const id = raw.id || raw.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+  const parseDimension = (val, fallback) => {
+    const num = parseFloat(val);
+    return (!isNaN(num) && num > 0) ? num : fallback;
+  };
+
+  const floorFolded = parseDimension(
+    raw.floor_length_seats_folded ?? raw.floorLengthSeatsFolded ?? raw.floor_length_folded ?? raw.floorLengthFolded ?? raw.folded_floor_length ?? raw.foldedFloorLength ?? raw.seats_folded_length ?? raw.seatsFoldedLength ?? raw.seats_down_length ?? raw.seatsDownLength ?? raw.boot_length_folded ?? raw.bootLengthFolded ?? raw.max_length ?? raw.maxLength,
+    140
+  );
+
+  const floorUp = parseDimension(
+    raw.floor_length_seats_up ?? raw.floorLengthSeatsUp ?? raw.floor_length_standard ?? raw.floorLengthStandard ?? raw.seats_up_length ?? raw.seatsUpLength ?? raw.floor_length ?? raw.floorLength ?? raw.boot_length ?? raw.bootLength ?? raw.min_length ?? raw.minLength,
+    77
+  );
+
+  const archWidth = parseDimension(
+    raw.wheel_arch_width ?? raw.wheelArchWidth ?? raw.width_between_arches ?? raw.widthBetweenWheelArches ?? raw.arch_width ?? raw.archWidth ?? raw.min_width ?? raw.minWidth ?? raw.boot_width ?? raw.bootWidth ?? raw.width,
+    100
+  );
+
+  const roofHeight = parseDimension(
+    raw.roof_height ?? raw.roofHeight ?? raw.boot_height ?? raw.bootHeight ?? raw.interior_height ?? raw.interiorHeight ?? raw.max_height ?? raw.maxHeight ?? raw.height,
+    71
+  );
+
+  const apertureWidth = parseDimension(
+    raw.aperture_width ?? raw.apertureWidth ?? raw.tailgate_width ?? raw.tailgateWidth ?? raw.opening_width ?? raw.openingWidth ?? raw.hatch_width ?? raw.hatchWidth,
+    archWidth + 2
+  );
+
+  const apertureHeight = parseDimension(
+    raw.aperture_height ?? raw.apertureHeight ?? raw.tailgate_height ?? raw.tailgateHeight ?? raw.opening_height ?? raw.openingHeight ?? raw.hatch_height ?? raw.hatchHeight,
+    roofHeight - 4
+  );
+
+  const rakeAngle = parseDimension(
+    raw.rake_angle_deg ?? raw.rakeAngleDeg ?? raw.rake_angle ?? raw.rakeAngle ?? raw.rear_window_angle ?? raw.window_angle ?? raw.rear_rake ?? raw.rake,
+    29.4
+  );
+
+  return {
+    id,
+    name,
+    floor_length_seats_folded: floorFolded,
+    floor_length_seats_up: floorUp,
+    wheel_arch_width: archWidth,
+    roof_height: roofHeight,
+    aperture_width: apertureWidth,
+    aperture_height: apertureHeight,
+    rake_angle_deg: rakeAngle
+  };
+}
+
 async function init() {
   try {
     const res = await fetch('data/cars.json');
-    vehicles = await res.json();
+    if (!res.ok) {
+      throw new Error(`HTTP error: ${res.status}`);
+    }
+    const rawData = await res.json();
+    let carArray = [];
+
+    if (Array.isArray(rawData)) {
+      carArray = rawData;
+    } else if (rawData && Array.isArray(rawData.cars)) {
+      carArray = rawData.cars;
+    } else if (rawData && Array.isArray(rawData.vehicles)) {
+      carArray = rawData.vehicles;
+    } else if (rawData && typeof rawData === 'object') {
+      carArray = Object.keys(rawData).map(key => ({ id: key, ...rawData[key] }));
+    }
+
+    vehicles = carArray.map((car, idx) => normalizeCar(car, idx));
   } catch (err) {
-    console.error('Failed to load cars.json, using fallback data:', err);
-    vehicles = [
-      {
-        id: "vw-golf-mk8",
-        name: "Volkswagen Golf (Mk8, 2020+)",
-        floor_length_seats_folded: 140,
-        floor_length_seats_up: 77,
-        wheel_arch_width: 100,
-        roof_height: 71,
-        aperture_width: 102,
-        aperture_height: 67,
-        rake_angle_deg: 29.4
-      }
-    ];
+    console.warn('Unable to load external cars.json, initializing built-in vehicle registry:', err);
+    vehicles = defaultCars.map((car, idx) => normalizeCar(car, idx));
+  }
+
+  if (!vehicles || vehicles.length === 0) {
+    vehicles = defaultCars.map((car, idx) => normalizeCar(car, idx));
   }
 
   carSelect.innerHTML = vehicles
@@ -250,7 +391,7 @@ function evaluateFitment() {
     if (bestYawFit) break;
   }
 
-  // Decide Angled Outcome
+  // Evaluate Angled Fitment Outcomes
   if (bestPitchFit) {
     resultBanner.className = 'result-banner fits-angled';
     resultBanner.textContent = `Fits at an Angle (Tilted ~${bestPitchFit.angle}°)`;
@@ -296,8 +437,6 @@ function evaluateFitment() {
 }
 
 function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle) {
-  const svgW = 540;
-  const svgH = 220;
   const floorY = 175;
   const rearSillX = 430;
   const scale = 1.6;
@@ -316,7 +455,7 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle) {
     const pivotX = rearSillX - 10;
     const pivotY = floorY;
     cargoMarkup = `
-      <g transform="rotate(${angle}, ${pivotX}, ${pivotY})">
+      <g transform="rotate(-${angle}, ${pivotX}, ${pivotY})">
         <rect x="${pivotX - boxLPx}" y="${pivotY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
               fill="rgba(56, 189, 248, 0.35)" stroke="#38bdf8" stroke-width="2" rx="3" />
         <text x="${pivotX - (boxLPx / 2)}" y="${pivotY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">
@@ -353,7 +492,7 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle) {
     <!-- Ground Line -->
     <line x1="20" y1="195" x2="520" y2="195" stroke="#1e293b" stroke-width="2" />
 
-    <!-- Vehicle Outer Contour (Hatchback/SUV Silhouette) -->
+    <!-- Vehicle Outer Contour Silhouette -->
     <path d="M 60 175 
              L 75 140 
              Q 110 135 150 120 
@@ -398,13 +537,11 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle) {
 
 function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColliding) {
   const svgW = 380;
-  const svgH = 220;
   const centerX = svgW / 2;
   const floorY = 175;
   const scale = 1.35;
 
   const archWPx = archWidth * scale;
-  const roofHPx = roofHeight * scale;
   const apWPx = apWidth * scale;
   const apHPx = apHeight * scale;
 

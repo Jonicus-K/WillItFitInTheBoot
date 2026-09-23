@@ -305,7 +305,6 @@ function attachEvents() {
     });
   });
 
-  // View Mode Tabs (3D vs 2D)
   tabBtn3d.addEventListener('click', () => {
     tabBtn3d.classList.add('active');
     tabBtn2d.classList.remove('active');
@@ -321,7 +320,6 @@ function attachEvents() {
     view3dContainer.classList.remove('active');
   });
 
-  // Camera toolbar buttons
   camButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       camButtons.forEach(b => b.classList.remove('active'));
@@ -581,7 +579,6 @@ function initThreeStudio() {
   renderer.setSize(width, height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-  // Initialize OrbitControls or smooth fallback
   if (typeof THREE.OrbitControls !== 'undefined') {
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -594,7 +591,6 @@ function initThreeStudio() {
     initFallbackControls(canvas);
   }
 
-  // Multi-Source Automotive Studio Lighting
   const ambientLight = new THREE.AmbientLight(0x2a3e66, 1.6);
   scene.add(ambientLight);
 
@@ -610,7 +606,6 @@ function initThreeStudio() {
   rimLight.position.set(0, 200, -350);
   scene.add(rimLight);
 
-  // High-Tech Floor Blueprint Grid
   const grid = new THREE.GridHelper(900, 45, 0x1e3a5f, 0x0c1729);
   grid.position.y = -0.5;
   scene.add(grid);
@@ -709,13 +704,9 @@ function snapCamera(view) {
   }
 }
 
-/**
- * Procedural Realistic 3D Wheel Assembly
- */
 function createWheel3D(radius = 32, width = 22) {
   const wheelGroup = new THREE.Group();
 
-  // Rubber Tire
   const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 32);
   const tireMat = new THREE.MeshStandardMaterial({
     color: 0x111622,
@@ -726,7 +717,6 @@ function createWheel3D(radius = 32, width = 22) {
   tire.rotation.x = Math.PI / 2;
   wheelGroup.add(tire);
 
-  // Outer Silver Rim Ring
   const rimRingGeo = new THREE.TorusGeometry(radius * 0.72, 2.5, 16, 32);
   const rimMat = new THREE.MeshStandardMaterial({
     color: 0xd8e1ed,
@@ -736,7 +726,6 @@ function createWheel3D(radius = 32, width = 22) {
   const rimRing = new THREE.Mesh(rimRingGeo, rimMat);
   wheelGroup.add(rimRing);
 
-  // 5-Spoke Star Design
   const spokeGeo = new THREE.BoxGeometry(4, radius * 1.35, 3);
   for (let i = 0; i < 5; i++) {
     const spoke = new THREE.Mesh(spokeGeo, rimMat);
@@ -744,14 +733,12 @@ function createWheel3D(radius = 32, width = 22) {
     wheelGroup.add(spoke);
   }
 
-  // Steel Brake Rotor Disc
   const discGeo = new THREE.CylinderGeometry(radius * 0.55, radius * 0.55, 2, 24);
   const discMat = new THREE.MeshStandardMaterial({ color: 0x8896a6, metalness: 0.9, roughness: 0.25 });
   const disc = new THREE.Mesh(discGeo, discMat);
   disc.rotation.x = Math.PI / 2;
   wheelGroup.add(disc);
 
-  // Sport Red Caliper
   const caliperGeo = new THREE.BoxGeometry(8, 14, 5);
   const caliperMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
   const caliper = new THREE.Mesh(caliperGeo, caliperMat);
@@ -761,27 +748,21 @@ function createWheel3D(radius = 32, width = 22) {
   return wheelGroup;
 }
 
-/**
- * Procedural Realistic Interior Front Bucket Seat
- */
 function createSeat3D(width = 46, height = 75) {
   const seatGroup = new THREE.Group();
   const seatMat = new THREE.MeshStandardMaterial({ color: 0x141e30, roughness: 0.7 });
 
-  // Base Cushion
   const cushionGeo = new THREE.BoxGeometry(45, 12, width);
   const cushion = new THREE.Mesh(cushionGeo, seatMat);
   cushion.position.y = 6;
   seatGroup.add(cushion);
 
-  // Backrest
   const backGeo = new THREE.BoxGeometry(14, height, width - 4);
   const back = new THREE.Mesh(backGeo, seatMat);
   back.position.set(16, (height / 2) + 6, 0);
-  back.rotation.z = 0.12; // Slight ergonomic recline
+  back.rotation.z = 0.12;
   seatGroup.add(back);
 
-  // Headrest
   const headrestGeo = new THREE.BoxGeometry(10, 16, 22);
   const headrest = new THREE.Mesh(headrestGeo, seatMat);
   headrest.position.set(22, height + 18, 0);
@@ -790,10 +771,6 @@ function createSeat3D(width = 46, height = 75) {
   return seatGroup;
 }
 
-/**
- * Main 3D Studio Update: Generates 1:1 scale parametric vehicle chassis,
- * interior layout, and physical cargo placement.
- */
 function update3DStudio(car, seatsFolded, fitResult) {
   if (!scene) return;
 
@@ -807,24 +784,20 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const roofH = car.roof_height;
   const bodyType = car.body_type;
 
-  // Real-world datum metrics (1 unit = 1 cm)
   const isSUV = bodyType === 'suv';
   const groundY = 0;
   const sillY = isSUV ? 64 : 52;
   const wheelRadius = isSUV ? 36 : 31;
   const totalCarWidth = Math.max(182, archW + 48);
 
-  // Center cargo floor in world space: Rear sill is at +X, front seat divider is at -X
   const rearSillX = floorLen / 2;
   const seatFrontX = -floorLen / 2;
   const carFrontX = seatFrontX - (bodyType === 'estate' ? 180 : 160);
   const carRearX = rearSillX + 30;
 
-  // Wheelbase positioning
   const frontWheelX = carFrontX + 85;
   const rearWheelX = rearSillX - 25;
 
-  /* 1. Translucent Glossy Automotive Paint Material */
   const bodyPaintMat = new THREE.MeshStandardMaterial({
     color: 0x0f213d,
     metalness: 0.88,
@@ -841,25 +814,22 @@ function update3DStudio(car, seatsFolded, fitResult) {
     opacity: 0.65
   });
 
-  /* 2. Procedural Aerodynamic Body Silhouette by Vehicle Class */
   const shape = new THREE.Shape();
   const roofY = sillY + roofH;
 
   if (bodyType === 'estate') {
-    // Estate / Station Wagon: Long hood, extended roofline, vertical cargo tailgate
     shape.moveTo(carFrontX, sillY - 14);
     shape.lineTo(carFrontX, sillY + 4);
-    shape.lineTo(carFrontX + 85, sillY + 14); // Cowl point
-    shape.lineTo(seatFrontX - 35, roofY - 2); // Raked A-pillar
-    shape.lineTo(rearSillX - 10, roofY);     // Long flat roof
-    shape.lineTo(rearSillX + 12, roofY - 4);  // Integrated roof spoiler
-    shape.lineTo(rearSillX + 2, sillY);      // Steep hatch glass
-    shape.lineTo(carRearX, sillY - 6);       // Rear bumper
-    shape.lineTo(carRearX - 8, sillY - 22);  // Rear lower valance
-    shape.lineTo(carFrontX + 14, sillY - 22);// Underside
+    shape.lineTo(carFrontX + 85, sillY + 14);
+    shape.lineTo(seatFrontX - 35, roofY - 2);
+    shape.lineTo(rearSillX - 10, roofY);
+    shape.lineTo(rearSillX + 12, roofY - 4);
+    shape.lineTo(rearSillX + 2, sillY);
+    shape.lineTo(carRearX, sillY - 6);
+    shape.lineTo(carRearX - 8, sillY - 22);
+    shape.lineTo(carFrontX + 14, sillY - 22);
     shape.lineTo(carFrontX, sillY - 14);
   } else if (bodyType === 'suv') {
-    // SUV / Crossover: High ground clearance, muscular hood, upright stance
     shape.moveTo(carFrontX, sillY - 12);
     shape.lineTo(carFrontX, sillY + 12);
     shape.lineTo(carFrontX + 80, sillY + 22);
@@ -872,20 +842,18 @@ function update3DStudio(car, seatsFolded, fitResult) {
     shape.lineTo(carFrontX + 16, sillY - 24);
     shape.lineTo(carFrontX, sillY - 12);
   } else if (bodyType === 'saloon') {
-    // Saloon / Sedan: 3-Box profile with distinct horizontal boot deck lid
     shape.moveTo(carFrontX, sillY - 14);
     shape.lineTo(carFrontX, sillY + 4);
     shape.lineTo(carFrontX + 85, sillY + 14);
     shape.lineTo(seatFrontX - 35, roofY - 4);
-    shape.lineTo(seatFrontX + 40, roofY - 4); // Curved roof
-    shape.lineTo(rearSillX - 45, sillY + 8);  // Sloping rear glass
-    shape.lineTo(rearSillX + 14, sillY + 7);  // Horizontal boot deck lid
-    shape.lineTo(carRearX, sillY - 4);       // Trunk drop
+    shape.lineTo(seatFrontX + 40, roofY - 4);
+    shape.lineTo(rearSillX - 45, sillY + 8);
+    shape.lineTo(rearSillX + 14, sillY + 7);
+    shape.lineTo(carRearX, sillY - 4);
     shape.lineTo(carRearX - 8, sillY - 22);
     shape.lineTo(carFrontX + 14, sillY - 22);
     shape.lineTo(carFrontX, sillY - 14);
   } else {
-    // Hatchback: Compact, aerodynamic, raked tailgate
     shape.moveTo(carFrontX, sillY - 14);
     shape.lineTo(carFrontX, sillY + 4);
     shape.lineTo(carFrontX + 80, sillY + 12);
@@ -910,7 +878,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(carMesh);
   car3DGroup.add(carWire);
 
-  /* 3. Roof Rails (for Estate & SUV) */
   if (bodyType === 'estate' || bodyType === 'suv') {
     const railGeo = new THREE.CylinderGeometry(1.8, 1.8, rearSillX - seatFrontX + 20, 12);
     const railMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.95, roughness: 0.15 });
@@ -926,7 +893,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
     car3DGroup.add(rightRail);
   }
 
-  /* 4. Realistic 3D Alloy Wheels (4 Corners) */
   const wheelZOffset = (totalCarWidth / 2) + 1;
   const wheelY = wheelRadius;
 
@@ -944,8 +910,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
     car3DGroup.add(wheel);
   });
 
-  /* 5. Modern LED Light Signatures */
-  // Front Dual LED Headlights
   const headGeo = new THREE.BoxGeometry(6, 8, 28);
   const headMat = new THREE.MeshStandardMaterial({
     color: 0x38bdf8,
@@ -960,7 +924,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(leftHead);
   car3DGroup.add(rightHead);
 
-  // Rear Continuous LED Lightbar
   const tailGeo = new THREE.BoxGeometry(6, 6, totalCarWidth - 36);
   const tailMat = new THREE.MeshStandardMaterial({
     color: 0xef4444,
@@ -972,8 +935,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
   tailLight.position.set(carRearX - 2, sillY + 2, 0);
   car3DGroup.add(tailLight);
 
-  /* 6. Realistic Cabin Interior Layout */
-  // Front Bucket Seats
   const seatZOffset = (totalCarWidth / 4) - 6;
   const seatX = seatFrontX - 45;
   const driverSeat = createSeat3D(44, 72);
@@ -983,18 +944,15 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(driverSeat);
   car3DGroup.add(passSeat);
 
-  // Rear Seats (Folding Dynamic Geometry)
   const rearSeatGroup = new THREE.Group();
   const rearSeatMat = new THREE.MeshStandardMaterial({ color: 0x111b2b, roughness: 0.7 });
 
   if (seatsFolded) {
-    // Folded flat on cargo floor
     const foldedGeo = new THREE.BoxGeometry(65, 12, archW + 12);
     const foldedMesh = new THREE.Mesh(foldedGeo, rearSeatMat);
     foldedMesh.position.set(seatFrontX + 32, sillY + 6, 0);
     rearSeatGroup.add(foldedMesh);
   } else {
-    // Upright rear bench with headrests
     const benchBaseGeo = new THREE.BoxGeometry(45, 12, archW + 12);
     const benchBase = new THREE.Mesh(benchBaseGeo, rearSeatMat);
     benchBase.position.set(seatFrontX + 22, sillY + 6, 0);
@@ -1008,7 +966,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
   }
   car3DGroup.add(rearSeatGroup);
 
-  /* 7. Dedicated Boot Floor Tray & Wheel Arch Intrusions */
   const bootFloorGeo = new THREE.BoxGeometry(floorLen, 2.5, archW);
   const bootFloorMat = new THREE.MeshStandardMaterial({
     color: 0x0284c7,
@@ -1024,7 +981,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
   ));
   car3DGroup.add(bootFloorMesh);
 
-  // Left & Right Wheel Well Boxes
   const archThick = (totalCarWidth - archW) / 2;
   const archBoxGeo = new THREE.BoxGeometry(56, 22, archThick);
   const archBoxMat = new THREE.MeshStandardMaterial({ color: 0x0a1324, roughness: 0.8 });
@@ -1036,7 +992,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(leftArchBox);
   car3DGroup.add(rightArchBox);
 
-  // Ground Ambient Occlusion Shadow Plate
   const shadowGeo = new THREE.PlaneGeometry(carRearX - carFrontX + 40, totalCarWidth + 30);
   const shadowMat = new THREE.MeshBasicMaterial({ color: 0x02050b, transparent: true, opacity: 0.75 });
   const shadowPlate = new THREE.Mesh(shadowGeo, shadowMat);
@@ -1046,7 +1001,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   scene.add(car3DGroup);
 
-  /* 8. Physical 3D Cargo Payload Render */
   if (fitResult && fitResult.rot) {
     const rot = fitResult.rot;
     const boxGeo = new THREE.BoxGeometry(rot.l, rot.h, rot.w);
@@ -1079,21 +1033,18 @@ function update3DStudio(car, seatsFolded, fitResult) {
     ));
 
     if (fitResult.mode === 'pitch') {
-      // Propped on seatbacks: Pivot at rear sill and pitch front edge UPWARDS
       const pivot = new THREE.Group();
       pivot.position.set(rearSillX - 6, sillY + 2.5, 0);
       cargo3DMesh.position.set(-(rot.l / 2), rot.h / 2, 0);
-      pivot.rotation.z = -(fitResult.angle * Math.PI) / 180; // Negative Z in Three.js tilts front UPWARDS
+      pivot.rotation.z = -(fitResult.angle * Math.PI) / 180;
       pivot.add(cargo3DMesh);
       scene.add(pivot);
       cargo3DMesh = pivot;
     } else if (fitResult.mode === 'yaw') {
-      // Rotated horizontally across boot floor diagonal
       cargo3DMesh.position.set(rearSillX - (rot.l / 2) - 6, sillY + (rot.h / 2) + 2.5, 0);
       cargo3DMesh.rotation.y = (fitResult.angle * Math.PI) / 180;
       scene.add(cargo3DMesh);
     } else {
-      // Standard flat orthogonal placement
       const posX = Math.max(seatFrontX + (rot.l / 2), rearSillX - (rot.l / 2) - 6);
       cargo3DMesh.position.set(posX, sillY + (rot.h / 2) + 2.5, 0);
       scene.add(cargo3DMesh);
@@ -1124,7 +1075,6 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
   if (mode === 'pitch') {
     const pivotX = rearSillX - 8;
     const pivotY = floorY;
-    // Positive angle rotates clockwise (UPWARDS towards roof in SVG coordinate space)
     cargoMarkup = `
       <g transform="rotate(${angle}, ${pivotX}, ${pivotY})">
         <rect x="${pivotX - boxLPx}" y="${pivotY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
@@ -1198,7 +1148,6 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
     greenhousePath = `
       M 172 122 L 234 76 L 372 76 L 420 122 Z`;
   } else {
-    // Hatchback
     bodyPath = `
       M 45 192 L 40 176 L 42 160 L 55 145 L 165 122 L 230 68 L 415 70 L 455 74 
       L 445 82 L 495 138 L 515 148 L 510 175 L 488 192 
@@ -1276,22 +1225,18 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
     <rect width="600" height="240" fill="#070c18" />
     <rect width="600" height="240" fill="url(#grid-side)" />
 
-    <!-- Corner Blueprint Crop Marks -->
     <path d="M 12 20 L 22 20 M 22 10 L 22 20" stroke="#2a3c5a" stroke-width="1.5" />
     <path d="M 588 20 L 578 20 M 578 10 L 578 20" stroke="#2a3c5a" stroke-width="1.5" />
     <path d="M 12 220 L 22 220 M 22 230 L 22 220" stroke="#2a3c5a" stroke-width="1.5" />
     <path d="M 588 220 L 578 220 M 578 230 L 578 220" stroke="#2a3c5a" stroke-width="1.5" />
 
-    <!-- Ground Level -->
     <line x1="25" y1="${groundY}" x2="575" y2="${groundY}" stroke="#1e2c47" stroke-width="2" />
     <line x1="25" y1="${groundY + 4}" x2="575" y2="${groundY + 4}" stroke="#10192a" stroke-dasharray="3,3" stroke-width="1" />
 
-    <!-- Car Body Silhouette & Tinted Greenhouse -->
     <path d="${bodyPath}" fill="url(#body-grad)" stroke="#2a3f66" stroke-width="2" />
     <path d="${greenhousePath}" fill="url(#glass-grad)" stroke="#203352" stroke-width="1.5" />
     ${roofRail}
 
-    <!-- Alloy Wheels -->
     <circle cx="125" cy="178" r="27" fill="#080e1a" stroke="#1e2c47" stroke-width="3" />
     <circle cx="125" cy="178" r="17" fill="#111c2e" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="6,4" />
     <circle cx="125" cy="178" r="7" fill="#1e2c47" />
@@ -1300,15 +1245,12 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
     <circle cx="450" cy="178" r="17" fill="#111c2e" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="6,4" />
     <circle cx="450" cy="178" r="7" fill="#1e2c47" />
 
-    <!-- Headlight & Tail Light -->
     <polygon points="42,160 55,145 62,156" fill="#38bdf8" opacity="0.9" filter="url(#glow-cyan)" />
     <polygon points="515,148 495,138 497,152" fill="#ef4444" opacity="0.95" />
 
-    <!-- Cargo Floor Beam -->
     <line x1="${seatFrontX}" y1="${floorY}" x2="${rearSillX}" y2="${floorY}" stroke="#38bdf8" stroke-width="3" />
     <line x1="${seatFrontX}" y1="${floorY + 2}" x2="${rearSillX}" y2="${floorY + 2}" stroke="#0369a1" stroke-width="1" />
     
-    <!-- Floor Length CAD Dimension Callout -->
     <line x1="${seatFrontX}" y1="${floorY + 16}" x2="${rearSillX}" y2="${floorY + 16}" stroke="#64748b" stroke-width="1" />
     <line x1="${seatFrontX}" y1="${floorY + 10}" x2="${seatFrontX}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
     <line x1="${rearSillX}" y1="${floorY + 10}" x2="${rearSillX}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
@@ -1316,14 +1258,11 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
       FLOOR ${floorLength} cm
     </text>
 
-    <!-- Ceiling Limit Line & Rear Window Clearance Vector -->
     <line x1="${seatFrontX}" y1="${roofY}" x2="${glassTopX}" y2="${roofY}" stroke="#334b73" stroke-dasharray="4,4" stroke-width="1.5" />
     <line x1="${rearSillX}" y1="${floorY}" x2="${glassTopX}" y2="${roofY}" stroke="#38bdf8" stroke-dasharray="4,3" stroke-width="1.8" />
 
-    <!-- Seats Geometry Graphic -->
     ${seatGraphics}
 
-    <!-- Cargo Payload -->
     ${cargoMarkup}
   `;
 }
@@ -1362,7 +1301,6 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColl
       M 88 192 L 48 168 L 46 142 L 65 132 L 120 74 L 300 74 L 355 132 L 374 142 L 372 168 L 332 192 Z`;
     rearWindowPoly = `points="130,80 290,80 335,124 85,124"`;
   } else {
-    // Hatchback
     rearBodyPath = `
       M 88 192 L 48 168 L 46 138 L 65 130 L 115 68 L 305 68 L 355 130 L 374 138 L 372 168 L 332 192 Z`;
     rearWindowPoly = `points="126,74 294,74 340,122 80,122"`;
@@ -1402,36 +1340,26 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColl
     <rect width="420" height="240" fill="#070c18" />
     <rect width="420" height="240" fill="url(#grid-rear)" />
 
-    <!-- Corner Blueprint Crop Marks -->
     <path d="M 12 20 L 22 20 M 22 10 L 22 20" stroke="#2a3c5a" stroke-width="1.5" />
     <path d="M 408 20 L 398 20 M 398 10 L 398 20" stroke="#2a3c5a" stroke-width="1.5" />
     <path d="M 12 220 L 22 220 M 22 230 L 22 220" stroke="#2a3c5a" stroke-width="1.5" />
     <path d="M 408 220 L 398 220 M 398 230 L 398 220" stroke="#2a3c5a" stroke-width="1.5" />
 
-    <!-- Ground Level -->
     <line x1="25" y1="${groundY}" x2="395" y2="${groundY}" stroke="#1e2c47" stroke-width="2" />
 
-    <!-- Rear Tires -->
     <rect x="55" y="158" width="33" height="47" rx="4" fill="#080e1a" stroke="#1e2c47" stroke-width="2" />
     <rect x="332" y="158" width="33" height="47" rx="4" fill="#080e1a" stroke="#1e2c47" stroke-width="2" />
 
-    <!-- Vehicle Rear Body Stance -->
     <path d="${rearBodyPath}" fill="url(#body-rear-grad)" stroke="#2a3f66" stroke-width="2" />
-
-    <!-- Roof Shark Fin -->
     <path d="M 207 66 L 210 52 L 214 66 Z" fill="#1b283d" stroke="#2a3f66" stroke-width="1.5" />
 
-    <!-- Rear Hatch Window -->
     <polygon ${rearWindowPoly} fill="url(#glass-grad)" stroke="#203352" stroke-width="1.5" />
 
-    <!-- Rear LED Lightbar -->
     <rect x="50" y="132" width="320" height="9" rx="3" fill="url(#rear-lightbar)" opacity="0.9" />
 
-    <!-- Rear Aperture Trunk Opening Frame -->
     <rect x="${centerX - (apWPx / 2)}" y="${floorY - apHPx}" width="${apWPx}" height="${apHPx}" 
           fill="#060b16" stroke="#334b73" stroke-dasharray="5,4" stroke-width="1.8" rx="6" />
 
-    <!-- Wheel Arch Intrusions -->
     <path d="M ${centerX - (apWPx / 2)} ${floorY} 
              L ${centerX - (archWPx / 2)} ${floorY} 
              C ${centerX - (archWPx / 2) + 6} ${floorY - 20}, ${centerX - (archWPx / 2) - 2} ${floorY - 36}, ${centerX - (apWPx / 2)} ${floorY - 38} Z" 
@@ -1442,7 +1370,6 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColl
              C ${centerX + (archWPx / 2) - 6} ${floorY - 20}, ${centerX + (archWPx / 2) + 2} ${floorY - 36}, ${centerX + (apWPx / 2)} ${floorY - 38} Z" 
           fill="#111c2e" stroke="#38bdf8" stroke-width="1.5" />
 
-    <!-- Wheel Arch Width CAD Dimension -->
     <line x1="${centerX - (archWPx / 2)}" y1="${floorY + 16}" x2="${centerX + (archWPx / 2)}" y2="${floorY + 16}" stroke="#64748b" stroke-width="1" />
     <line x1="${centerX - (archWPx / 2)}" y1="${floorY + 10}" x2="${centerX - (archWPx / 2)}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
     <line x1="${centerX + (archWPx / 2)}" y1="${floorY + 10}" x2="${centerX + (archWPx / 2)}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
@@ -1450,7 +1377,6 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColl
       ARCHES ${archWidth} cm
     </text>
 
-    <!-- Cargo Box Payload -->
     <rect x="${boxLeftX}" y="${floorY - boxHPx}" width="${boxWPx}" height="${boxHPx}" 
           fill="${boxFill}" stroke="${boxStroke}" stroke-width="2" rx="3" ${boxGlow} />
 

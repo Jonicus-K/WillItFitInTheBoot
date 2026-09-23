@@ -350,7 +350,7 @@ body {
 .viewport-3d-wrap {
   position: relative;
   width: 100%;
-  height: 420px;
+  height: 440px;
   background: #060a14;
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -373,9 +373,9 @@ body {
   top: 14px;
   left: 14px;
   display: flex;
-  background: rgba(10, 17, 32, 0.85);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  backdrop-filter: blur(8px);
+  background: rgba(10, 17, 32, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  backdrop-filter: blur(10px);
   border-radius: 8px;
   padding: 4px;
   gap: 4px;
@@ -387,7 +387,7 @@ body {
   color: var(--text-dim);
   border: none;
   border-radius: 6px;
-  padding: 5px 10px;
+  padding: 6px 11px;
   font-size: 0.76rem;
   font-weight: 700;
   font-family: var(--font-mono);
@@ -399,11 +399,11 @@ body {
 
 .cam-btn:hover {
   color: var(--text-main);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .cam-btn.active {
-  background: rgba(56, 189, 248, 0.2);
+  background: rgba(56, 189, 248, 0.22);
   color: var(--color-cyan);
 }
 

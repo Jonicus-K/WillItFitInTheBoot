@@ -86,71 +86,89 @@ const specAperture = document.getElementById('spec-aperture');
 const presetButtons = document.querySelectorAll('.preset-btn');
 
 /**
- * Defensive normalizer ensuring complete schema compatibility across
- * camelCase, snake_case, or alternative property names.
+ * Case-insensitive, multi-tier schema property extractor that safely
+ * traverses flat keys, underscored keys, and nested sub-objects.
  */
+function extractNumber(obj, candidateKeys, fallback) {
+  if (!obj || typeof obj !== 'object') return fallback;
+
+  const objectKeys = Object.keys(obj);
+  const normalizedKeyMap = objectKeys.map(k => ({
+    original: k,
+    clean: k.toLowerCase().replace(/[^a-z0-9]/g, '')
+  }));
+
+  for (const candidate of candidateKeys) {
+    const cleanCand = candidate.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const found = normalizedKeyMap.find(k => k.clean === cleanCand);
+    if (found) {
+      const val = parseFloat(obj[found.original]);
+      if (!isNaN(val) && val > 0) return val;
+    }
+  }
+
+  const subObjects = ['boot', 'cargo', 'dimensions', 'specs', 'measurements', 'interior', 'seats_folded', 'folded'];
+  for (const sub of subObjects) {
+    if (obj[sub] && typeof obj[sub] === 'object') {
+      const nestedVal = extractNumber(obj[sub], candidateKeys, null);
+      if (nestedVal !== null) return nestedVal;
+    }
+  }
+
+  return fallback;
+}
+
 function normalizeCar(raw, index = 0) {
   if (!raw || typeof raw !== 'object') {
-    return {
-      id: `car-${index}`,
-      name: `Vehicle ${index + 1}`,
-      floor_length_seats_folded: 140,
-      floor_length_seats_up: 77,
-      wheel_arch_width: 100,
-      roof_height: 71,
-      aperture_width: 102,
-      aperture_height: 67,
-      rake_angle_deg: 29.4
-    };
+    return defaultCars[index % defaultCars.length];
   }
 
   const name = raw.name || raw.model || (raw.make ? `${raw.make} ${raw.model || ''}`.trim() : '') || raw.title || raw.vehicle || `Vehicle ${index + 1}`;
-  const id = raw.id || raw.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const id = String(raw.id || raw.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
 
-  const parseDimension = (val, fallback) => {
-    const num = parseFloat(val);
-    return (!isNaN(num) && num > 0) ? num : fallback;
-  };
+  const floorFolded = extractNumber(raw, [
+    'floor_length_seats_folded', 'floorlengthseatsfolded', 'seats_folded_length', 'seatsfoldedlength',
+    'folded_length', 'foldedlength', 'seats_down_length', 'seatsdownlength', 'boot_length_folded',
+    'bootlengthfolded', 'max_cargo_length', 'maxlength', 'length_folded'
+  ], null);
 
-  const floorFolded = parseDimension(
-    raw.floor_length_seats_folded ?? raw.floorLengthSeatsFolded ?? raw.floor_length_folded ?? raw.floorLengthFolded ?? raw.folded_floor_length ?? raw.foldedFloorLength ?? raw.seats_folded_length ?? raw.seatsFoldedLength ?? raw.seats_down_length ?? raw.seatsDownLength ?? raw.boot_length_folded ?? raw.bootLengthFolded ?? raw.max_length ?? raw.maxLength,
-    140
-  );
+  const floorUp = extractNumber(raw, [
+    'floor_length_seats_up', 'floorlengthseatsup', 'seats_up_length', 'seatsuplength',
+    'floor_length_standard', 'floorlengthstandard', 'floor_length', 'floorlength',
+    'boot_length', 'bootlength', 'standard_length', 'min_length', 'minlength', 'length'
+  ], 80);
 
-  const floorUp = parseDimension(
-    raw.floor_length_seats_up ?? raw.floorLengthSeatsUp ?? raw.floor_length_standard ?? raw.floorLengthStandard ?? raw.seats_up_length ?? raw.seatsUpLength ?? raw.floor_length ?? raw.floorLength ?? raw.boot_length ?? raw.bootLength ?? raw.min_length ?? raw.minLength,
-    77
-  );
+  const resolvedFolded = floorFolded !== null ? floorFolded : Math.round(floorUp * 1.8);
 
-  const archWidth = parseDimension(
-    raw.wheel_arch_width ?? raw.wheelArchWidth ?? raw.width_between_arches ?? raw.widthBetweenWheelArches ?? raw.arch_width ?? raw.archWidth ?? raw.min_width ?? raw.minWidth ?? raw.boot_width ?? raw.bootWidth ?? raw.width,
-    100
-  );
+  const archWidth = extractNumber(raw, [
+    'wheel_arch_width', 'wheelarchwidth', 'width_between_arches', 'widthbetweenwheelarches',
+    'arch_width', 'archwidth', 'min_width', 'minwidth', 'boot_width', 'bootwidth', 'cargo_width', 'width'
+  ], 102);
 
-  const roofHeight = parseDimension(
-    raw.roof_height ?? raw.roofHeight ?? raw.boot_height ?? raw.bootHeight ?? raw.interior_height ?? raw.interiorHeight ?? raw.max_height ?? raw.maxHeight ?? raw.height,
-    71
-  );
+  const roofHeight = extractNumber(raw, [
+    'roof_height', 'roofheight', 'interior_height', 'interiorheight',
+    'boot_height', 'bootheight', 'cargo_height', 'max_height', 'height'
+  ], 74);
 
-  const apertureWidth = parseDimension(
-    raw.aperture_width ?? raw.apertureWidth ?? raw.tailgate_width ?? raw.tailgateWidth ?? raw.opening_width ?? raw.openingWidth ?? raw.hatch_width ?? raw.hatchWidth,
-    archWidth + 2
-  );
+  const apertureWidth = extractNumber(raw, [
+    'aperture_width', 'aperturewidth', 'tailgate_width', 'tailgatewidth',
+    'opening_width', 'openingwidth', 'hatch_width', 'hatchwidth'
+  ], archWidth + 2);
 
-  const apertureHeight = parseDimension(
-    raw.aperture_height ?? raw.apertureHeight ?? raw.tailgate_height ?? raw.tailgateHeight ?? raw.opening_height ?? raw.openingHeight ?? raw.hatch_height ?? raw.hatchHeight,
-    roofHeight - 4
-  );
+  const apertureHeight = extractNumber(raw, [
+    'aperture_height', 'apertureheight', 'tailgate_height', 'tailgateheight',
+    'opening_height', 'openingheight', 'hatch_height', 'hatchheight'
+  ], roofHeight - 4);
 
-  const rakeAngle = parseDimension(
-    raw.rake_angle_deg ?? raw.rakeAngleDeg ?? raw.rake_angle ?? raw.rakeAngle ?? raw.rear_window_angle ?? raw.window_angle ?? raw.rear_rake ?? raw.rake,
-    29.4
-  );
+  const rakeAngle = extractNumber(raw, [
+    'rake_angle_deg', 'rakeangledeg', 'rake_angle', 'rakeangle',
+    'rear_window_angle', 'rearwindowangle', 'window_angle', 'rake', 'rear_rake'
+  ], 29.0);
 
   return {
     id,
     name,
-    floor_length_seats_folded: floorFolded,
+    floor_length_seats_folded: resolvedFolded,
     floor_length_seats_up: floorUp,
     wheel_arch_width: archWidth,
     roof_height: roofHeight,
@@ -189,8 +207,9 @@ async function init() {
     vehicles = defaultCars.map((car, idx) => normalizeCar(car, idx));
   }
 
+  // Populate using array indices directly as values to eliminate any type mismatch
   carSelect.innerHTML = vehicles
-    .map((car, idx) => `<option value="${car.id}" ${idx === 0 ? 'selected' : ''}>${car.name}</option>`)
+    .map((car, idx) => `<option value="${idx}" ${idx === 0 ? 'selected' : ''}>${car.name}</option>`)
     .join('');
 
   selectedCar = vehicles[0];
@@ -206,8 +225,16 @@ function attachEvents() {
     });
   });
 
+  // Safe index-based vehicle selection
   carSelect.addEventListener('change', (e) => {
-    selectedCar = vehicles.find(c => c.id === e.target.value) || vehicles[0];
+    const selectedIdx = parseInt(e.target.value, 10);
+    if (!isNaN(selectedIdx) && vehicles[selectedIdx]) {
+      selectedCar = vehicles[selectedIdx];
+    } else if (carSelect.selectedIndex >= 0 && vehicles[carSelect.selectedIndex]) {
+      selectedCar = vehicles[carSelect.selectedIndex];
+    } else {
+      selectedCar = vehicles.find(c => c.id === e.target.value || c.name === e.target.value) || vehicles[0];
+    }
     evaluateFitment();
   });
 
@@ -268,6 +295,7 @@ function evaluateFitment() {
   const rakeRad = (selectedCar.rake_angle_deg * Math.PI) / 180;
   const tanRake = Math.tan(rakeRad);
 
+  // Update Usable Cargo Space HUD
   specFloor.textContent = `${floorLength} cm (${seatsFolded ? 'seats folded' : 'seats up'})`;
   specArches.textContent = `${archWidth} cm`;
   specRoof.textContent = `${roofHeight} cm`;
@@ -282,7 +310,7 @@ function evaluateFitment() {
 
   const rotations = getUniqueRotations(rawL, rawW, rawH);
 
-  // Gate 1: Check standard flat (orthogonal) fitment across all 6 rotations
+  // Gate 1: Standard Flat Fitment (Orthogonal 6-Rotation Sweep)
   let bestFlatFit = null;
   let flatCollisionReasons = [];
 
@@ -333,7 +361,7 @@ function evaluateFitment() {
     return;
   }
 
-  // Gate 2: Angled Pitch Solver (Front propped up onto folded seatbacks to bypass hatch rake)
+  // Gate 2: Angled Pitch Solver (Front propped up onto seatbacks to bypass hatch rake)
   let bestPitchFit = null;
 
   for (const rot of rotations) {
@@ -391,11 +419,11 @@ function evaluateFitment() {
     if (bestYawFit) break;
   }
 
-  // Evaluate Angled Fitment Outcomes
+  // Determine Clearance Outcome
   if (bestPitchFit) {
     resultBanner.className = 'result-banner fits-angled';
     resultBanner.textContent = `Fits at an Angle (Tilted ~${bestPitchFit.angle}°)`;
-    resultExplanation.textContent = `Hits rear window if flat, but fits by propping the front edge up onto the seatback (~${bestPitchFit.angle}° tilt), pulling the rear face clear of the glass.`;
+    resultExplanation.textContent = `Hits rear window if laid flat, but fits by propping the front edge up onto the seatback (~${bestPitchFit.angle}° tilt), pulling the rear face clear of the glass.`;
 
     sideBadge.className = 'badge badge-angled';
     sideBadge.textContent = `Tilted ~${bestPitchFit.angle}°`;

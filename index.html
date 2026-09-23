@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Will It Fit In The Boot? - Car Cargo Space Fitment Calculator</title>
   <meta name="description" content="Check if TVs, furniture, appliances, or flat-pack boxes physically fit in your car boot with 3D interactive CAD models and dual blueprint visualizers.">
-  <link rel="stylesheet" href="style.css?v=15">
-  <!-- Three.js & OrbitControls via CDN -->
+  <link rel="stylesheet" href="style.css?v=16">
+  <!-- Three.js, OrbitControls, and GLTFLoader via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -94,7 +95,7 @@
                 <button type="button" class="cam-btn" data-view="side">Side</button>
                 <button type="button" class="cam-btn" data-view="rear">Rear</button>
                 <button type="button" class="cam-btn" data-view="top">Top</button>
-                <button type="button" class="cam-btn x-ray-btn" id="btn-xray-toggle">Showroom: Paint</button>
+                <button type="button" class="cam-btn x-ray-btn" id="btn-xray-toggle">Showroom Paint</button>
               </div>
 
               <!-- HUD Hints & Body Type Indicator -->
@@ -150,6 +151,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>

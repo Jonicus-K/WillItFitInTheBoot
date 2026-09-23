@@ -138,7 +138,7 @@ const defaultCars = [
 let vehicles = [];
 let selectedCar = null;
 let lastFitResult = null;
-let visualMode = 'paint'; // Modes: 'paint' (Showroom solid), 'ghost' (CAD X-Ray), 'wire'
+let visualMode = 'paint'; // Modes: 'paint' (Showroom Solid), 'ghost' (CAD X-Ray), 'wire'
 
 // DOM Elements
 const cargoLengthInput = document.getElementById('cargo-length');
@@ -267,6 +267,7 @@ function normalizeCar(raw, index = 0) {
     id,
     name,
     body_type,
+    model_url: raw.model_url || raw.modelUrl || null,
     overall_length: overallLength,
     overall_width: overallWidth,
     overall_height: overallHeight,
@@ -379,7 +380,7 @@ function attachEvents() {
         btnXRayToggle.textContent = 'Blueprint Line';
       } else {
         visualMode = 'paint';
-        btnXRayToggle.textContent = 'Showroom: Paint';
+        btnXRayToggle.textContent = 'Showroom Paint';
       }
       if (selectedCar && lastFitResult) {
         update3DStudio(selectedCar, foldSeatsCheckbox.checked, lastFitResult);
@@ -616,7 +617,7 @@ let fallbackOrbit = {
   isDragging: false,
   prevX: 0,
   prevY: 0,
-  radius: 250,
+  radius: 260,
   theta: 0.75,
   phi: 1.15
 };
@@ -847,8 +848,8 @@ function createSeat3D(width = 44, backHeight = 42) {
 }
 
 /**
- * Main 3D Studio Update: Fixed automotive datum ensures that folding seats
- * NEVER changes vehicle size or causes seats to poke through the roof.
+ * Main 3D Studio Update: Generates 1:1 scale parametric vehicle chassis,
+ * interior layout, and physical cargo placement.
  */
 function update3DStudio(car, seatsFolded, fitResult) {
   if (!scene) return;
@@ -880,7 +881,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const rearWheelX = rearSillX - 35;
 
   // Calculate Materials Based on Visual Mode
-  let bodyPaintMat, bodyWireMat, glassMat;
+  let bodyPaintMat, glassMat;
 
   if (visualMode === 'ghost') {
     // Elegant CAD X-Ray Mode (No wireframe diagonals!)

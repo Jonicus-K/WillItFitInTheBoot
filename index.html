@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Will It Fit In The Boot? - Car Cargo Space Fitment Calculator</title>
   <meta name="description" content="Check if TVs, furniture, appliances, or flat-pack boxes physically fit in your car boot with dual blueprint visualizers.">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <div class="app-container">
@@ -69,18 +69,28 @@
           <div class="visualizers-grid">
             <div class="visualizer-card">
               <div class="visualizer-header">
-                <h3>Side X-Ray (Length × Height)</h3>
+                <div class="visualizer-title-wrap">
+                  <span class="view-axis-indicator">CAD VIEW A-A</span>
+                  <h3>Side X-Ray (Length × Height)</h3>
+                </div>
                 <span id="side-badge" class="badge badge-colliding">Colliding</span>
               </div>
-              <svg id="side-svg" class="blueprint-svg" viewBox="0 0 540 220"></svg>
+              <div class="blueprint-canvas-wrap">
+                <svg id="side-svg" class="blueprint-svg" viewBox="0 0 600 270"></svg>
+              </div>
             </div>
 
             <div class="visualizer-card">
               <div class="visualizer-header">
-                <h3>Rear Hatch (Width × Height)</h3>
+                <div class="visualizer-title-wrap">
+                  <span class="view-axis-indicator">CAD VIEW B-B</span>
+                  <h3>Rear Hatch (Width × Height)</h3>
+                </div>
                 <span id="rear-badge" class="badge badge-clears">Clears</span>
               </div>
-              <svg id="rear-svg" class="blueprint-svg" viewBox="0 0 380 220"></svg>
+              <div class="blueprint-canvas-wrap">
+                <svg id="rear-svg" class="blueprint-svg" viewBox="0 0 420 270"></svg>
+              </div>
             </div>
           </div>
         </div>
@@ -98,6 +108,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

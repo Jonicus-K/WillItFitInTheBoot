@@ -85,10 +85,6 @@ const specAperture = document.getElementById('spec-aperture');
 
 const presetButtons = document.querySelectorAll('.preset-btn');
 
-/**
- * Case-insensitive, multi-tier schema property extractor that safely
- * traverses flat keys, underscored keys, and nested sub-objects.
- */
 function extractNumber(obj, candidateKeys, fallback) {
   if (!obj || typeof obj !== 'object') return fallback;
 
@@ -207,7 +203,6 @@ async function init() {
     vehicles = defaultCars.map((car, idx) => normalizeCar(car, idx));
   }
 
-  // Populate using array indices directly as values to eliminate any type mismatch
   carSelect.innerHTML = vehicles
     .map((car, idx) => `<option value="${idx}" ${idx === 0 ? 'selected' : ''}>${car.name}</option>`)
     .join('');
@@ -225,7 +220,6 @@ function attachEvents() {
     });
   });
 
-  // Safe index-based vehicle selection
   carSelect.addEventListener('change', (e) => {
     const selectedIdx = parseInt(e.target.value, 10);
     if (!isNaN(selectedIdx) && vehicles[selectedIdx]) {
@@ -295,7 +289,6 @@ function evaluateFitment() {
   const rakeRad = (selectedCar.rake_angle_deg * Math.PI) / 180;
   const tanRake = Math.tan(rakeRad);
 
-  // Update Usable Cargo Space HUD
   specFloor.textContent = `${floorLength} cm (${seatsFolded ? 'seats folded' : 'seats up'})`;
   specArches.textContent = `${archWidth} cm`;
   specRoof.textContent = `${roofHeight} cm`;
@@ -310,7 +303,7 @@ function evaluateFitment() {
 
   const rotations = getUniqueRotations(rawL, rawW, rawH);
 
-  // Gate 1: Standard Flat Fitment (Orthogonal 6-Rotation Sweep)
+  // Gate 1: Check standard flat (orthogonal) fitment across all 6 rotations
   let bestFlatFit = null;
   let flatCollisionReasons = [];
 
@@ -356,12 +349,12 @@ function evaluateFitment() {
     rearBadge.className = 'badge badge-clears';
     rearBadge.textContent = 'Clears';
 
-    renderSideSvg(bestFlatFit.rot, floorLength, roofHeight, tanRake, 'flat', 0);
+    renderSideSvg(bestFlatFit.rot, floorLength, roofHeight, tanRake, 'flat', 0, seatsFolded);
     renderRearSvg(bestFlatFit.rot, archWidth, roofHeight, apWidth, apHeight, false);
     return;
   }
 
-  // Gate 2: Angled Pitch Solver (Front propped up onto seatbacks to bypass hatch rake)
+  // Gate 2: Angled Pitch Solver (Front propped up onto folded seatbacks to bypass hatch rake)
   let bestPitchFit = null;
 
   for (const rot of rotations) {
@@ -419,18 +412,18 @@ function evaluateFitment() {
     if (bestYawFit) break;
   }
 
-  // Determine Clearance Outcome
+  // Decide Angled Outcome
   if (bestPitchFit) {
     resultBanner.className = 'result-banner fits-angled';
     resultBanner.textContent = `Fits at an Angle (Tilted ~${bestPitchFit.angle}°)`;
-    resultExplanation.textContent = `Hits rear window if laid flat, but fits by propping the front edge up onto the seatback (~${bestPitchFit.angle}° tilt), pulling the rear face clear of the glass.`;
+    resultExplanation.textContent = `Hits rear window if flat, but fits by propping the front edge up onto the seatback (~${bestPitchFit.angle}° tilt), pulling the rear face clear of the glass.`;
 
     sideBadge.className = 'badge badge-angled';
     sideBadge.textContent = `Tilted ~${bestPitchFit.angle}°`;
     rearBadge.className = 'badge badge-clears';
     rearBadge.textContent = 'Clears';
 
-    renderSideSvg(bestPitchFit.rot, floorLength, roofHeight, tanRake, 'pitch', bestPitchFit.angle);
+    renderSideSvg(bestPitchFit.rot, floorLength, roofHeight, tanRake, 'pitch', bestPitchFit.angle, seatsFolded);
     renderRearSvg(bestPitchFit.rot, archWidth, roofHeight, apWidth, apHeight, false);
     return;
   }
@@ -445,7 +438,7 @@ function evaluateFitment() {
     rearBadge.className = 'badge badge-angled';
     rearBadge.textContent = 'Diagonal';
 
-    renderSideSvg(bestYawFit.rot, floorLength, roofHeight, tanRake, 'yaw', bestYawFit.angle);
+    renderSideSvg(bestYawFit.rot, floorLength, roofHeight, tanRake, 'yaw', bestYawFit.angle, seatsFolded);
     renderRearSvg(bestYawFit.rot, archWidth, roofHeight, apWidth, apHeight, false);
     return;
   }
@@ -460,14 +453,14 @@ function evaluateFitment() {
   rearBadge.className = rawW > archWidth ? 'badge badge-colliding' : 'badge badge-clears';
   rearBadge.textContent = rawW > archWidth ? 'Colliding' : 'Clears';
 
-  renderSideSvg({ l: rawL, w: rawW, h: rawH }, floorLength, roofHeight, tanRake, 'colliding', 0);
+  renderSideSvg({ l: rawL, w: rawW, h: rawH }, floorLength, roofHeight, tanRake, 'colliding', 0, seatsFolded);
   renderRearSvg({ l: rawL, w: rawW, h: rawH }, archWidth, roofHeight, apWidth, apHeight, rawW > archWidth);
 }
 
-function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle) {
-  const floorY = 175;
-  const rearSillX = 430;
-  const scale = 1.6;
+function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seatsFolded) {
+  const floorY = 205;
+  const rearSillX = 500;
+  const scale = 1.7;
 
   const floorLenPx = floorLength * scale;
   const seatFrontX = rearSillX - floorLenPx;
@@ -481,93 +474,235 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle) {
 
   if (mode === 'pitch') {
     const pivotX = rearSillX - 10;
-    const pivotY = floorY;
+    const pivotY = floorY - 3;
     cargoMarkup = `
+      <!-- Tilted Cargo Box -->
       <g transform="rotate(-${angle}, ${pivotX}, ${pivotY})">
         <rect x="${pivotX - boxLPx}" y="${pivotY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
-              fill="rgba(56, 189, 248, 0.35)" stroke="#38bdf8" stroke-width="2" rx="3" />
-        <text x="${pivotX - (boxLPx / 2)}" y="${pivotY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">
-          ${rot.l} × ${rot.h} cm (~${angle}° tilt)
+              fill="url(#box-grad-cyan)" stroke="#38bdf8" stroke-width="2" rx="4" filter="url(#glow-cyan)" />
+        
+        <!-- Box Center Label -->
+        <text x="${pivotX - (boxLPx / 2)}" y="${pivotY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
+          ${rot.l} × ${rot.h} cm
         </text>
+
+        <!-- Box Tape / Accent Detail -->
+        <line x1="${pivotX - boxLPx + 12}" y1="${pivotY - boxHPx}" x2="${pivotX - boxLPx + 12}" y2="${pivotY}" stroke="rgba(56, 189, 248, 0.4)" stroke-width="2" />
+        <line x1="${pivotX - 12}" y1="${pivotY - boxHPx}" x2="${pivotX - 12}" y2="${pivotY}" stroke="rgba(56, 189, 248, 0.4)" stroke-width="2" />
       </g>
-      <line x1="${pivotX - 10}" y1="${pivotY}" x2="${pivotX + 20}" y2="${pivotY}" stroke="#38bdf8" stroke-dasharray="3,3" stroke-width="1.5" />
+
+      <!-- Tilt Angle Arc Indicator -->
+      <path d="M ${pivotX - 55} ${pivotY} A 55 55 0 0 0 ${pivotX - 52} ${pivotY - 20}" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="2,2" />
+      <text x="${pivotX - 62}" y="${pivotY - 10}" fill="#38bdf8" font-size="10" font-family="ui-monospace, monospace" font-weight="700" text-anchor="end">
+        ~${angle}°
+      </text>
     `;
   } else if (mode === 'colliding') {
     const boxX = seatFrontX;
     cargoMarkup = `
+      <!-- Colliding Box -->
       <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
-            fill="rgba(239, 68, 68, 0.3)" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,2" rx="3" />
-      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#fca5a5" font-size="11" font-weight="700" text-anchor="middle">
+            fill="url(#box-grad-red)" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,3" rx="4" />
+      
+      <!-- Caution Hatch Pattern on Overlap -->
+      <rect x="${rearSillX - 45}" y="${floorY - boxHPx}" width="60" height="${boxHPx}" fill="url(#hazard-stripes)" opacity="0.65" rx="3" />
+
+      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
         ${rot.l} × ${rot.h} cm
       </text>
-      <line x1="${rearSillX}" y1="${floorY - boxHPx}" x2="${glassTopX + 25}" y2="${floorY - boxHPx}" stroke="#ef4444" stroke-width="2" />
-      <text x="${rearSillX - 20}" y="${floorY - boxHPx - 8}" fill="#f87171" font-size="10" font-weight="700" text-anchor="middle">
-        Window Collision
+
+      <!-- Collision Reticle & Indicator -->
+      <circle cx="${rearSillX - 10}" cy="${floorY - boxHPx + 10}" r="9" fill="rgba(239, 68, 68, 0.3)" stroke="#ef4444" stroke-width="2" />
+      <circle cx="${rearSillX - 10}" cy="${floorY - boxHPx + 10}" r="3" fill="#ef4444" />
+      <line x1="${rearSillX - 10}" y1="${floorY - boxHPx + 10}" x2="${rearSillX + 35}" y2="${floorY - boxHPx - 15}" stroke="#ef4444" stroke-width="1.5" />
+      <rect x="${rearSillX + 35}" y="${floorY - boxHPx - 26}" width="100" height="18" rx="4" fill="#180e14" stroke="#ef4444" stroke-width="1" />
+      <text x="${rearSillX + 85}" y="${floorY - boxHPx - 14}" fill="#fca5a5" font-size="9" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
+        GLASS COLLISION
       </text>
     `;
   } else {
     const boxX = Math.max(seatFrontX, rearSillX - boxLPx);
     cargoMarkup = `
+      <!-- Cleared Cargo Box -->
       <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
-            fill="rgba(34, 197, 94, 0.35)" stroke="#22c55e" stroke-width="2" rx="3" />
-      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">
+            fill="url(#box-grad-green)" stroke="#22c55e" stroke-width="2" rx="4" filter="url(#glow-green)" />
+      
+      <!-- Technical Package Strapping Lines -->
+      <line x1="${boxX + 16}" y1="${floorY - boxHPx}" x2="${boxX + 16}" y2="${floorY}" stroke="rgba(34, 197, 94, 0.3)" stroke-width="2" />
+      <line x1="${boxX + boxLPx - 16}" y1="${floorY - boxHPx}" x2="${boxX + boxLPx - 16}" y2="${floorY}" stroke="rgba(34, 197, 94, 0.3)" stroke-width="2" />
+
+      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
         ${rot.l} × ${rot.h} cm
       </text>
     `;
   }
 
+  // Seat Configuration Geometry
+  let seatGraphics = '';
+  if (seatsFolded) {
+    seatGraphics = `
+      <!-- Folded Flat Seats Profile -->
+      <path d="M ${seatFrontX} ${floorY} 
+               L ${seatFrontX - 22} ${floorY - 14} 
+               L ${seatFrontX + 45} ${floorY - 14} 
+               L ${seatFrontX + 40} ${floorY} Z" 
+            fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+      <circle cx="${seatFrontX - 2}" cy="${floorY - 7}" r="4" fill="#38bdf8" opacity="0.6" />
+      <text x="${seatFrontX + 8}" y="${floorY - 20}" fill="#64748b" font-size="8" font-family="ui-monospace, monospace">SEATS FOLDED</text>
+    `;
+  } else {
+    seatGraphics = `
+      <!-- Upright Rear Seats Profile -->
+      <path d="M ${seatFrontX} ${floorY} 
+               L ${seatFrontX - 12} ${floorY - 75} 
+               L ${seatFrontX - 24} ${floorY - 75} 
+               L ${seatFrontX - 18} ${floorY} Z" 
+            fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+      <!-- Headrest -->
+      <rect x="${seatFrontX - 21}" y="${floorY - 92}" width="16" height="14" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+      <line x1="${seatFrontX - 16}" y1="${floorY - 75}" x2="${seatFrontX - 16}" y2="${floorY - 78}" stroke="#64748b" stroke-width="2" />
+      <line x1="${seatFrontX - 10}" y1="${floorY - 75}" x2="${seatFrontX - 10}" y2="${floorY - 78}" stroke="#64748b" stroke-width="2" />
+      <text x="${seatFrontX - 30}" y="${floorY - 45}" fill="#64748b" font-size="8" font-family="ui-monospace, monospace" transform="rotate(-90, ${seatFrontX - 30}, ${floorY - 45})">SEATBACK</text>
+    `;
+  }
+
   sideSvg.innerHTML = `
-    <!-- Ground Line -->
-    <line x1="20" y1="195" x2="520" y2="195" stroke="#1e293b" stroke-width="2" />
+    <defs>
+      <!-- Blueprint Grid Pattern -->
+      <pattern id="grid-side" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#162032" stroke-width="0.8" />
+        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#1c2c46" stroke-width="1.2" />
+      </pattern>
 
-    <!-- Vehicle Outer Contour Silhouette -->
-    <path d="M 60 175 
-             L 75 140 
-             Q 110 135 150 120 
-             L 210 65 
-             Q 230 60 270 60 
-             L 380 60 
-             Q 405 60 420 75 
-             L ${glassTopX + 35} ${roofY - 10}
-             L ${rearSillX + 15} 150 
-             L ${rearSillX + 18} 175 Z" 
-          fill="none" stroke="#22304a" stroke-width="2" />
+      <!-- Hazard Diagonal Stripe Pattern -->
+      <pattern id="hazard-stripes" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="0" x2="0" y2="10" stroke="#ef4444" stroke-width="4" />
+        <line x1="5" y1="0" x2="5" y2="10" stroke="#1e1014" stroke-width="6" />
+      </pattern>
 
-    <!-- Wheels -->
-    <circle cx="120" cy="180" r="22" fill="#0d1527" stroke="#334155" stroke-width="3" />
-    <circle cx="120" cy="180" r="10" fill="#1e293b" />
-    <circle cx="430" cy="180" r="22" fill="#0d1527" stroke="#334155" stroke-width="3" />
-    <circle cx="430" cy="180" r="10" fill="#1e293b" />
+      <!-- Gradients -->
+      <linearGradient id="body-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#19263e" stop-opacity="0.9" />
+        <stop offset="100%" stop-color="#0a101d" stop-opacity="0.95" />
+      </linearGradient>
 
-    <!-- Headlight & Taillight -->
-    <polygon points="62,142 75,140 70,150" fill="#eab308" opacity="0.8" />
-    <polygon points="${rearSillX + 16},152 ${rearSillX + 10},150 ${rearSillX + 12},162" fill="#ef4444" opacity="0.8" />
+      <linearGradient id="glass-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.3" />
+        <stop offset="100%" stop-color="#0284c7" stop-opacity="0.08" />
+      </linearGradient>
 
-    <!-- Cargo Compartment Floor -->
-    <line x1="${seatFrontX}" y1="${floorY}" x2="${rearSillX}" y2="${floorY}" stroke="#38bdf8" stroke-width="2.5" />
-    <text x="${rearSillX - 10}" y="${floorY + 14}" fill="#64748b" font-size="9" text-anchor="end">
-      Cargo Floor: ${floorLength} cm
+      <linearGradient id="box-grad-green" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(34, 197, 94, 0.45)" />
+        <stop offset="100%" stop-color="rgba(34, 197, 94, 0.15)" />
+      </linearGradient>
+
+      <linearGradient id="box-grad-cyan" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(56, 189, 248, 0.5)" />
+        <stop offset="100%" stop-color="rgba(56, 189, 248, 0.18)" />
+      </linearGradient>
+
+      <linearGradient id="box-grad-red" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(239, 68, 68, 0.4)" />
+        <stop offset="100%" stop-color="rgba(239, 68, 68, 0.12)" />
+      </linearGradient>
+
+      <!-- Glow Filters -->
+      <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#38bdf8" flood-opacity="0.4" />
+      </filter>
+      <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#22c55e" flood-opacity="0.4" />
+      </filter>
+    </defs>
+
+    <!-- Canvas Background & Grid -->
+    <rect width="600" height="270" fill="#070c18" />
+    <rect width="600" height="270" fill="url(#grid-side)" />
+
+    <!-- Corner Blueprint Crop Marks -->
+    <path d="M 10 20 L 20 20 M 20 10 L 20 20" stroke="#2a3c5a" stroke-width="1.5" />
+    <path d="M 590 20 L 580 20 M 580 10 L 580 20" stroke="#2a3c5a" stroke-width="1.5" />
+    <path d="M 10 250 L 20 250 M 20 260 L 20 250" stroke="#2a3c5a" stroke-width="1.5" />
+    <path d="M 590 250 L 580 250 M 580 260 L 580 250" stroke="#2a3c5a" stroke-width="1.5" />
+
+    <!-- Ground Level & Measurement Guide -->
+    <line x1="25" y1="230" x2="575" y2="230" stroke="#1e2c47" stroke-width="2" />
+    <line x1="25" y1="235" x2="575" y2="235" stroke="#121b2d" stroke-dasharray="3,3" stroke-width="1" />
+
+    <!-- Vehicle Body Aerodynamic Silhouette Shell -->
+    <path d="M 45 205 
+             C 45 190, 52 170, 70 162 
+             C 85 155, 115 152, 145 145
+             C 175 138, 205 110, 230 76
+             C 248 52, 280 48, 330 48 
+             L 420 48 
+             C 445 48, 470 54, 492 76 
+             L ${glassTopX + 38} ${roofY - 14} 
+             C ${rearSillX + 22} 135, ${rearSillX + 24} 165, ${rearSillX + 20} 205 Z" 
+          fill="url(#body-grad)" stroke="#223656" stroke-width="2" />
+
+    <!-- Aerodynamic Roof Rail Accent -->
+    <path d="M 290 44 L 435 44" stroke="#334b73" stroke-width="3" stroke-linecap="round" />
+    <line x1="305" y1="44" x2="305" y2="48" stroke="#334b73" stroke-width="2" />
+    <line x1="420" y1="44" x2="420" y2="48" stroke="#334b73" stroke-width="2" />
+
+    <!-- Tinted Cabin Greenhouse & Window Frames -->
+    <path d="M 234 80 
+             L 325 56 
+             L 416 56 
+             L 472 80 
+             L ${glassTopX + 26} ${roofY - 6} 
+             L 234 80 Z" 
+          fill="url(#glass-grad)" stroke="#223656" stroke-width="1.5" />
+    <!-- B-Pillar & C-Pillar Dividers -->
+    <line x1="328" y1="56" x2="328" y2="120" stroke="#111c2e" stroke-width="5" />
+    <line x1="418" y1="56" x2="418" y2="120" stroke="#111c2e" stroke-width="5" />
+
+    <!-- Wheels & Suspension -->
+    <!-- Front Wheel -->
+    <circle cx="118" cy="208" r="28" fill="#060a12" stroke="#1c2d47" stroke-width="3" />
+    <circle cx="118" cy="208" r="18" fill="#0c1322" stroke="#38bdf8" stroke-width="1" stroke-dasharray="6,3" />
+    <circle cx="118" cy="208" r="8" fill="#1c2d47" />
+    <!-- Rear Wheel -->
+    <circle cx="452" cy="208" r="28" fill="#060a12" stroke="#1c2d47" stroke-width="3" />
+    <circle cx="452" cy="208" r="18" fill="#0c1322" stroke="#38bdf8" stroke-width="1" stroke-dasharray="6,3" />
+    <circle cx="452" cy="208" r="8" fill="#1c2d47" />
+
+    <!-- Modern LED Headlight & Tail Light Signatures -->
+    <path d="M 47 165 L 75 160 L 68 172 Z" fill="#38bdf8" opacity="0.85" filter="url(#glow-cyan)" />
+    <path d="M ${rearSillX + 20} 145 L ${rearSillX + 6} 148 L ${rearSillX + 8} 160 Z" fill="#ef4444" opacity="0.9" />
+
+    <!-- Cargo Compartment Floor (Reinforced Beam Graphic) -->
+    <line x1="${seatFrontX}" y1="${floorY}" x2="${rearSillX}" y2="${floorY}" stroke="#38bdf8" stroke-width="3" />
+    <line x1="${seatFrontX}" y1="${floorY + 2}" x2="${rearSillX}" y2="${floorY + 2}" stroke="#0369a1" stroke-width="1" />
+    
+    <!-- Floor Length CAD Dimension Callout -->
+    <line x1="${seatFrontX}" y1="${floorY + 16}" x2="${rearSillX}" y2="${floorY + 16}" stroke="#64748b" stroke-width="1" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+    <line x1="${seatFrontX}" y1="${floorY + 8}" x2="${seatFrontX}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
+    <line x1="${rearSillX}" y1="${floorY + 8}" x2="${rearSillX}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
+    <text x="${seatFrontX + (floorLenPx / 2)}" y="${floorY + 28}" fill="#94a3b8" font-size="10" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
+      FLOOR ${floorLength} cm
     </text>
 
-    <!-- Front Seat Divider -->
-    <line x1="${seatFrontX}" y1="${floorY}" x2="${seatFrontX + 10}" y2="${roofY}" stroke="#475569" stroke-width="2" stroke-dasharray="3,3" />
+    <!-- Interior Roofline Ceiling Limit -->
+    <line x1="${seatFrontX}" y1="${roofY}" x2="${glassTopX}" y2="${roofY}" stroke="#334b73" stroke-dasharray="4,4" stroke-width="1.5" />
 
-    <!-- Raked Rear Window Line -->
-    <line x1="${rearSillX}" y1="${floorY}" x2="${glassTopX}" y2="${roofY}" stroke="#38bdf8" stroke-dasharray="4,3" stroke-width="1.5" />
+    <!-- Raked Tailgate Window Clearance Vector -->
+    <line x1="${rearSillX}" y1="${floorY}" x2="${glassTopX}" y2="${roofY}" stroke="#38bdf8" stroke-dasharray="4,3" stroke-width="2" />
 
-    <!-- Roofline Limit -->
-    <line x1="${seatFrontX + 10}" y1="${roofY}" x2="${glassTopX}" y2="${roofY}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1" />
+    <!-- Seats Geometry Graphic -->
+    ${seatGraphics}
 
-    <!-- Cargo Payload -->
+    <!-- Cargo Object Payload Render -->
     ${cargoMarkup}
   `;
 }
 
 function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColliding) {
-  const svgW = 380;
+  const svgW = 420;
   const centerX = svgW / 2;
-  const floorY = 175;
-  const scale = 1.35;
+  const floorY = 205;
+  const scale = 1.45;
 
   const archWPx = archWidth * scale;
   const apWPx = apWidth * scale;
@@ -577,55 +712,118 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColl
   const boxHPx = rot.h * scale;
   const boxLeftX = centerX - (boxWPx / 2);
 
-  const boxColor = isArchColliding ? '#ef4444' : '#22c55e';
-  const boxBg = isArchColliding ? 'rgba(239, 68, 68, 0.35)' : 'rgba(34, 197, 94, 0.35)';
+  const boxStroke = isArchColliding ? '#ef4444' : '#22c55e';
+  const boxFill = isArchColliding ? 'url(#box-rear-red)' : 'url(#box-rear-green)';
+  const boxGlow = isArchColliding ? '' : 'filter="url(#glow-green)"';
 
   rearSvg.innerHTML = `
-    <!-- Tires -->
-    <rect x="${centerX - (archWPx / 2) - 45}" y="160" width="30" height="35" rx="4" fill="#0d1527" stroke="#334155" stroke-width="2" />
-    <rect x="${centerX + (archWPx / 2) + 15}" y="160" width="30" height="35" rx="4" fill="#0d1527" stroke="#334155" stroke-width="2" />
+    <defs>
+      <!-- Blueprint Grid -->
+      <pattern id="grid-rear" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#162032" stroke-width="0.8" />
+        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#1c2c46" stroke-width="1.2" />
+      </pattern>
 
-    <!-- Car Rear Shell -->
-    <path d="M ${centerX - (apWPx / 2) - 25} 175 
-             L ${centerX - (apWPx / 2) - 20} 90 
-             Q ${centerX - (apWPx / 2)} 45 ${centerX} 45 
-             Q ${centerX + (apWPx / 2)} 45 ${centerX + (apWPx / 2) + 20} 90 
-             L ${centerX + (apWPx / 2) + 25} 175 Z" 
-          fill="none" stroke="#22304a" stroke-width="2" />
+      <linearGradient id="body-rear-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#141f33" />
+        <stop offset="100%" stop-color="#090f1b" />
+      </linearGradient>
 
-    <!-- Taillights -->
-    <polygon points="${centerX - (apWPx / 2) - 18},95 ${centerX - (apWPx / 2) - 4},100 ${centerX - (apWPx / 2) - 12},125" fill="#ef4444" opacity="0.85" />
-    <polygon points="${centerX + (apWPx / 2) + 18},95 ${centerX + (apWPx / 2) + 4},100 ${centerX + (apWPx / 2) + 12},125" fill="#ef4444" opacity="0.85" />
+      <linearGradient id="box-rear-green" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(34, 197, 94, 0.45)" />
+        <stop offset="100%" stop-color="rgba(34, 197, 94, 0.15)" />
+      </linearGradient>
 
-    <!-- Tailgate Aperture Outline -->
+      <linearGradient id="box-rear-red" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(239, 68, 68, 0.45)" />
+        <stop offset="100%" stop-color="rgba(239, 68, 68, 0.15)" />
+      </linearGradient>
+
+      <linearGradient id="rear-lightbar" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#ef4444" />
+        <stop offset="25%" stop-color="#dc2626" />
+        <stop offset="50%" stop-color="#f87171" />
+        <stop offset="75%" stop-color="#dc2626" />
+        <stop offset="100%" stop-color="#ef4444" />
+      </linearGradient>
+    </defs>
+
+    <!-- Canvas Background & Grid -->
+    <rect width="420" height="270" fill="#070c18" />
+    <rect width="420" height="270" fill="url(#grid-rear)" />
+
+    <!-- Corner Blueprint Crop Marks -->
+    <path d="M 10 20 L 20 20 M 20 10 L 20 20" stroke="#2a3c5a" stroke-width="1.5" />
+    <path d="M 410 20 L 400 20 M 400 10 L 400 20" stroke="#2a3c5a" stroke-width="1.5" />
+    <path d="M 10 250 L 20 250 M 20 260 L 20 250" stroke="#2a3c5a" stroke-width="1.5" />
+    <path d="M 410 250 L 400 250 M 400 260 L 400 250" stroke="#2a3c5a" stroke-width="1.5" />
+
+    <!-- Ground Level -->
+    <line x1="30" y1="230" x2="390" y2="230" stroke="#1e2c47" stroke-width="2" />
+
+    <!-- Wide Rear Tires -->
+    <rect x="${centerX - (apWPx / 2) - 34}" y="172" width="30" height="52" rx="5" fill="#070c16" stroke="#1e2c47" stroke-width="2.5" />
+    <rect x="${centerX + (apWPx / 2) + 4}" y="172" width="30" height="52" rx="5" fill="#070c16" stroke="#1e2c47" stroke-width="2.5" />
+
+    <!-- Vehicle Rear Body Stance -->
+    <path d="M ${centerX - (apWPx / 2) - 26} 210 
+             L ${centerX - (apWPx / 2) - 22} 110 
+             Q ${centerX - (apWPx / 2)} 42 ${centerX} 42 
+             Q ${centerX + (apWPx / 2)} 42 ${centerX + (apWPx / 2) + 22} 110 
+             L ${centerX + (apWPx / 2) + 26} 210 Z" 
+          fill="url(#body-rear-grad)" stroke="#223656" stroke-width="2" />
+
+    <!-- Roof Shark Fin Antenna -->
+    <path d="M ${centerX - 3} 42 L ${centerX} 28 L ${centerX + 5} 42 Z" fill="#1e2d47" stroke="#334b73" stroke-width="1.5" />
+
+    <!-- Rear Window & Defroster Lines -->
+    <path d="M ${centerX - (apWPx / 2) - 10} 102 
+             Q ${centerX - (apWPx / 2) + 8} 54 ${centerX} 54 
+             Q ${centerX + (apWPx / 2) - 8} 54 ${centerX + (apWPx / 2) + 10} 102 Z" 
+          fill="url(#glass-grad)" stroke="#223656" stroke-width="1.5" />
+    <line x1="${centerX - (apWPx / 2) + 8}" y1="68" x2="${centerX + (apWPx / 2) - 8}" y2="68" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+    <line x1="${centerX - (apWPx / 2) + 2}" y1="82" x2="${centerX + (apWPx / 2) - 2}" y2="82" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+
+    <!-- Modern Coast-to-Coast LED Lightbar -->
+    <rect x="${centerX - (apWPx / 2) - 16}" y="104" width="${apWPx + 32}" height="10" rx="3" fill="url(#rear-lightbar)" opacity="0.9" />
+
+    <!-- Rear Aperture Trunk Opening Frame -->
     <rect x="${centerX - (apWPx / 2)}" y="${floorY - apHPx}" width="${apWPx}" height="${apHPx}" 
-          fill="none" stroke="#334155" stroke-dasharray="4,3" stroke-width="1.5" rx="6" />
+          fill="#070c18" stroke="#334b73" stroke-dasharray="5,4" stroke-width="1.8" rx="8" />
 
-    <!-- Wheel Arch Intrusions -->
-    <path d="M ${centerX - (apWPx / 2)} 175 
-             L ${centerX - (archWPx / 2)} 175 
-             Q ${centerX - (archWPx / 2) + 10} 150 ${centerX - (archWPx / 2) - 15} 145 
-             L ${centerX - (apWPx / 2)} 145 Z" 
-          fill="#151e32" stroke="#38bdf8" stroke-width="1.5" />
+    <!-- Left & Right Wheel Arch Intrusions -->
+    <path d="M ${centerX - (apWPx / 2)} ${floorY} 
+             L ${centerX - (archWPx / 2)} ${floorY} 
+             C ${centerX - (archWPx / 2) + 8} ${floorY - 26}, ${centerX - (archWPx / 2) - 2} ${floorY - 44}, ${centerX - (apWPx / 2)} ${floorY - 46} Z" 
+          fill="#111c2e" stroke="#38bdf8" stroke-width="1.8" />
 
-    <path d="M ${centerX + (apWPx / 2)} 175 
-             L ${centerX + (archWPx / 2)} 175 
-             Q ${centerX + (archWPx / 2) - 10} 150 ${centerX + (archWPx / 2) + 15} 145 
-             L ${centerX + (apWPx / 2)} 145 Z" 
-          fill="#151e32" stroke="#38bdf8" stroke-width="1.5" />
+    <path d="M ${centerX + (apWPx / 2)} ${floorY} 
+             L ${centerX + (archWPx / 2)} ${floorY} 
+             C ${centerX + (archWPx / 2) - 8} ${floorY - 26}, ${centerX + (archWPx / 2) + 2} ${floorY - 44}, ${centerX + (apWPx / 2)} ${floorY - 46} Z" 
+          fill="#111c2e" stroke="#38bdf8" stroke-width="1.8" />
 
-    <!-- Arch Width Measurement Line -->
-    <line x1="${centerX - (archWPx / 2)}" y1="184" x2="${centerX + (archWPx / 2)}" y2="184" stroke="#64748b" stroke-width="1" />
-    <text x="${centerX}" y="196" fill="#64748b" font-size="9" text-anchor="middle">
-      Between Arches: ${archWidth} cm
+    <!-- CAD Wheel Arch Width Dimension Callout -->
+    <line x1="${centerX - (archWPx / 2)}" y1="${floorY + 16}" x2="${centerX + (archWPx / 2)}" y2="${floorY + 16}" stroke="#64748b" stroke-width="1" />
+    <line x1="${centerX - (archWPx / 2)}" y1="${floorY + 8}" x2="${centerX - (archWPx / 2)}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
+    <line x1="${centerX + (archWPx / 2)}" y1="${floorY + 8}" x2="${centerX + (archWPx / 2)}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
+    <text x="${centerX}" y="${floorY + 28}" fill="#94a3b8" font-size="10" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
+      ARCHES ${archWidth} cm
     </text>
 
-    <!-- Cargo Box -->
+    <!-- Cargo Box Payload -->
     <rect x="${boxLeftX}" y="${floorY - boxHPx}" width="${boxWPx}" height="${boxHPx}" 
-          fill="${boxBg}" stroke="${boxColor}" stroke-width="2" rx="3" />
-    <text x="${centerX}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" text-anchor="middle">
+          fill="${boxFill}" stroke="${boxStroke}" stroke-width="2" rx="4" ${boxGlow} />
+
+    <!-- Center Package Label -->
+    <text x="${centerX}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
       ${rot.w} × ${rot.h} cm
     </text>
+
+    <!-- Wheel Arch Collision Reticles if Overlapping -->
+    ${isArchColliding ? `
+      <circle cx="${centerX - (archWPx / 2)}" cy="${floorY - (boxHPx / 2)}" r="6" fill="#ef4444" />
+      <circle cx="${centerX + (archWPx / 2)}" cy="${floorY - (boxHPx / 2)}" r="6" fill="#ef4444" />
+    ` : ''}
   `;
 }
 

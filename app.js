@@ -2282,34 +2282,47 @@ function updateCargoSimulationFrame(p) {
   if (!cargoSimulationBaseGroup || !lastFitResult || !lastFitResult.rot) return;
 
   const rearBumperX = 70;
-  const rearSillX = rearBumperX - (selectedCar.body_type === 'estate' ? 18 : 22);
-  const startX = rearBumperX + 68;
-  const sillX = rearSillX;
-  const stowedX = 0; // relative base group position
+  const rearSillX = rearBumperX - (selectedCar.body_type === 'estate' ? 18 : (selectedCar.body_type === 'saloon' ? 24 : 22));
+  const rotL = lastFitResult.rot.l;
 
-  if (p < 0.4) {
-    // Phase 1: Approaching tailgate from outside
-    const subP = p / 0.4;
-    const currentX = startX + (sillX - startX) * subP;
-    cargoSimulationBaseGroup.position.set(currentX, 0, 0);
-    // Orient to ingress angle as approaching opening
-    if (lastFitResult.ingress && !lastFitResult.ingress.direct) {
-      cargoSimulationBaseGroup.rotation.x = ((lastFitResult.ingress.rollAngle * Math.PI) / 180) * subP;
+  // Calculate positive start offset outside behind the tailgate
+  const startOffsetX = (rearBumperX - rearSillX) + Math.min(85, rotL * 0.65) + 26;
+
+  // Smooth monotonic ease-out progression (0 = outside, 1 = stowed, never overshoots 0)
+  const clampedP = Math.max(0, Math.min(1, p));
+  const t = 1 - Math.pow(1 - clampedP, 2.6);
+  const currentX = startOffsetX * (1 - t);
+
+  // Gentle 3.5 cm lift above sill while outside that smoothly settles to 0 on cargo floor
+  const currentY = clampedP < 0.75 ? 3.5 * Math.cos((clampedP / 0.75) * (Math.PI / 2)) : 0;
+  cargoSimulationBaseGroup.position.set(currentX, currentY, 0);
+
+  // Dynamic Orientation Transitions during loading:
+  if (lastFitResult.ingress && !lastFitResult.ingress.direct && lastFitResult.mode !== 'roll') {
+    // If cargo needs to roll diagonally to clear aperture, tilt through opening and level out on floor
+    const rollTarget = (lastFitResult.ingress.rollAngle * Math.PI) / 180;
+    let simRoll = 0;
+    if (clampedP < 0.3) {
+      simRoll = rollTarget * (clampedP / 0.3);
+    } else if (clampedP < 0.65) {
+      simRoll = rollTarget;
+    } else {
+      const subP = (clampedP - 0.65) / 0.35;
+      simRoll = rollTarget * (1 - subP);
     }
-  } else if (p < 0.7) {
-    // Phase 2: Passing cleanly through the tailgate aperture frame
-    const subP = (p - 0.4) / 0.3;
-    const currentX = sillX + (-24 - sillX) * subP;
-    cargoSimulationBaseGroup.position.set(currentX, 0, 0);
+    cargoSimulationBaseGroup.rotation.x = simRoll;
+
+  } else if (lastFitResult.mode === 'pitch') {
+    // Pitch tilt: item enters level through the tailgate opening, then elevates onto seatback as it reaches front
+    const pitchRad = (lastFitResult.angle * Math.PI) / 180;
+    if (clampedP < 0.5) {
+      cargoSimulationBaseGroup.rotation.z = pitchRad; // neutralizes pivot rotation so it glides in level
+    } else {
+      const subP = (clampedP - 0.5) / 0.5;
+      cargoSimulationBaseGroup.rotation.z = pitchRad * (1 - subP);
+    }
   } else {
-    // Phase 3: Moving into final stowed position and rotating to stowed angle
-    const subP = (p - 0.7) / 0.3;
-    const currentX = -24 + (stowedX - (-24)) * subP;
-    cargoSimulationBaseGroup.position.set(currentX, 0, 0);
-    if (lastFitResult.ingress && !lastFitResult.ingress.direct && lastFitResult.mode !== 'roll') {
-      // Transition from ingress roll back to final mode
-      cargoSimulationBaseGroup.rotation.x = ((lastFitResult.ingress.rollAngle * Math.PI) / 180) * (1 - subP);
-    }
+    cargoSimulationBaseGroup.rotation.set(0, 0, 0);
   }
 }
 

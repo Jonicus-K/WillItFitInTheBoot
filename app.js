@@ -1545,8 +1545,8 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   dashMesh.position.set(dashX, dashY, 0);
   cockpitGroup.add(dashMesh);
 
-  // Driver Side Digital Instrument Cluster Binnacle (UK RHD: +Z)
-  const driverZ = (totalCarWidth / 4) - 6;
+  // UK Right Hand Drive (RHD): Driver on the RIGHT (-Z)
+  const driverZ = -((totalCarWidth / 4) - 6);
   const binnacleGeo = new THREE.BoxGeometry(16, 7, 24);
   const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
   binnacle.position.set(dashX + 4, dashY + 8, driverZ);
@@ -1558,11 +1558,11 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   gauge.rotation.y = Math.PI / 2;
   cockpitGroup.add(gauge);
 
-  // Center Infotainment Widescreen Display (angled toward driver)
+  // Center Infotainment Widescreen Display (angled toward UK driver at -Z)
   const centerScreenGeo = new THREE.BoxGeometry(3, 7, 22);
   const centerScreen = new THREE.Mesh(centerScreenGeo, screenMat);
   centerScreen.position.set(dashX + 11, dashY + 4, 0);
-  centerScreen.rotation.y = 0.14;
+  centerScreen.rotation.y = -0.14;
   cockpitGroup.add(centerScreen);
 
   // Center Floor Console Tunnel running between front bucket seats
@@ -1702,20 +1702,21 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const frontWheelX = carFrontX + frontOverhang;
   const rearWheelX = frontWheelX + car.wheelbase;
 
-  // Front seats position aligned with cargo bay
-  const frontSeatsX = rearSillX - car.floor_length_seats_folded - 24;
-
   // Key vertical & longitudinal profile datum
   const beltY = sillY + 22;
   const roofTopY = car.overall_height;
 
-  // Cowl point (base of windscreen): sits just behind the front axle line
-  const cowlX = frontWheelX + (isSaloon ? 30 : (isEstate ? 20 : (isSUV ? 18 : 16)));
+  // Cowl point (base of windscreen): sits behind the front axle line
+  const cowlX = frontWheelX + (isSaloon ? 34 : (isEstate ? 28 : (isSUV ? 26 : 24)));
   const cowlY = beltY + 4;
 
   // Aerodynamic windscreen rake (~36°-42° from horizontal)
-  const windshieldRun = isSaloon ? 72 : (isEstate ? 66 : (isSUV ? 64 : 66));
+  const windshieldRun = isSaloon ? 70 : (isEstate ? 64 : (isSUV ? 62 : 62));
   const roofFrontX = cowlX + windshieldRun;
+
+  const dashX = cowlX + 10;
+  // Natural ergonomic driver seating position directly behind cockpit controls (eliminates massive gap!)
+  const frontSeatsX = dashX + 50;
 
   let roofRearX, deckFrontX;
   if (isSaloon) {
@@ -1847,15 +1848,15 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const mainHoodGeo = new THREE.BoxGeometry(mainHoodLen, 2.2, mainHoodAvgWidth);
   const mainHood = new THREE.Mesh(mainHoodGeo, bodyPaintMat);
   mainHood.position.set((cowlX + noseBreakX) / 2, ((cowlY - 1) + sillY + 16) / 2, 0);
-  mainHood.rotation.z = -mainHoodSlope;
+  mainHood.rotation.z = mainHoodSlope;
   addCadEdges(mainHood, 0x38bdf8);
   car3DGroup.add(mainHood);
 
   // Athletic Center Power Bulge / Spine
   const spineGeo = new THREE.BoxGeometry(mainHoodLen - 6, 1.8, mainHoodAvgWidth * 0.42);
   const spine = new THREE.Mesh(spineGeo, bodyPaintMat);
-  spine.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + sillY + 16) / 2) + 1.2, 0);
-  spine.rotation.z = -mainHoodSlope;
+  spine.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + sillY + 16) / 2) + 1.0, 0);
+  spine.rotation.z = mainHoodSlope;
   car3DGroup.add(spine);
 
   // Curved Nose Drop into Front Grille / Bumper
@@ -1864,7 +1865,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const noseDropGeo = new THREE.BoxGeometry(noseDropLen, 2.2, mainHoodWidthFront);
   const noseDrop = new THREE.Mesh(noseDropGeo, bodyPaintMat);
   noseDrop.position.set((noseBreakX + carFrontX + 2) / 2, (sillY + 16 + sillY + 7) / 2, 0);
-  noseDrop.rotation.z = -noseDropSlope;
+  noseDrop.rotation.z = noseDropSlope;
   addCadEdges(noseDrop, 0x38bdf8);
   car3DGroup.add(noseDrop);
 
@@ -2421,12 +2422,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(leftTub);
   car3DGroup.add(rightTub);
 
-  // Front Bucket Seats
+  // Front Bucket Seats (UK Right Hand Drive: Driver at -Z, Passenger at +Z)
   const seatZOffset = (totalCarWidth / 4) - 6;
   const driverSeat = createSeat3D(44, 42);
-  driverSeat.position.set(frontSeatsX, cabinFloorY, seatZOffset);
+  driverSeat.position.set(frontSeatsX, cabinFloorY, -seatZOffset); // Driver on RIGHT side (-Z)
   const passSeat = createSeat3D(44, 42);
-  passSeat.position.set(frontSeatsX, cabinFloorY, -seatZOffset);
+  passSeat.position.set(frontSeatsX, cabinFloorY, seatZOffset); // Passenger on LEFT side (+Z)
   car3DGroup.add(driverSeat);
   car3DGroup.add(passSeat);
 

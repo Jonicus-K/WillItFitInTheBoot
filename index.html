@@ -12,7 +12,7 @@
   <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
   <link rel="shortcut icon" href="favicon.ico">
 
-  <link rel="stylesheet" href="style.css?v=24">
+  <link rel="stylesheet" href="style.css?v=25">
   <!-- Three.js & OrbitControls via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -28,7 +28,7 @@
 
     <main class="calculator-grid">
       <!-- Input Sidebar -->
-      <section class="card">
+      <section class="card sidebar-card">
         <div class="form-group">
           <h2 class="card-title">1. Object Dimensions (cm)</h2>
           
@@ -68,11 +68,37 @@
             <span>Fold rear seats flat</span>
           </label>
         </div>
+
+        <!-- Integrated Cargo Space Specs Panel -->
+        <div class="specs-panel" id="specs-panel">
+          <div class="specs-panel-header">
+            <span class="specs-panel-title">Usable Cargo Space</span>
+            <span class="specs-panel-car" id="specs-car-name">BMW 3 Series</span>
+          </div>
+          <div class="specs-grid">
+            <div class="spec-item">
+              <span class="spec-label">Floor length</span>
+              <strong class="spec-value" id="spec-floor">140 cm (seats folded)</strong>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Wheel arches</span>
+              <strong class="spec-value" id="spec-arches">100 cm</strong>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Roof height</span>
+              <strong class="spec-value" id="spec-roof">71 cm</strong>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Tailgate opening</span>
+              <strong class="spec-value" id="spec-aperture">102 × 67 cm</strong>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- Results & Visualizer Column -->
       <section class="results-column">
-        <div class="card">
+        <div class="card result-card">
           <div class="card-header-row">
             <h2 class="card-title">Clearance Result</h2>
             <!-- View Mode Switcher -->
@@ -95,8 +121,10 @@
           <div class="angle-strategy-card" id="angle-strategy-card">
             <div class="strategy-header">
               <div class="strategy-title-wrap">
-                <span class="strategy-badge" id="strategy-badge">AUTO STRATEGY</span>
-                <h3 id="strategy-heading">Evaluating loading angles...</h3>
+                <div class="strategy-headline-row">
+                  <span class="strategy-badge" id="strategy-badge">AUTO STRATEGY</span>
+                  <h3 id="strategy-heading">Evaluating loading angles...</h3>
+                </div>
                 <div class="strategy-chips-row" id="strategy-chips-row">
                   <span class="strategy-chip" id="chip-ingress">🚪 Hatch Entry: Clears</span>
                   <span class="strategy-chip" id="chip-stowed">📦 Boot Stowed: Clears</span>
@@ -200,20 +228,10 @@
             </div>
           </div>
         </div>
-
-        <div class="specs-card">
-          <h3 class="specs-title">Usable Cargo Space</h3>
-          <ul class="specs-list">
-            <li>Floor length: <strong id="spec-floor">140 cm (seats folded)</strong></li>
-            <li>Width between wheel arches: <strong id="spec-arches">100 cm</strong></li>
-            <li>Roof height: <strong id="spec-roof">71 cm</strong></li>
-            <li>Tailgate opening: <strong id="spec-aperture">102 cm wide × 67 cm high</strong></li>
-          </ul>
-        </div>
       </section>
     </main>
   </div>
 
-  <script src="app.js?v=24"></script>
+  <script src="app.js?v=25"></script>
 </body>
 </html>

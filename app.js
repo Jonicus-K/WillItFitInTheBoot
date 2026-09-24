@@ -140,7 +140,7 @@ let selectedCar = null;
 let lastFitResult = null;
 let currentSolverOutcome = null; // Comprehensive solver result across all modes
 let activeAngleMode = 'auto'; // 'auto' | 'flat' | 'pitch' | 'yaw' | 'roll' | 'ingress'
-let manualAngleSliderValue = 0; // User slider angle in degrees
+let manualAngleSliderValue = null; // null: use solver recommended angle, number: user override
 let isIngressSimulating = false; // Animated loading in progress
 let ingressSimProgress = 0; // 0 to 1
 let cargoSimulationBaseGroup = null; // Container for animated simulation mesh
@@ -171,6 +171,7 @@ const btnSimulateIngress = document.getElementById('btn-simulate-ingress');
 const animBtnLabel = document.getElementById('anim-btn-label');
 const strategyPills = document.querySelectorAll('.strategy-pill');
 const customAngleSlider = document.getElementById('custom-angle-slider');
+const angleSliderLabel = document.getElementById('angle-slider-label');
 const angleValueBadge = document.getElementById('angle-value-badge');
 const angleStatusHint = document.getElementById('angle-status-hint');
 const tickButtons = document.querySelectorAll('.tick-btn');
@@ -182,6 +183,7 @@ const specFloor = document.getElementById('spec-floor');
 const specArches = document.getElementById('spec-arches');
 const specRoof = document.getElementById('spec-roof');
 const specAperture = document.getElementById('spec-aperture');
+const specsCarName = document.getElementById('specs-car-name');
 const hudBodyType = document.getElementById('hud-body-type');
 
 const presetButtons = document.querySelectorAll('.preset-btn');
@@ -340,6 +342,7 @@ function attachEvents() {
   [cargoLengthInput, cargoWidthInput, cargoHeightInput].forEach(input => {
     input.addEventListener('input', () => {
       clearActivePresets();
+      manualAngleSliderValue = null;
       evaluateFitment();
     });
   });
@@ -351,10 +354,12 @@ function attachEvents() {
     } else {
       selectedCar = vehicles[0];
     }
+    manualAngleSliderValue = null;
     evaluateFitment();
   });
 
   foldSeatsCheckbox.addEventListener('change', () => {
+    manualAngleSliderValue = null;
     evaluateFitment();
   });
 
@@ -365,6 +370,7 @@ function attachEvents() {
       cargoLengthInput.value = btn.dataset.length;
       cargoWidthInput.value = btn.dataset.width;
       cargoHeightInput.value = btn.dataset.height;
+      manualAngleSliderValue = null;
       evaluateFitment();
     });
   });
@@ -420,6 +426,11 @@ function attachEvents() {
       strategyPills.forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       activeAngleMode = pill.dataset.angleMode;
+      manualAngleSliderValue = null; // Clear manual override to load mode's optimal angle
+      if (activeAngleMode === 'ingress') {
+        snapCamera('ingress');
+        camButtons.forEach(b => b.classList.toggle('active', b.dataset.view === 'ingress'));
+      }
       evaluateFitment();
     });
   });
@@ -430,8 +441,10 @@ function attachEvents() {
       manualAngleSliderValue = parseFloat(e.target.value) || 0;
       if (angleValueBadge) angleValueBadge.textContent = `${Math.round(manualAngleSliderValue)}°`;
       if (activeAngleMode === 'auto' || activeAngleMode === 'flat') {
-        activeAngleMode = 'pitch';
-        strategyPills.forEach(p => p.classList.toggle('active', p.dataset.angleMode === 'pitch'));
+        if (manualAngleSliderValue > 0) {
+          activeAngleMode = 'pitch';
+          strategyPills.forEach(p => p.classList.toggle('active', p.dataset.angleMode === 'pitch'));
+        }
       }
       evaluateFitment();
     });
@@ -441,15 +454,15 @@ function attachEvents() {
   tickButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const val = parseFloat(btn.dataset.tick) || 0;
-      if (customAngleSlider) customAngleSlider.value = val;
       manualAngleSliderValue = val;
+      if (customAngleSlider) customAngleSlider.value = val;
       if (angleValueBadge) angleValueBadge.textContent = `${val}°`;
-      if (val > 0 && (activeAngleMode === 'auto' || activeAngleMode === 'flat')) {
-        activeAngleMode = 'pitch';
-        strategyPills.forEach(p => p.classList.toggle('active', p.dataset.angleMode === 'pitch'));
-      } else if (val === 0 && activeAngleMode !== 'auto') {
+      if (val === 0) {
         activeAngleMode = 'flat';
         strategyPills.forEach(p => p.classList.toggle('active', p.dataset.angleMode === 'flat'));
+      } else if (activeAngleMode === 'auto' || activeAngleMode === 'flat') {
+        activeAngleMode = 'pitch';
+        strategyPills.forEach(p => p.classList.toggle('active', p.dataset.angleMode === 'pitch'));
       }
       evaluateFitment();
     });
@@ -554,42 +567,39 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
   let bestPitch = null;
   let bestYaw = null;
   let bestRoll = null;
-  let bestIngressOnly = null;
+  let bestIngress = null;
   let failureReasons = [];
 
   for (const rot of rotations) {
     const ingress = checkApertureIngress(rot, apWidth, apHeight);
     const usableLengthAtH = floorLength - (rot.h * tanRake);
 
+    // Track best aperture ingress pass-through
+    if (ingress.canEnter) {
+      if (!bestIngress || ingress.margin > bestIngress.margin) {
+        bestIngress = {
+          rot,
+          angle: ingress.rollAngle,
+          margin: ingress.margin,
+          ingress
+        };
+      }
+    }
+
     // 1. Flat Orthogonal Test
     const passesArch = rot.w <= archWidth;
     const passesRoof = rot.h <= roofHeight;
     const passesRake = rot.l <= usableLengthAtH;
 
-    if (passesArch && passesRoof && passesRake) {
+    if (passesArch && passesRoof && passesRake && ingress.canEnter) {
       const margin = Math.min(usableLengthAtH - rot.l, archWidth - rot.w, roofHeight - rot.h);
-      if (ingress.canEnter) {
-        if (!ingress.direct) {
-          // Fits inside flat, but requires tilted roll ingress to pass tailgate!
-          if (!bestIngressOnly || margin > bestIngressOnly.margin) {
-            bestIngressOnly = {
-              rot,
-              margin,
-              ingress,
-              usableLengthAtH
-            };
-          }
-        } else {
-          // Fits directly flat and enters directly
-          if (!bestFlat || margin > bestFlat.margin) {
-            bestFlat = {
-              rot,
-              margin,
-              ingress,
-              usableLengthAtH
-            };
-          }
-        }
+      if (!bestFlat || margin > bestFlat.margin) {
+        bestFlat = {
+          rot,
+          margin,
+          ingress,
+          usableLengthAtH
+        };
       }
     } else {
       if (!passesRake && passesArch && passesRoof) {
@@ -649,7 +659,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
         const usableL = floorLength - (rot.h * tanRake);
 
         // Allows lateral expansion into cabin width forward of wheel arches
-        const allowedWidth = boundingL > 75 ? Math.min(cabinWidth - 6, archWidth + 14) : archWidth;
+        const allowedWidth = boundingL > 75 ? Math.min(cabinWidth - 6, archWidth + 18) : archWidth;
 
         if (boundingL <= usableL && boundingW <= allowedWidth) {
           const margin = Math.min(usableL - boundingL, allowedWidth - boundingW, roofHeight - rot.h);
@@ -706,16 +716,16 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       heading: 'Fits Straight & Flat (Comfortable)',
       instruction: `Clears all cargo boundaries with a generous ${Math.round(bestFlat.margin)} cm buffer (orientation: ${bestFlat.rot.l} × ${bestFlat.rot.w} × ${bestFlat.rot.h} cm).`
     };
-  } else if (bestIngressOnly) {
+  } else if (bestFlat && !bestFlat.ingress.direct) {
     overallOptimal = {
       mode: 'ingress',
-      rot: bestIngressOnly.rot,
-      angle: bestIngressOnly.ingress.rollAngle,
+      rot: bestFlat.rot,
+      angle: bestFlat.ingress.rollAngle,
       status: 'angled',
-      margin: bestIngressOnly.margin,
-      ingress: bestIngressOnly.ingress,
-      heading: `Tilted Ingress Required (~${bestIngressOnly.ingress.rollAngle}° Roll)`,
-      instruction: `Too wide for standard flat entry, but slips through the tailgate opening when tilted at a ~${bestIngressOnly.ingress.rollAngle}° roll angle, then lays flat on the boot floor!`
+      margin: bestFlat.margin,
+      ingress: bestFlat.ingress,
+      heading: `Tilted Ingress Required (~${bestFlat.ingress.rollAngle}° Roll)`,
+      instruction: `Too wide for standard flat entry, but slips through the tailgate opening when tilted at a ~${bestFlat.ingress.rollAngle}° roll angle, then lays flat on the boot floor!`
     };
   } else if (bestFlat) {
     overallOptimal = {
@@ -781,7 +791,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       pitch: bestPitch,
       yaw: bestYaw,
       roll: bestRoll,
-      ingress: bestIngressOnly
+      ingress: bestIngress
     },
     carLimits: {
       floorLength,
@@ -810,11 +820,12 @@ function evaluateFitment() {
   const rakeRad = (selectedCar.rake_angle_deg * Math.PI) / 180;
   const tanRake = Math.tan(rakeRad);
 
-  specFloor.textContent = `${floorLength} cm (${seatsFolded ? 'seats folded' : 'seats up'})`;
-  specArches.textContent = `${archWidth} cm`;
-  specRoof.textContent = `${roofHeight} cm`;
-  specAperture.textContent = `${apWidth} cm wide × ${apHeight} cm high`;
-  hudBodyType.textContent = selectedCar.body_type.toUpperCase();
+  if (specFloor) specFloor.textContent = `${floorLength} cm (${seatsFolded ? 'seats folded' : 'seats up'})`;
+  if (specArches) specArches.textContent = `${archWidth} cm`;
+  if (specRoof) specRoof.textContent = `${roofHeight} cm`;
+  if (specAperture) specAperture.textContent = `${apWidth} × ${apHeight} cm`;
+  if (specsCarName) specsCarName.textContent = selectedCar.name;
+  if (hudBodyType) hudBodyType.textContent = selectedCar.body_type.toUpperCase();
 
   if (rawL <= 0 || rawW <= 0 || rawH <= 0) {
     resultBanner.className = 'result-banner will-not-fit';
@@ -831,19 +842,45 @@ function evaluateFitment() {
 
   if (activeAngleMode === 'auto') {
     activeResult = optimal;
-    // Update slider position to match the optimal angle
-    if (customAngleSlider) {
-      customAngleSlider.value = activeResult.angle || 0;
-      if (angleValueBadge) angleValueBadge.textContent = `${Math.round(activeResult.angle || 0)}°`;
+    const optAngle = Math.round(activeResult.angle || 0);
+    if (customAngleSlider) customAngleSlider.value = optAngle;
+    if (angleValueBadge) angleValueBadge.textContent = `${optAngle}°`;
+    if (angleSliderLabel) {
+      if (activeResult.mode === 'pitch') angleSliderLabel.textContent = 'Seatback Tilt:';
+      else if (activeResult.mode === 'yaw') angleSliderLabel.textContent = 'Diagonal Yaw:';
+      else if (activeResult.mode === 'roll') angleSliderLabel.textContent = 'Bank Roll:';
+      else if (activeResult.mode === 'ingress') angleSliderLabel.textContent = 'Ingress Roll:';
+      else angleSliderLabel.textContent = 'Loading Angle:';
     }
-    if (angleStatusHint) angleStatusHint.textContent = `Auto optimal angle for ${activeResult.mode}`;
+    if (angleStatusHint) angleStatusHint.textContent = `Auto optimal: ${activeResult.heading}`;
   } else {
     // Mode explicitly selected by user
     const targetModeData = currentSolverOutcome.modes[activeAngleMode];
     const candidateRot = (targetModeData && targetModeData.rot) || optimal.rot;
-    const testAngle = manualAngleSliderValue || (targetModeData ? targetModeData.angle : 0);
+
+    let testAngle = 0;
+    if (manualAngleSliderValue !== null) {
+      testAngle = manualAngleSliderValue;
+    } else if (targetModeData && targetModeData.angle !== undefined) {
+      testAngle = targetModeData.angle;
+    } else {
+      // Sensible default starting angles for manual mode testing
+      if (activeAngleMode === 'pitch') testAngle = 14;
+      else if (activeAngleMode === 'yaw') testAngle = 18;
+      else if (activeAngleMode === 'roll') testAngle = 20;
+      else if (activeAngleMode === 'ingress') testAngle = (targetModeData && targetModeData.ingress && !targetModeData.ingress.direct) ? targetModeData.ingress.rollAngle : 0;
+      else testAngle = 0;
+    }
+
+    if (customAngleSlider) customAngleSlider.value = Math.round(testAngle);
+    if (angleValueBadge) angleValueBadge.textContent = `${Math.round(testAngle)}°`;
 
     if (activeAngleMode === 'flat') {
+      if (angleSliderLabel) angleSliderLabel.textContent = 'Loading Angle:';
+      if (angleStatusHint) angleStatusHint.textContent = 'Flat 0° on cargo floor';
+      if (customAngleSlider) customAngleSlider.value = 0;
+      if (angleValueBadge) angleValueBadge.textContent = '0°';
+
       const passesArch = candidateRot.w <= archWidth;
       const passesRoof = candidateRot.h <= roofHeight;
       const usableL = floorLength - (candidateRot.h * tanRake);
@@ -860,9 +897,15 @@ function evaluateFitment() {
           margin: m,
           ingress,
           heading: m >= 4 ? 'Fits Flat (Comfortable)' : 'Fits Flat (Tight)',
-          instruction: `Laid flat on boot floor with ${Math.round(m * 10) / 10} cm clearance.`
+          instruction: `Laid flat on boot floor with ${Math.round(m * 10) / 10} cm clearance buffer.`
         };
       } else {
+        let failMsg = 'Hits boundary limits when laid flat. ';
+        if (!passesArch) failMsg += `Width (${candidateRot.w} cm) exceeds wheel arches (${archWidth} cm). `;
+        if (!passesRoof) failMsg += `Height (${candidateRot.h} cm) exceeds roof height (${roofHeight} cm). `;
+        if (!passesRake) failMsg += `Length (${candidateRot.l} cm) hits sloping glass (limit ~${Math.round(usableL)} cm). `;
+        if (!ingress.canEnter) failMsg += 'Exceeds tailgate aperture frame opening. ';
+
         activeResult = {
           mode: 'flat',
           rot: candidateRot,
@@ -871,10 +914,14 @@ function evaluateFitment() {
           margin: -1,
           ingress,
           heading: 'Collides When Laid Flat',
-          instruction: 'Hits boundary limits when flat. Try tilting onto seatback or angling diagonally across floor.'
+          instruction: failMsg.trim()
         };
       }
+
     } else if (activeAngleMode === 'pitch') {
+      if (angleSliderLabel) angleSliderLabel.textContent = 'Seatback Tilt:';
+      if (angleStatusHint) angleStatusHint.textContent = 'Elevate front edge onto seatback';
+
       const rad = (testAngle * Math.PI) / 180;
       const topFrontH = (candidateRot.l * Math.sin(rad)) + (candidateRot.h * Math.cos(rad));
       const horizSpan = candidateRot.l * Math.cos(rad);
@@ -886,7 +933,7 @@ function evaluateFitment() {
       const roofClearance = roofHeight - topFrontH;
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
 
-      const clears = (glassClearance >= 0 && roofClearance >= 0 && horizSpan <= maxAllowedSpan && candidateRot.w <= archWidth);
+      const clears = (glassClearance >= 0 && roofClearance >= 0 && horizSpan <= maxAllowedSpan && candidateRot.w <= archWidth && ingress.canEnter);
 
       activeResult = {
         mode: 'pitch',
@@ -895,65 +942,91 @@ function evaluateFitment() {
         status: clears ? 'angled' : 'colliding',
         margin: clears ? Math.min(glassClearance, roofClearance) : -1,
         ingress,
-        heading: clears ? `Seatback Tilt (~${testAngle}° Tilt)` : `Tilt Colliding at ${testAngle}°`,
+        heading: clears ? `Seatback Tilt (~${Math.round(testAngle)}° Tilt)` : `Tilt Colliding at ${Math.round(testAngle)}°`,
         instruction: clears
-          ? `Tilted ~${testAngle}° with front propped on seatback. Clears glass by ${Math.round(glassClearance * 10) / 10} cm, roof by ${Math.round(roofClearance * 10) / 10} cm.`
-          : (roofClearance < 0 ? `Hits ceiling at ${testAngle}° tilt (exceeds roof height by ${Math.round(Math.abs(roofClearance))} cm).` : `Rear edge hits window glass at this tilt angle.`)
+          ? `Tilted ~${Math.round(testAngle)}° with front propped on seatback. Clears glass by ${Math.round(glassClearance * 10) / 10} cm, roof by ${Math.round(roofClearance * 10) / 10} cm.`
+          : (roofClearance < 0 ? `Hits ceiling at ${Math.round(testAngle)}° tilt (exceeds roof height by ${Math.round(Math.abs(roofClearance))} cm).` : `Rear edge hits window glass at this tilt angle.`)
       };
+
     } else if (activeAngleMode === 'yaw') {
+      if (angleSliderLabel) angleSliderLabel.textContent = 'Diagonal Yaw:';
+      if (angleStatusHint) angleStatusHint.textContent = 'Angle corner-to-corner across floor';
+
       const rad = (testAngle * Math.PI) / 180;
       const boundingL = (candidateRot.l * Math.cos(rad)) + (candidateRot.w * Math.sin(rad));
       const boundingW = (candidateRot.l * Math.sin(rad)) + (candidateRot.w * Math.cos(rad));
       const usableL = floorLength - (candidateRot.h * tanRake);
-      const allowedW = boundingL > 75 ? Math.min(selectedCar.overall_width * 0.82 - 6, archWidth + 14) : archWidth;
+      const cabinWidth = selectedCar.overall_width * 0.82;
+      const allowedW = boundingL > 75 ? Math.min(cabinWidth - 6, archWidth + 18) : archWidth;
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
-      const clears = (boundingL <= usableL && boundingW <= allowedW && candidateRot.h <= roofHeight);
+      const clears = (boundingL <= usableL && boundingW <= allowedW && candidateRot.h <= roofHeight && ingress.canEnter);
 
       activeResult = {
         mode: 'yaw',
         rot: candidateRot,
         angle: testAngle,
         status: clears ? 'angled' : 'colliding',
-        margin: clears ? Math.min(usableL - boundingL, allowedW - boundingW) : -1,
+        margin: clears ? Math.min(usableL - boundingL, allowedW - boundingW, roofHeight - candidateRot.h) : -1,
         ingress,
-        heading: clears ? `Diagonal Floor (~${testAngle}° Angle)` : `Diagonal Colliding at ${testAngle}°`,
+        heading: clears ? `Diagonal Floor (~${Math.round(testAngle)}° Angle)` : `Diagonal Colliding at ${Math.round(testAngle)}°`,
         instruction: clears
-          ? `Angled ${testAngle}° diagonally across cargo floor with ${Math.round((usableL - boundingL) * 10) / 10} cm length margin.`
-          : `Diagonal angle of ${testAngle}° exceeds cargo bay boundary limits.`
+          ? `Angled ${Math.round(testAngle)}° diagonally across cargo floor with ${Math.round((usableL - boundingL) * 10) / 10} cm length margin.`
+          : `Diagonal angle of ${Math.round(testAngle)}° exceeds cargo bay boundary limits (length span ${Math.round(boundingL)} cm vs ${Math.round(usableL)} cm usable).`
       };
+
     } else if (activeAngleMode === 'roll') {
+      if (angleSliderLabel) angleSliderLabel.textContent = 'Bank Roll:';
+      if (angleStatusHint) angleStatusHint.textContent = 'Lean against sidewall / wheel arch';
+
       const rad = (testAngle * Math.PI) / 180;
       const projW = (candidateRot.w * Math.cos(rad)) + (candidateRot.h * Math.sin(rad));
       const projH = (candidateRot.w * Math.sin(rad)) + (candidateRot.h * Math.cos(rad));
       const usableL = floorLength - (projH * tanRake);
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
-      const clears = (projW <= archWidth && projH <= roofHeight && candidateRot.l <= usableL);
+      const clears = (projW <= archWidth && projH <= roofHeight && candidateRot.l <= usableL && ingress.canEnter);
 
       activeResult = {
         mode: 'roll',
         rot: candidateRot,
         angle: testAngle,
         status: clears ? 'angled' : 'colliding',
-        margin: clears ? Math.min(archWidth - projW, roofHeight - projH) : -1,
+        margin: clears ? Math.min(archWidth - projW, roofHeight - projH, usableL - candidateRot.l) : -1,
         ingress,
-        heading: clears ? `Banked Sidewall (~${testAngle}° Roll)` : `Banked Colliding at ${testAngle}°`,
+        heading: clears ? `Banked Sidewall (~${Math.round(testAngle)}° Roll)` : `Banked Colliding at ${Math.round(testAngle)}°`,
         instruction: clears
-          ? `Banked at ~${testAngle}° against sidewall. Width is ${Math.round(projW)} cm (limit ${archWidth} cm), height is ${Math.round(projH)} cm (limit ${roofHeight} cm).`
-          : `At ${testAngle}° roll, item exceeds arch width or interior roof height.`
+          ? `Banked at ~${Math.round(testAngle)}° against sidewall. Width is ${Math.round(projW)} cm (limit ${archWidth} cm), height is ${Math.round(projH)} cm (limit ${roofHeight} cm).`
+          : `At ${Math.round(testAngle)}° roll, item exceeds arch width (${Math.round(projW)} vs ${archWidth} cm) or roof height (${Math.round(projH)} vs ${roofHeight} cm).`
       };
+
     } else if (activeAngleMode === 'ingress') {
-      const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
+      if (angleSliderLabel) angleSliderLabel.textContent = 'Ingress Roll:';
+      if (angleStatusHint) angleStatusHint.textContent = 'Clearance passing tailgate frame';
+
+      const rad = (testAngle * Math.PI) / 180;
+      const projW = (candidateRot.w * Math.cos(rad)) + (candidateRot.h * Math.sin(rad));
+      const projH = (candidateRot.w * Math.sin(rad)) + (candidateRot.h * Math.cos(rad));
+      const passesAperture = (projW <= apWidth && projH <= apHeight);
+      const margin = passesAperture ? Math.min(apWidth - projW, apHeight - projH) : -Math.max(projW - apWidth, projH - apHeight);
+      const ingress = {
+        direct: testAngle === 0 && passesAperture,
+        canEnter: passesAperture,
+        rollAngle: testAngle,
+        margin: Math.round(margin * 10) / 10
+      };
+
       activeResult = {
         mode: 'ingress',
         rot: candidateRot,
-        angle: ingress.rollAngle || testAngle,
-        status: ingress.canEnter ? 'angled' : 'colliding',
-        margin: ingress.margin,
+        angle: testAngle,
+        status: passesAperture ? (testAngle > 0 ? 'angled' : 'comfortable') : 'colliding',
+        margin: Math.round(margin * 10) / 10,
         ingress,
-        heading: ingress.canEnter ? `Hatch Ingress Clearance (~${ingress.rollAngle}° Roll)` : 'Aperture Ingress Blocked',
-        instruction: ingress.canEnter
-          ? (ingress.direct ? `Passes through the tailgate aperture directly with ${Math.round(ingress.margin)} cm buffer.` : `Requires tilting at a ~${ingress.rollAngle}° roll angle to slip through the ${apWidth} × ${apHeight} cm tailgate opening!`)
-          : `Even at an angle, dimensions exceed the diagonal opening of the tailgate (${Math.round(Math.hypot(apWidth, apHeight))} cm max diagonal).`
+        heading: passesAperture
+          ? (testAngle > 0 ? `Hatch Entry Clears (~${Math.round(testAngle)}° Roll)` : `Direct Hatch Entry Clears (0°)`)
+          : `Aperture Blocked at ${Math.round(testAngle)}°`,
+        instruction: passesAperture
+          ? (testAngle > 0 ? `Slips through the ${apWidth} × ${apHeight} cm tailgate opening tilted at ~${Math.round(testAngle)}° roll with ${Math.round(margin)} cm clearance.` : `Passes directly through the tailgate aperture without tilting with ${Math.round(margin)} cm clearance buffer.`)
+          : `Projected dimensions (${Math.round(projW)} × ${Math.round(projH)} cm) exceed the ${apWidth} × ${apHeight} cm opening.`
       };
     }
   }
@@ -1006,7 +1079,7 @@ function evaluateFitment() {
       chipIngress.className = 'strategy-chip clears';
       chipIngress.textContent = activeResult.ingress.direct
         ? '🚪 Hatch Entry: Direct (0°)'
-        : `🚪 Hatch Entry: Clears (Tilted ~${activeResult.ingress.rollAngle}°)`;
+        : `🚪 Hatch Entry: Clears (Tilted ~${Math.round(activeResult.ingress.rollAngle)}°)`;
     } else {
       chipIngress.className = 'strategy-chip colliding';
       chipIngress.textContent = '🚪 Hatch Entry: Blocked';
@@ -1389,6 +1462,11 @@ function addCadEdges(mesh, color = 0x38bdf8, thresholdAngle = 26) {
  */
 function update3DStudio(car, seatsFolded, fitResult) {
   if (!scene) return;
+
+  // Reset active simulation when geometry updates to avoid orphan anim loops
+  isIngressSimulating = false;
+  if (btnSimulateIngress) btnSimulateIngress.classList.remove('playing');
+  if (animBtnLabel) animBtnLabel.textContent = 'Simulate Loading';
 
   if (car3DGroup) scene.remove(car3DGroup);
   if (cargo3DMesh) scene.remove(cargo3DMesh);
@@ -2062,21 +2140,27 @@ function update3DStudio(car, seatsFolded, fitResult) {
       cargoSimulationBaseGroup.add(pivot);
 
     } else if (fitResult.mode === 'yaw') {
-      // Diagonal corner-to-corner across cargo floor
-      cargo3DMesh.position.set(rearSillX - (rot.l / 2) - 4, sillY + (rot.h / 2) + 2.5, 0);
-      cargo3DMesh.rotation.y = (fitResult.angle * Math.PI) / 180;
+      // Diagonal corner-to-corner across cargo floor: account for rotated length span
+      const rad = (fitResult.angle * Math.PI) / 180;
+      const halfExtX = (rot.l / 2) * Math.cos(rad) + (rot.w / 2) * Math.sin(Math.abs(rad));
+      cargo3DMesh.position.set(rearSillX - 4 - halfExtX, sillY + (rot.h / 2) + 2.5, 0);
+      cargo3DMesh.rotation.y = rad;
       cargoSimulationBaseGroup.add(cargo3DMesh);
 
     } else if (fitResult.mode === 'roll') {
-      // Banked against sidewall / wheel arch
-      cargo3DMesh.position.set(rearSillX - (rot.l / 2) - 4, sillY + (rot.h / 2) + 2.5, 0);
-      cargo3DMesh.rotation.x = (fitResult.angle * Math.PI) / 180;
+      // Banked against sidewall: contact lift keeps bottom corner exactly on floor
+      const rad = (fitResult.angle * Math.PI) / 180;
+      const contactY = (rot.w / 2) * Math.sin(Math.abs(rad)) + (rot.h / 2) * Math.cos(rad);
+      cargo3DMesh.position.set(rearSillX - (rot.l / 2) - 4, sillY + 2.5 + contactY, 0);
+      cargo3DMesh.rotation.x = rad;
       cargoSimulationBaseGroup.add(cargo3DMesh);
 
     } else if (fitResult.mode === 'ingress') {
-      // Demonstrating entry through the aperture opening
-      cargo3DMesh.position.set(rearSillX + 2, sillY + (rot.h / 2) + 2.5, 0);
-      cargo3DMesh.rotation.x = (fitResult.angle * Math.PI) / 180;
+      // Demonstrating entry through the aperture opening: contact lift and positioned at tailgate
+      const rad = (fitResult.angle * Math.PI) / 180;
+      const contactY = (rot.w / 2) * Math.sin(Math.abs(rad)) + (rot.h / 2) * Math.cos(rad);
+      cargo3DMesh.position.set(rearSillX + 16, sillY + 2.5 + contactY, 0);
+      cargo3DMesh.rotation.x = rad;
       cargoSimulationBaseGroup.add(cargo3DMesh);
 
     } else {
@@ -2181,8 +2265,12 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
   if (mode === 'pitch') {
     const pivotX = rearSillX - 8;
     const pivotY = floorY;
+    const rad = (Math.max(1, angle) * Math.PI) / 180;
+    const arcR = 55;
+    const arcEndX = (pivotX - arcR * Math.cos(rad)).toFixed(1);
+    const arcEndY = (pivotY - arcR * Math.sin(rad)).toFixed(1);
     cargoMarkup = `
-      <g transform="rotate(${angle}, ${pivotX}, ${pivotY})">
+      <g transform="rotate(${-angle}, ${pivotX}, ${pivotY})">
         <rect x="${pivotX - boxLPx}" y="${pivotY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
               fill="url(#box-grad-cyan)" stroke="#38bdf8" stroke-width="2" rx="3" filter="url(#glow-cyan)" />
         <text x="${pivotX - (boxLPx / 2)}" y="${pivotY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
@@ -2191,9 +2279,9 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
         <line x1="${pivotX - boxLPx + 14}" y1="${pivotY - boxHPx}" x2="${pivotX - boxLPx + 14}" y2="${pivotY}" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" />
         <line x1="${pivotX - 14}" y1="${pivotY - boxHPx}" x2="${pivotX - 14}" y2="${pivotY}" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" />
       </g>
-      <path d="M ${pivotX - 55} ${pivotY} A 55 55 0 0 1 ${pivotX - 52} ${pivotY - 22}" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="3,2" />
-      <text x="${pivotX - 60}" y="${pivotY - 10}" fill="#38bdf8" font-size="10.5" font-family="ui-monospace, monospace" font-weight="800" text-anchor="end">
-        ~${angle}° tilt
+      <path d="M ${pivotX - arcR} ${pivotY} A ${arcR} ${arcR} 0 0 1 ${arcEndX} ${arcEndY}" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="3,2" />
+      <text x="${pivotX - 60}" y="${pivotY - 14}" fill="#38bdf8" font-size="10.5" font-family="ui-monospace, monospace" font-weight="800" text-anchor="end">
+        ~${Math.round(angle)}° tilt
       </text>
     `;
   } else if (mode === 'yaw') {
@@ -2468,11 +2556,23 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isCollidin
   // Tilted roll or ingress visualization
   let boxTransform = '';
   let rollLabel = '';
+  let renderBoxY = floorY - boxHPx;
+
   if ((mode === 'roll' || mode === 'ingress') && angle > 0) {
-    boxTransform = `transform="rotate(${angle}, ${centerX}, ${floorY - (boxHPx / 2)})"`;
+    const rad = (angle * Math.PI) / 180;
+    const contactHalfH = (boxWPx / 2) * Math.sin(rad) + (boxHPx / 2) * Math.cos(rad);
+    const pivotY = floorY - contactHalfH;
+    renderBoxY = pivotY - (boxHPx / 2);
+    boxTransform = `transform="rotate(${angle}, ${centerX}, ${pivotY})"`;
     rollLabel = `
       <text x="${centerX}" y="${floorY - apHPx - 8}" fill="#38bdf8" font-size="10" font-family="ui-monospace, monospace" font-weight="800" text-anchor="middle">
-        ROLLED ~${angle}° TO CLEAR APERTURE
+        ${mode === 'ingress' ? 'INGRESS ROLL' : 'BANKED ROLL'} ~${Math.round(angle)}°
+      </text>
+    `;
+  } else if (mode === 'yaw' && angle > 0) {
+    rollLabel = `
+      <text x="${centerX}" y="${floorY - apHPx - 8}" fill="#38bdf8" font-size="10" font-family="ui-monospace, monospace" font-weight="800" text-anchor="middle">
+        DIAGONAL FLOOR ~${Math.round(angle)}°
       </text>
     `;
   }
@@ -2553,10 +2653,10 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isCollidin
     ${rollLabel}
 
     <g ${boxTransform}>
-      <rect x="${boxLeftX}" y="${floorY - boxHPx}" width="${boxWPx}" height="${boxHPx}" 
+      <rect x="${boxLeftX}" y="${renderBoxY}" width="${boxWPx}" height="${boxHPx}" 
             fill="${boxFill}" stroke="${boxStroke}" stroke-width="2" rx="3" ${boxGlow} />
 
-      <text x="${centerX}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
+      <text x="${centerX}" y="${renderBoxY + (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
         ${rot.w} × ${rot.h} cm
       </text>
     </g>

@@ -193,6 +193,7 @@ const view3dContainer = document.getElementById('view-3d-container');
 const view2dContainer = document.getElementById('view-2d-container');
 const camButtons = document.querySelectorAll('.cam-btn[data-view]');
 const btnXRayToggle = document.getElementById('btn-xray-toggle');
+const btnBootToggle = document.getElementById('btn-boot-toggle');
 
 // Three.js State
 let scene, camera, renderer, controls;
@@ -2200,7 +2201,6 @@ function startIngressSimulation() {
   }
   // Ensure tailgate is open for loading
   if (!isTailgateOpen) {
-    const btnBootToggle = document.getElementById('btn-boot-toggle');
     if (btnBootToggle) btnBootToggle.click();
   }
 }

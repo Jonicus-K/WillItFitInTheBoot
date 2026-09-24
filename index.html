@@ -5,7 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Will It Fit In The Boot? - Car Cargo Space Fitment Calculator</title>
   <meta name="description" content="Check if TVs, furniture, appliances, or flat-pack boxes physically fit in your car boot with 3D interactive CAD models and dual blueprint visualizers.">
-  <link rel="stylesheet" href="style.css?v=19">
+
+  <!-- Favicon Configuration -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="shortcut icon" href="favicon.ico">
+
+  <link rel="stylesheet" href="style.css?v=20">
   <!-- Three.js & OrbitControls via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -14,7 +21,9 @@
   <div class="app-container">
     <header class="header-section">
       <span class="badge-tag">Fitment Calculator</span>
-      <h1>Will It Fit In The Boot?</h1>
+      <h1 class="brand-title">
+        <img src="assets/logo.svg" alt="Will It Fit In The Boot?" class="header-logo" onerror="this.onerror=null; this.src='assets/logo.png';">
+      </h1>
       <p class="subtitle">Check if TVs, furniture, or appliances will physically fit in your car.</p>
     </header>
 
@@ -150,6 +159,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=19"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>

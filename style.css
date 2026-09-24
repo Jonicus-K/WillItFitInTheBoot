@@ -46,42 +46,29 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-}
-
-.badge-tag {
-  background: rgba(56, 189, 248, 0.1);
-  color: var(--color-cyan);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  text-transform: uppercase;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+  gap: 10px;
 }
 
 .brand-title {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin: 4px 0 2px 0;
+  margin: 0;
   line-height: 1;
 }
 
 .header-logo {
-  height: 56px;
+  height: 96px;
   width: auto;
-  max-width: 100%;
+  max-width: min(560px, 92vw);
   object-fit: contain;
-  filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.22));
+  filter: drop-shadow(0 0 24px rgba(56, 189, 248, 0.28));
   transition: transform 0.2s ease, filter 0.2s ease;
 }
 
 .header-logo:hover {
   transform: scale(1.02);
-  filter: drop-shadow(0 0 28px rgba(56, 189, 248, 0.4));
+  filter: drop-shadow(0 0 32px rgba(56, 189, 248, 0.45));
 }
 
 .header-section .subtitle {
@@ -103,8 +90,8 @@ body {
 
 @media (max-width: 480px) {
   .header-logo {
-    height: 42px;
-    max-width: 280px;
+    height: 72px;
+    max-width: 88vw;
   }
 }
 

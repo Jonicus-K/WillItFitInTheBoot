@@ -416,6 +416,20 @@ body {
   color: var(--color-cyan);
 }
 
+.cam-btn.boot-toggle-btn {
+  color: #38bdf8;
+  border-left: 1px solid rgba(56, 189, 248, 0.25);
+  margin-left: 4px;
+  padding-left: 10px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cam-btn.boot-toggle-btn.active {
+  background: rgba(56, 189, 248, 0.22);
+  color: var(--color-cyan);
+}
+
 .cam-btn.x-ray-btn {
   color: #38bdf8;
   border-left: 1px solid rgba(56, 189, 248, 0.25);

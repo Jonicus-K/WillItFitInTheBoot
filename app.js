@@ -138,7 +138,11 @@ const defaultCars = [
 let vehicles = [];
 let selectedCar = null;
 let lastFitResult = null;
-let xRayMode = 0.40; // 0.40 (CAD Cutaway) or 0.95 (Showroom Paint)
+let xRayMode = 0.70; // 0.70 (Sleek CAD Cutaway) or 1.0 (Solid Showroom Paint)
+let isTailgateOpen = true;
+let currentTailgateAngle = 1.08;
+let targetTailgateAngle = 1.08;
+let tailgatePivot = null;
 
 // DOM Elements
 const cargoLengthInput = document.getElementById('cargo-length');
@@ -371,11 +375,24 @@ function attachEvents() {
 
   if (btnXRayToggle) {
     btnXRayToggle.addEventListener('click', () => {
-      xRayMode = xRayMode < 0.6 ? 0.95 : 0.40;
-      btnXRayToggle.textContent = xRayMode < 0.6 ? 'X-Ray: 40%' : 'Solid Paint';
+      xRayMode = xRayMode < 0.85 ? 1.0 : 0.70;
+      btnXRayToggle.textContent = xRayMode < 0.85 ? 'CAD Cutaway' : 'Solid Paint';
       if (selectedCar && lastFitResult) {
         update3DStudio(selectedCar, foldSeatsCheckbox.checked, lastFitResult);
       }
+    });
+  }
+
+  const btnBootToggle = document.getElementById('btn-boot-toggle');
+  if (btnBootToggle) {
+    btnBootToggle.addEventListener('click', () => {
+      isTailgateOpen = !isTailgateOpen;
+      btnBootToggle.classList.toggle('active', isTailgateOpen);
+      btnBootToggle.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px; margin-right: 3px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Boot: ${isTailgateOpen ? 'Open' : 'Closed'}
+      `;
+      targetTailgateAngle = isTailgateOpen ? getOpenTailgateAngle(selectedCar ? selectedCar.body_type : 'hatchback') : 0;
     });
   }
 
@@ -601,7 +618,7 @@ function evaluateFitment() {
 }
 
 /* ==========================================================================
-   THREE.JS 3D INTERACTIVE STUDIO (Sculpted CAD Model with Rounded Tubs)
+   THREE.JS 3D INTERACTIVE STUDIO (High-Fidelity CAD Cutaway Models)
    ========================================================================== */
 
 let fallbackOrbit = {
@@ -612,6 +629,13 @@ let fallbackOrbit = {
   theta: 0.85,
   phi: 1.18
 };
+
+function getOpenTailgateAngle(bodyType) {
+  if (bodyType === 'saloon') return 0.95;
+  if (bodyType === 'estate') return 1.15;
+  if (bodyType === 'suv') return 1.10;
+  return 1.08;
+}
 
 function initThreeStudio() {
   const canvas = document.getElementById('three-canvas');
@@ -624,7 +648,7 @@ function initThreeStudio() {
   scene.background = new THREE.Color(0x060a14);
 
   camera = new THREE.PerspectiveCamera(36, width / height, 1, 5000);
-  updateCameraFromSpherical();
+  camera.position.set(165, 110, 145);
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
   renderer.setSize(width, height);
@@ -637,7 +661,7 @@ function initThreeStudio() {
     controls.maxPolarAngle = (Math.PI / 2) + 0.04;
     controls.minDistance = 70;
     controls.maxDistance = 600;
-    controls.target.set(0, 32, 0);
+    controls.target.set(-50, 38, 0);
   } else {
     initFallbackControls(canvas);
   }
@@ -646,17 +670,21 @@ function initThreeStudio() {
   const ambientLight = new THREE.AmbientLight(0x384a6b, 1.8);
   scene.add(ambientLight);
 
-  const keySun = new THREE.DirectionalLight(0xffffff, 1.8);
+  const keySun = new THREE.DirectionalLight(0xffffff, 2.0);
   keySun.position.set(220, 360, 220);
   scene.add(keySun);
 
-  const fillCyan = new THREE.DirectionalLight(0x38bdf8, 1.1);
+  const fillCyan = new THREE.DirectionalLight(0x38bdf8, 1.2);
   fillCyan.position.set(-220, 180, -220);
   scene.add(fillCyan);
 
-  const rearHighlight = new THREE.DirectionalLight(0x60a5fa, 0.8);
-  rearHighlight.position.set(0, 150, -300);
+  const rearHighlight = new THREE.DirectionalLight(0x60a5fa, 1.0);
+  rearHighlight.position.set(260, 120, 0);
   scene.add(rearHighlight);
+
+  const bootInteriorLight = new THREE.PointLight(0xbae6fd, 1.2, 240);
+  bootInteriorLight.position.set(20, 85, 0);
+  scene.add(bootInteriorLight);
 
   const grid = new THREE.GridHelper(800, 40, 0x1e3a5f, 0x0c1729);
   grid.position.y = -0.5;
@@ -702,15 +730,21 @@ function updateCameraFromSpherical() {
   const sinTheta = Math.sin(fallbackOrbit.theta);
   const cosTheta = Math.cos(fallbackOrbit.theta);
 
-  const targetY = 32;
-  camera.position.x = fallbackOrbit.radius * sinPhi * cosTheta;
+  const targetX = -50;
+  const targetY = 38;
+  const targetZ = 0;
+  camera.position.x = targetX + (fallbackOrbit.radius * sinPhi * cosTheta);
   camera.position.y = targetY + (fallbackOrbit.radius * cosPhi);
-  camera.position.z = fallbackOrbit.radius * sinPhi * sinTheta;
-  camera.lookAt(0, targetY, 0);
+  camera.position.z = targetZ + (fallbackOrbit.radius * sinPhi * sinTheta);
+  camera.lookAt(targetX, targetY, targetZ);
 }
 
 function animateThree() {
   requestAnimationFrame(animateThree);
+  if (tailgatePivot) {
+    currentTailgateAngle += (targetTailgateAngle - currentTailgateAngle) * 0.12;
+    tailgatePivot.rotation.z = currentTailgateAngle;
+  }
   if (controls) controls.update();
   if (renderer && scene && camera) renderer.render(scene, camera);
 }
@@ -730,6 +764,8 @@ function onWindowResize() {
 function snapCamera(view) {
   if (!camera) return;
 
+  const targetCenter = new THREE.Vector3(-50, 38, 0);
+
   if (view === 'side') {
     fallbackOrbit.theta = Math.PI / 2;
     fallbackOrbit.phi = 1.48;
@@ -745,11 +781,11 @@ function snapCamera(view) {
   }
 
   if (controls) {
-    if (view === 'side') camera.position.set(0, 32, 280);
-    else if (view === 'rear') camera.position.set(280, 32, 0);
-    else if (view === 'top') camera.position.set(0, 320, 0);
-    else camera.position.set(180, 115, 155);
-    controls.target.set(0, 32, 0);
+    if (view === 'side') camera.position.set(-50, 42, 310);
+    else if (view === 'rear') camera.position.set(230, 45, 0);
+    else if (view === 'top') camera.position.set(-50, 360, 0);
+    else camera.position.set(165, 110, 145);
+    controls.target.copy(targetCenter);
     controls.update();
   } else {
     updateCameraFromSpherical();
@@ -809,7 +845,7 @@ function createWheel3D(radius = 30, width = 22) {
 }
 
 /**
- * Creates front bucket seats with realistic heights guaranteed to fit inside cabin.
+ * Creates front bucket seats with realistic contours and headrests.
  */
 function createSeat3D(width = 44, backHeight = 42) {
   const seatGroup = new THREE.Group();
@@ -838,7 +874,6 @@ function createSeat3D(width = 44, backHeight = 42) {
  * Creates a rounded semi-cylindrical wheel arch tub for the interior cargo bay.
  */
 function createRoundedWheelArchTub(radius = 28, depth = 16) {
-  // Half cylinder rotated so curved hump faces upward into the boot
   const tubGeo = new THREE.CylinderGeometry(radius, radius, depth, 24, 1, false, 0, Math.PI);
   const tubMat = new THREE.MeshStandardMaterial({
     color: 0x152238,
@@ -853,8 +888,22 @@ function createRoundedWheelArchTub(radius = 28, depth = 16) {
 }
 
 /**
- * Main 3D Studio Update: Generates 1:1 scale parametric vehicle chassis,
- * interior layout, and physical cargo placement with rounded tubs.
+ * Helper to add precision CAD edge highlight lines to a mesh
+ */
+function addCadEdges(mesh, color = 0x38bdf8, thresholdAngle = 26) {
+  if (!mesh || !mesh.geometry) return;
+  const edges = new THREE.EdgesGeometry(mesh.geometry, thresholdAngle);
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+    color: color,
+    transparent: true,
+    opacity: 0.45
+  }));
+  mesh.add(line);
+}
+
+/**
+ * Main 3D Studio Update: Generates 1:1 scale parametric CAD vehicle chassis,
+ * authentic wheel arches, hollow interior cabin, toggleable tailgate, and cargo fitment.
  */
 function update3DStudio(car, seatsFolded, fitResult) {
   if (!scene) return;
@@ -866,126 +915,117 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   const totalLength = car.overall_length;
   const totalCarWidth = car.overall_width;
+  const cabinWidth = totalCarWidth * 0.82;
   const archW = car.wheel_arch_width;
   const roofH = car.roof_height;
   const bodyType = car.body_type;
   const currentFloorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
 
   const isSUV = bodyType === 'suv';
+  const isSaloon = bodyType === 'saloon';
+  const isEstate = bodyType === 'estate';
+  const isHatch = bodyType === 'hatchback';
+
   const groundY = 0;
   const sillY = isSUV ? 58 : 46;
-  const cabinFloorY = sillY - 16;
-  const wheelRadius = isSUV ? 35 : 30;
+  const cabinFloorY = sillY - 14;
+  const wheelRadius = isSUV ? 35 : (isHatch ? 30 : 31);
+  const wheelArchR = wheelRadius + 4.5;
+  const wheelY = wheelRadius;
 
   // FIXED VEHICLE DATUM: Rear bumper is at +X, front nose is at -X
   const rearBumperX = 70;
-  const rearSillX = rearBumperX - 25;
+  const rearSillX = rearBumperX - 22; // rear sill load threshold
   const carFrontX = rearBumperX - totalLength;
-  const frontSeatsX = rearSillX - car.floor_length_seats_folded - 28;
-  const frontWheelX = carFrontX + 85;
-  const rearWheelX = rearSillX - 35;
 
-  // Automotive Paint & Glass Materials (Clean, No Wireframe Clutter!)
-  const isGhost = xRayMode < 0.6;
+  // Accurate wheelbase from vehicle specifications!
+  const rearWheelX = rearSillX - 38;
+  const frontWheelX = rearWheelX - car.wheelbase;
+  const frontSeatsX = rearSillX - car.floor_length_seats_folded - 26;
+
+  // Key vertical & longitudinal datum
+  const beltY = sillY + 22;
+  const roofTopY = car.overall_height;
+  const cowlX = frontWheelX + (isSaloon ? 32 : (isEstate ? 26 : (isSUV ? 28 : 22)));
+  const cowlY = beltY + 4;
+  const roofFrontX = cowlX + 34;
+
+  let roofRearX, deckFrontX;
+  if (isSaloon) {
+    roofRearX = rearWheelX - 25;
+    deckFrontX = rearWheelX + 10;
+  } else if (isEstate) {
+    roofRearX = rearSillX - 10;
+    deckFrontX = rearSillX;
+  } else if (isSUV) {
+    roofRearX = rearWheelX + 6;
+    deckFrontX = rearSillX;
+  } else {
+    roofRearX = rearWheelX - 4;
+    deckFrontX = rearSillX;
+  }
+
+  const bPillarX = (roofFrontX + (isSaloon ? deckFrontX : roofRearX)) / 2 - 4;
+
+  // Materials: CAD Cutaway vs Showroom Paint
+  const isGhost = xRayMode < 0.85;
+
   const bodyPaintMat = new THREE.MeshPhysicalMaterial({
-    color: 0x142847,
+    color: 0x142848, // Deep Automotive Royal Navy
     metalness: 0.85,
     roughness: 0.22,
     clearcoat: 1.0,
     clearcoatRoughness: 0.1,
     transparent: isGhost,
-    opacity: xRayMode,
-    depthWrite: !isGhost,
+    opacity: isGhost ? 0.65 : 1.0,
+    depthWrite: true,
     side: THREE.DoubleSide
   });
 
+  const pillarMat = new THREE.MeshStandardMaterial({
+    color: 0x080c14, // Piano black pillars
+    roughness: 0.2,
+    metalness: 0.6,
+    transparent: isGhost,
+    opacity: isGhost ? 0.85 : 1.0
+  });
+
   const glassMat = new THREE.MeshPhysicalMaterial({
-    color: 0x0c1a2d,
-    roughness: 0.1,
-    metalness: 0.2,
+    color: 0x0a1829, // Tinted automotive glass
+    roughness: 0.08,
+    metalness: 0.15,
     transparent: true,
-    opacity: isGhost ? 0.25 : 0.55,
+    opacity: isGhost ? 0.26 : 0.45,
     depthWrite: false
   });
 
-  // 1. Lower Body Shell (Sculpted Fenders, Hood, and Bumpers)
-  const lowerBodyShape = new THREE.Shape();
-  lowerBodyShape.moveTo(carFrontX, sillY - 14);
-  lowerBodyShape.lineTo(carFrontX, sillY + 4);
-  lowerBodyShape.lineTo(carFrontX + 85, sillY + 14); // Cowl line
-  lowerBodyShape.lineTo(rearSillX + 10, sillY + 8);
-  lowerBodyShape.lineTo(rearBumperX, sillY - 6);
-  lowerBodyShape.lineTo(rearBumperX - 8, sillY - 22);
-  lowerBodyShape.lineTo(carFrontX + 14, sillY - 22);
-  lowerBodyShape.lineTo(carFrontX, sillY - 14);
+  const chromeMat = new THREE.MeshStandardMaterial({
+    color: 0xe2e8f0,
+    metalness: 0.95,
+    roughness: 0.15
+  });
 
-  const lowerExtrudeSettings = { depth: totalCarWidth, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 2, bevelThickness: 2 };
-  const lowerBodyGeo = new THREE.ExtrudeGeometry(lowerBodyShape, lowerExtrudeSettings);
-  const lowerBodyMesh = new THREE.Mesh(lowerBodyGeo, bodyPaintMat);
-  lowerBodyMesh.position.z = -totalCarWidth / 2;
-  car3DGroup.add(lowerBodyMesh);
+  const trimMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    roughness: 0.8
+  });
 
-  // 2. Greenhouse / Cabin (Curved and Tapered Inward for Cabin Tumblehome)
-  const cabinWidth = totalCarWidth * 0.82; // Real car cabin is narrower than lower body!
-  const roofY = sillY + roofH;
+  const headlampMat = new THREE.MeshStandardMaterial({
+    color: 0xe0f2fe,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 1.8,
+    roughness: 0.1
+  });
 
-  const cabinShape = new THREE.Shape();
-  if (bodyType === 'estate') {
-    cabinShape.moveTo(frontSeatsX - 25, sillY + 12);
-    cabinShape.lineTo(frontSeatsX - 10, roofY);
-    cabinShape.lineTo(rearSillX - 10, roofY);
-    cabinShape.lineTo(rearSillX + 12, roofY - 4);
-    cabinShape.lineTo(rearSillX + 2, sillY + 8);
-    cabinShape.lineTo(frontSeatsX - 25, sillY + 12);
-  } else if (bodyType === 'suv') {
-    cabinShape.moveTo(frontSeatsX - 22, sillY + 16);
-    cabinShape.lineTo(frontSeatsX - 8, roofY);
-    cabinShape.lineTo(rearSillX - 12, roofY);
-    cabinShape.lineTo(rearSillX + 10, roofY - 8);
-    cabinShape.lineTo(rearSillX + 4, sillY + 10);
-    cabinShape.lineTo(frontSeatsX - 22, sillY + 16);
-  } else if (bodyType === 'saloon') {
-    cabinShape.moveTo(frontSeatsX - 25, sillY + 12);
-    cabinShape.lineTo(frontSeatsX - 10, roofY - 4);
-    cabinShape.lineTo(frontSeatsX + 60, roofY - 4);
-    cabinShape.lineTo(rearSillX - 45, sillY + 8);
-    cabinShape.lineTo(frontSeatsX - 25, sillY + 12);
-  } else {
-    // Hatchback
-    cabinShape.moveTo(frontSeatsX - 22, sillY + 12);
-    cabinShape.lineTo(frontSeatsX - 8, roofY - 2);
-    cabinShape.lineTo(rearSillX - 35, roofY - 2);
-    cabinShape.lineTo(rearSillX - 15, roofY - 6);
-    cabinShape.lineTo(rearSillX + 2, sillY + 8);
-    cabinShape.lineTo(frontSeatsX - 22, sillY + 12);
-  }
+  const taillampMat = new THREE.MeshStandardMaterial({
+    color: 0xef4444,
+    emissive: 0xef4444,
+    emissiveIntensity: 2.0,
+    roughness: 0.15
+  });
 
-  const cabinExtrudeSettings = { depth: cabinWidth, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 1.5, bevelThickness: 1.5 };
-  const cabinGeo = new THREE.ExtrudeGeometry(cabinShape, cabinExtrudeSettings);
-  const cabinMesh = new THREE.Mesh(cabinGeo, glassMat);
-  cabinMesh.position.z = -cabinWidth / 2;
-  car3DGroup.add(cabinMesh);
-
-  // Roof Rails (Estate & SUV)
-  if (bodyType === 'estate' || bodyType === 'suv') {
-    const railGeo = new THREE.CylinderGeometry(1.8, 1.8, rearSillX - frontSeatsX + 20, 12);
-    const railMat = new THREE.MeshStandardMaterial({ color: 0xc4d1e0, metalness: 0.95, roughness: 0.15 });
-    
-    const leftRail = new THREE.Mesh(railGeo, railMat);
-    leftRail.rotation.z = Math.PI / 2;
-    leftRail.position.set((rearSillX + frontSeatsX) / 2, roofY + 3.5, (cabinWidth / 2) + 2);
-    
-    const rightRail = leftRail.clone();
-    rightRail.position.z = -((cabinWidth / 2) + 2);
-    
-    car3DGroup.add(leftRail);
-    car3DGroup.add(rightRail);
-  }
-
-  // 3. Four Realistic 3D Alloy Wheels (Positioned in Wheel Wells)
-  const wheelZOffset = (totalCarWidth / 2) + 1;
-  const wheelY = wheelRadius;
-
+  // 1. FOUR WHEELS (Placed accurately using official vehicle wheelbase)
+  const wheelZOffset = (totalCarWidth / 2) - 2;
   const wheelPositions = [
     [frontWheelX, wheelY, wheelZOffset],
     [frontWheelX, wheelY, -wheelZOffset],
@@ -994,39 +1034,376 @@ function update3DStudio(car, seatsFolded, fitResult) {
   ];
 
   wheelPositions.forEach(([wx, wy, wz]) => {
-    const wheel = createWheel3D(wheelRadius, 24);
+    const wheel = createWheel3D(wheelRadius, 22);
     wheel.position.set(wx, wy, wz);
     if (wz < 0) wheel.rotation.y = Math.PI;
     car3DGroup.add(wheel);
   });
 
-  // 4. Headlights & Ruby Taillight Lightbar
-  const headGeo = new THREE.BoxGeometry(6, 8, 28);
-  const headMat = new THREE.MeshStandardMaterial({
-    color: 0x38bdf8,
-    emissive: 0x38bdf8,
-    emissiveIntensity: 1.5,
-    roughness: 0.2
-  });
-  const leftHead = new THREE.Mesh(headGeo, headMat);
-  leftHead.position.set(carFrontX + 4, sillY + 3, (totalCarWidth / 2) - 22);
-  const rightHead = leftHead.clone();
-  rightHead.position.z = -((totalCarWidth / 2) - 22);
-  car3DGroup.add(leftHead);
-  car3DGroup.add(rightHead);
+  // 2. LEFT & RIGHT SIDE FLANKS (Lower body with authentic wheel arches)
+  const flankShape = new THREE.Shape();
+  flankShape.moveTo(carFrontX, sillY - 12);
+  flankShape.lineTo(carFrontX, sillY + 4);
+  flankShape.lineTo(carFrontX + 12, beltY - 2);
+  flankShape.lineTo(cowlX, beltY);
+  if (isSaloon) {
+    flankShape.lineTo(deckFrontX, beltY);
+    flankShape.lineTo(rearBumperX - 4, beltY - 2);
+  } else {
+    flankShape.lineTo(rearSillX + 4, beltY);
+  }
+  flankShape.lineTo(rearBumperX, sillY + 6);
+  flankShape.lineTo(rearBumperX, sillY - 14);
 
-  const tailGeo = new THREE.BoxGeometry(6, 6, totalCarWidth - 36);
-  const tailMat = new THREE.MeshStandardMaterial({
-    color: 0xef4444,
-    emissive: 0xef4444,
-    emissiveIntensity: 1.8,
-    roughness: 0.2
-  });
-  const tailLight = new THREE.Mesh(tailGeo, tailMat);
-  tailLight.position.set(rearBumperX - 2, sillY + 2, 0);
-  car3DGroup.add(tailLight);
+  // Underside with Wheel Arch Cutouts (rear to front)
+  flankShape.lineTo(rearWheelX + wheelArchR, sillY - 14);
+  flankShape.lineTo(rearWheelX + wheelArchR, wheelY);
+  flankShape.absarc(rearWheelX, wheelY, wheelArchR, 0, Math.PI, false);
+  flankShape.lineTo(rearWheelX - wheelArchR, sillY - 14);
 
-  // 5. Front Bucket Seats (Positioned on lowered cabin floor, headrest well below roof)
+  // Rocker sill between wheels
+  flankShape.lineTo(frontWheelX + wheelArchR, sillY - 14);
+  flankShape.lineTo(frontWheelX + wheelArchR, wheelY);
+  flankShape.absarc(frontWheelX, wheelY, wheelArchR, 0, Math.PI, false);
+  flankShape.lineTo(frontWheelX - wheelArchR, sillY - 14);
+
+  // Front chin
+  flankShape.lineTo(carFrontX + 8, sillY - 14);
+  flankShape.lineTo(carFrontX, sillY - 12);
+
+  const flankExtrude = { depth: 4.5, bevelEnabled: true, bevelSize: 0.8, bevelThickness: 0.8, bevelSegments: 2 };
+  const flankGeo = new THREE.ExtrudeGeometry(flankShape, flankExtrude);
+
+  const leftFlank = new THREE.Mesh(flankGeo, bodyPaintMat);
+  leftFlank.position.z = (totalCarWidth / 2) - 4.5;
+  addCadEdges(leftFlank, 0x38bdf8);
+  car3DGroup.add(leftFlank);
+
+  const rightFlank = new THREE.Mesh(flankGeo, bodyPaintMat);
+  rightFlank.position.z = -(totalCarWidth / 2);
+  addCadEdges(rightFlank, 0x38bdf8);
+  car3DGroup.add(rightFlank);
+
+  // 3. GREENHOUSE PILLARS (A-Pillar, Cantrails, B-Pillar, C-Pillar)
+  [-wheelZOffset, wheelZOffset - 3].forEach(zPos => {
+    // A-Pillar
+    const aLen = Math.hypot(roofFrontX - cowlX, roofTopY - beltY);
+    const aAngle = Math.atan2(roofTopY - beltY, roofFrontX - cowlX);
+    const aPillarGeo = new THREE.BoxGeometry(aLen, 4.5, 3.5);
+    const aPillar = new THREE.Mesh(aPillarGeo, bodyPaintMat);
+    aPillar.position.set((cowlX + roofFrontX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
+    aPillar.rotation.z = aAngle;
+    car3DGroup.add(aPillar);
+
+    // Roof Cantrail
+    const cantrailLen = Math.abs(roofRearX - roofFrontX);
+    const cantrailGeo = new THREE.BoxGeometry(cantrailLen, 4.0, 3.5);
+    const cantrail = new THREE.Mesh(cantrailGeo, bodyPaintMat);
+    cantrail.position.set((roofFrontX + roofRearX) / 2, roofTopY - 2, zPos + 1.5);
+    car3DGroup.add(cantrail);
+
+    // B-Pillar (Piano Black vertical post)
+    const bHeight = roofTopY - beltY - 4;
+    const bPillarGeo = new THREE.BoxGeometry(5.5, bHeight, 3.2);
+    const bPillar = new THREE.Mesh(bPillarGeo, pillarMat);
+    bPillar.position.set(bPillarX, beltY + (bHeight / 2), zPos + 1.5);
+    car3DGroup.add(bPillar);
+
+    // C-Pillar
+    if (isSaloon) {
+      const cLen = Math.hypot(deckFrontX - roofRearX, roofTopY - beltY);
+      const cAngle = Math.atan2(roofTopY - beltY, roofRearX - deckFrontX);
+      const cPillarGeo = new THREE.BoxGeometry(cLen, 5.0, 3.5);
+      const cPillar = new THREE.Mesh(cPillarGeo, bodyPaintMat);
+      cPillar.position.set((roofRearX + deckFrontX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
+      cPillar.rotation.z = -cAngle;
+      car3DGroup.add(cPillar);
+    } else {
+      const cLen = Math.hypot(rearSillX - roofRearX, roofTopY - beltY);
+      const cAngle = Math.atan2(roofTopY - beltY, roofRearX - rearSillX);
+      const cPillarGeo = new THREE.BoxGeometry(cLen, 5.0, 3.5);
+      const cPillar = new THREE.Mesh(cPillarGeo, bodyPaintMat);
+      cPillar.position.set((roofRearX + rearSillX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
+      cPillar.rotation.z = -cAngle;
+      car3DGroup.add(cPillar);
+    }
+
+    // Side Door Windows (Tinted Glass)
+    const fWinWidth = Math.abs(bPillarX - cowlX) - 5;
+    const winHeight = roofTopY - beltY - 6;
+    const fWinGeo = new THREE.BoxGeometry(fWinWidth, winHeight, 1.2);
+    const fWin = new THREE.Mesh(fWinGeo, glassMat);
+    fWin.position.set((cowlX + bPillarX) / 2 + 2, beltY + (winHeight / 2) + 1, zPos + 1.5);
+    car3DGroup.add(fWin);
+
+    const rWinEndX = isSaloon ? deckFrontX : roofRearX;
+    const rWinWidth = Math.abs(rWinEndX - bPillarX) - 6;
+    const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
+    const rWin = new THREE.Mesh(rWinGeo, glassMat);
+    rWin.position.set((bPillarX + rWinEndX) / 2, beltY + (winHeight / 2) + 1, zPos + 1.5);
+    car3DGroup.add(rWin);
+  });
+
+  // 4. FRONT BONNET / HOOD & WINDSHIELD
+  const hoodLen = Math.abs(cowlX - carFrontX) - 10;
+  const hoodSlopeAngle = Math.atan2((beltY + 2) - (sillY + 10), hoodLen);
+  const hoodGeo = new THREE.BoxGeometry(hoodLen, 2.5, totalCarWidth - 10);
+  const hood = new THREE.Mesh(hoodGeo, bodyPaintMat);
+  hood.position.set((cowlX + carFrontX + 10) / 2, (beltY + sillY + 12) / 2, 0);
+  hood.rotation.z = -hoodSlopeAngle;
+  addCadEdges(hood, 0x38bdf8);
+  car3DGroup.add(hood);
+
+  // Front Windshield
+  const windLen = Math.hypot(roofFrontX - cowlX, roofTopY - (beltY + 2));
+  const windAngle = Math.atan2(roofTopY - (beltY + 2), roofFrontX - cowlX);
+  const windGeo = new THREE.BoxGeometry(windLen - 4, 1.8, cabinWidth - 6);
+  const windshield = new THREE.Mesh(windGeo, glassMat);
+  windshield.position.set((cowlX + roofFrontX) / 2, (beltY + 2 + roofTopY) / 2, 0);
+  windshield.rotation.z = windAngle;
+  car3DGroup.add(windshield);
+
+  // 5. ROOF PANEL (Metal or Panoramic Glass for Tesla)
+  const roofLen = Math.abs(roofRearX - roofFrontX);
+  const roofGeo = new THREE.BoxGeometry(roofLen, 2.2, cabinWidth - 4);
+  const roofMesh = new THREE.Mesh(roofGeo, (car.id.includes('tesla') ? glassMat : bodyPaintMat));
+  roofMesh.position.set((roofFrontX + roofRearX) / 2, roofTopY - 1.1, 0);
+  addCadEdges(roofMesh, 0x38bdf8);
+  car3DGroup.add(roofMesh);
+
+  // Roof Rails (Estate & SUV)
+  if (isEstate || isSUV) {
+    [-((cabinWidth / 2) - 1), (cabinWidth / 2) - 1].forEach(rz => {
+      const railGeo = new THREE.CylinderGeometry(1.6, 1.6, roofLen + 10, 12);
+      const rail = new THREE.Mesh(railGeo, chromeMat);
+      rail.rotation.z = Math.PI / 2;
+      rail.position.set((roofFrontX + roofRearX) / 2, roofTopY + 3.2, rz);
+      car3DGroup.add(rail);
+
+      // Mount stanchions
+      [-0.4, 0, 0.4].forEach(offsetPct => {
+        const postGeo = new THREE.BoxGeometry(3, 3.5, 2.5);
+        const post = new THREE.Mesh(postGeo, chromeMat);
+        post.position.set((roofFrontX + roofRearX) / 2 + (roofLen * offsetPct), roofTopY + 1.5, rz);
+        car3DGroup.add(post);
+      });
+    });
+  }
+
+  // 6. FRONT FASCIA & BRAND-SPECIFIC GRILLE
+  const frontBumperGeo = new THREE.BoxGeometry(8, 22, totalCarWidth - 4);
+  const frontBumper = new THREE.Mesh(frontBumperGeo, bodyPaintMat);
+  frontBumper.position.set(carFrontX + 4, sillY - 2, 0);
+  car3DGroup.add(frontBumper);
+
+  // Lower air dam
+  const airDamGeo = new THREE.BoxGeometry(6, 9, totalCarWidth - 30);
+  const airDam = new THREE.Mesh(airDamGeo, trimMat);
+  airDam.position.set(carFrontX + 2, sillY - 8, 0);
+  car3DGroup.add(airDam);
+
+  // Brand Signature Grille Styling
+  const grilleGroup = new THREE.Group();
+  if (car.id.includes('bmw')) {
+    // Iconic Twin Kidney Grille
+    [-14, 14].forEach(gx => {
+      const kidneyGeo = new THREE.BoxGeometry(4, 13, 20);
+      const kidney = new THREE.Mesh(kidneyGeo, trimMat);
+      kidney.position.set(carFrontX + 3, sillY + 4, gx);
+      addCadEdges(kidney, 0xe2e8f0, 15);
+      grilleGroup.add(kidney);
+    });
+  } else if (car.id.includes('audi')) {
+    // Singleframe Hexagonal Grille
+    const singleGeo = new THREE.BoxGeometry(4, 16, 42);
+    const singleFrame = new THREE.Mesh(singleGeo, trimMat);
+    singleFrame.position.set(carFrontX + 3, sillY + 3, 0);
+    addCadEdges(singleFrame, 0xe2e8f0, 15);
+    grilleGroup.add(singleFrame);
+  } else if (car.id.includes('tesla')) {
+    // Smooth aerodynamic front
+    const noseGeo = new THREE.BoxGeometry(5, 14, totalCarWidth - 36);
+    const nose = new THREE.Mesh(noseGeo, bodyPaintMat);
+    nose.position.set(carFrontX + 3, sillY + 4, 0);
+    grilleGroup.add(nose);
+  } else {
+    // Golf / Horizontal LED Grille Bar
+    const barGeo = new THREE.BoxGeometry(4, 6, totalCarWidth - 40);
+    const bar = new THREE.Mesh(barGeo, trimMat);
+    bar.position.set(carFrontX + 3, sillY + 5, 0);
+    addCadEdges(bar, 0x38bdf8, 20);
+    grilleGroup.add(bar);
+  }
+  car3DGroup.add(grilleGroup);
+
+  // Headlights
+  [-1, 1].forEach(dir => {
+    const headGeo = new THREE.BoxGeometry(10, 7, 24);
+    const head = new THREE.Mesh(headGeo, headlampMat);
+    head.position.set(carFrontX + 6, sillY + 6, dir * ((totalCarWidth / 2) - 20));
+    car3DGroup.add(head);
+  });
+
+  // 7. TOGGLEABLE REAR BOOT / TAILGATE ASSEMBLY
+  tailgatePivot = new THREE.Group();
+  const openAngle = getOpenTailgateAngle(bodyType);
+
+  if (isSaloon) {
+    // Fixed rear window for sedan
+    const rearWinLen = Math.hypot(deckFrontX - roofRearX, roofTopY - beltY);
+    const rearWinAngle = Math.atan2(roofTopY - beltY, deckFrontX - roofRearX);
+    const rearWinGeo = new THREE.BoxGeometry(rearWinLen - 4, 1.8, cabinWidth - 8);
+    const rearWin = new THREE.Mesh(rearWinGeo, glassMat);
+    rearWin.position.set((roofRearX + deckFrontX) / 2, (roofTopY + beltY) / 2, 0);
+    rearWin.rotation.z = -rearWinAngle;
+    car3DGroup.add(rearWin);
+
+    // Boot Trunk Lid Hinges at (deckFrontX, beltY, 0)
+    tailgatePivot.position.set(deckFrontX, beltY, 0);
+
+    const trunkLen = Math.abs(rearBumperX - deckFrontX) - 4;
+    const trunkLidGeo = new THREE.BoxGeometry(trunkLen, 2.5, totalCarWidth - 14);
+    const trunkLid = new THREE.Mesh(trunkLidGeo, bodyPaintMat);
+    trunkLid.position.set(trunkLen / 2, 0, 0);
+    addCadEdges(trunkLid, 0x38bdf8);
+    tailgatePivot.add(trunkLid);
+
+    // Vertical rear face
+    const rearFaceGeo = new THREE.BoxGeometry(3, 16, totalCarWidth - 18);
+    const rearFace = new THREE.Mesh(rearFaceGeo, bodyPaintMat);
+    rearFace.position.set(trunkLen, -7, 0);
+    tailgatePivot.add(rearFace);
+
+    // Taillight bar on trunk
+    const tailBarGeo = new THREE.BoxGeometry(4, 5, totalCarWidth - 22);
+    const tailBar = new THREE.Mesh(tailBarGeo, taillampMat);
+    tailBar.position.set(trunkLen + 1, -2, 0);
+    tailgatePivot.add(tailBar);
+
+    // Dual Gooseneck Hinges
+    [-1, 1].forEach(side => {
+      const hingeGeo = new THREE.CylinderGeometry(1.2, 1.2, 18, 12);
+      const hinge = new THREE.Mesh(hingeGeo, chromeMat);
+      hinge.position.set(6, -6, side * ((archW / 2) + 2));
+      hinge.rotation.z = 0.5;
+      tailgatePivot.add(hinge);
+    });
+  } else {
+    // Hatchback, Estate, SUV: Hinges at (roofRearX, roofTopY, 0)
+    tailgatePivot.position.set(roofRearX, roofTopY, 0);
+
+    const hatchSpanX = Math.abs(rearBumperX - roofRearX) - 4;
+    const hatchSpanY = Math.abs(roofTopY - (sillY + 8));
+    const hatchDiagonal = Math.hypot(hatchSpanX, hatchSpanY);
+    const hatchAngle = Math.atan2(hatchSpanY, hatchSpanX);
+
+    // Roof Spoiler Lip
+    const spoilerGeo = new THREE.BoxGeometry(12, 3.5, cabinWidth - 4);
+    const spoiler = new THREE.Mesh(spoilerGeo, bodyPaintMat);
+    spoiler.position.set(4, 1.5, 0);
+    tailgatePivot.add(spoiler);
+
+    // High 3rd Brake Light
+    const thirdBrakeGeo = new THREE.BoxGeometry(2, 2, 28);
+    const thirdBrake = new THREE.Mesh(thirdBrakeGeo, taillampMat);
+    thirdBrake.position.set(8, 2.5, 0);
+    tailgatePivot.add(thirdBrake);
+
+    // Rear Hatch Window (Glass)
+    const glassLen = hatchDiagonal * 0.52;
+    const rearHatchGlassGeo = new THREE.BoxGeometry(glassLen, 1.8, cabinWidth - 8);
+    const rearHatchGlass = new THREE.Mesh(rearHatchGlassGeo, glassMat);
+    rearHatchGlass.position.set(hatchSpanX * 0.28, -hatchSpanY * 0.28, 0);
+    rearHatchGlass.rotation.z = -hatchAngle;
+    tailgatePivot.add(rearHatchGlass);
+
+    // Lower Tailgate Sheet Metal
+    const sheetLen = hatchDiagonal * 0.48;
+    const sheetGeo = new THREE.BoxGeometry(sheetLen, 3.0, totalCarWidth - 12);
+    const sheet = new THREE.Mesh(sheetGeo, bodyPaintMat);
+    sheet.position.set(hatchSpanX * 0.74, -hatchSpanY * 0.74, 0);
+    sheet.rotation.z = -hatchAngle;
+    addCadEdges(sheet, 0x38bdf8);
+    tailgatePivot.add(sheet);
+
+    // Ruby Taillight Lightbar
+    const tailBarGeo = new THREE.BoxGeometry(4, 5, totalCarWidth - 20);
+    const tailBar = new THREE.Mesh(tailBarGeo, taillampMat);
+    tailBar.position.set(hatchSpanX - 2, -hatchSpanY + 4, 0);
+    tailgatePivot.add(tailBar);
+
+    // Hydraulic Gas Struts (Hold tailgate open)
+    [-1, 1].forEach(side => {
+      const strutGroup = new THREE.Group();
+      const strutGeo = new THREE.CylinderGeometry(1.2, 1.2, 26, 12);
+      const strutMesh = new THREE.Mesh(strutGeo, trimMat);
+      strutMesh.position.set(hatchSpanX * 0.4, -hatchSpanY * 0.4, side * ((cabinWidth / 2) - 4));
+      strutMesh.rotation.z = -hatchAngle;
+      strutGroup.add(strutMesh);
+
+      const rodGeo = new THREE.CylinderGeometry(0.7, 0.7, 18, 12);
+      const rodMesh = new THREE.Mesh(rodGeo, chromeMat);
+      rodMesh.position.set(hatchSpanX * 0.4 - 4, -hatchSpanY * 0.4 + 4, side * ((cabinWidth / 2) - 4));
+      rodMesh.rotation.z = -hatchAngle;
+      strutGroup.add(rodMesh);
+
+      tailgatePivot.add(strutGroup);
+    });
+  }
+
+  // Set initial tailgate angle according to isTailgateOpen state
+  targetTailgateAngle = isTailgateOpen ? openAngle : 0;
+  currentTailgateAngle = targetTailgateAngle;
+  tailgatePivot.rotation.z = currentTailgateAngle;
+  car3DGroup.add(tailgatePivot);
+
+  // 8. APERTURE CAD BOUNDARY FRAME (Rear Sill Reference)
+  const apWidth = car.aperture_width;
+  const apHeight = car.aperture_height;
+  const isApertureColliding = fitResult && fitResult.rot && (fitResult.rot.w > apWidth || fitResult.rot.h > apHeight);
+
+  const apFrameGeo = new THREE.BoxGeometry(1.5, apHeight, apWidth);
+  const apFrameMat = new THREE.LineBasicMaterial({
+    color: isApertureColliding ? 0xef4444 : 0x38bdf8,
+    linewidth: 2
+  });
+  const apFrame = new THREE.LineSegments(new THREE.EdgesGeometry(apFrameGeo), apFrameMat);
+  apFrame.position.set(rearSillX, sillY + (apHeight / 2), 0);
+  car3DGroup.add(apFrame);
+
+  // 9. INTERIOR CARGO BAY & SEATING ARCHITECTURE
+  // Cargo Floor
+  const bootFloorGeo = new THREE.BoxGeometry(currentFloorLen, 2.5, archW);
+  const bootFloorMat = new THREE.MeshStandardMaterial({
+    color: 0x1e3a5f,
+    roughness: 0.7,
+    transparent: true,
+    opacity: 0.75
+  });
+  const bootFloorMesh = new THREE.Mesh(bootFloorGeo, bootFloorMat);
+  bootFloorMesh.position.set(rearSillX - (currentFloorLen / 2), sillY + 1.25, 0);
+  bootFloorMesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(bootFloorGeo),
+    new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 })
+  ));
+  car3DGroup.add(bootFloorMesh);
+
+  // Stainless steel scuff plate at rear sill threshold
+  const scuffGeo = new THREE.BoxGeometry(6, 1.5, apWidth - 6);
+  const scuffPlate = new THREE.Mesh(scuffGeo, chromeMat);
+  scuffPlate.position.set(rearSillX - 3, sillY + 2.0, 0);
+  car3DGroup.add(scuffPlate);
+
+  // Interior Rounded Wheel Arch Tubs
+  const archThick = (totalCarWidth - archW) / 2;
+  const leftTub = createRoundedWheelArchTub(26, archThick);
+  leftTub.position.set(rearWheelX, sillY + 12, (archW / 2) + (archThick / 2));
+  const rightTub = createRoundedWheelArchTub(26, archThick);
+  rightTub.position.set(rearWheelX, sillY + 12, -((archW / 2) + (archThick / 2)));
+  car3DGroup.add(leftTub);
+  car3DGroup.add(rightTub);
+
+  // Front Bucket Seats
   const seatZOffset = (totalCarWidth / 4) - 6;
   const driverSeat = createSeat3D(44, 42);
   driverSeat.position.set(frontSeatsX, cabinFloorY, seatZOffset);
@@ -1035,19 +1412,17 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(driverSeat);
   car3DGroup.add(passSeat);
 
-  // 6. Dynamic Folding Rear Seat Bench
+  // Rear Folding Seats
   const rearSeatGroup = new THREE.Group();
   const rearSeatMat = new THREE.MeshStandardMaterial({ color: 0x111b2b, roughness: 0.75 });
   const rearHingeX = rearSillX - car.floor_length_seats_up;
 
   if (seatsFolded) {
-    // Folded flat on cargo floor
-    const foldedGeo = new THREE.BoxGeometry(50, 8, archW + 10);
+    const foldedGeo = new THREE.BoxGeometry(Math.max(30, car.floor_length_seats_folded - car.floor_length_seats_up), 5, archW + 10);
     const foldedMesh = new THREE.Mesh(foldedGeo, rearSeatMat);
-    foldedMesh.position.set(rearHingeX - 25, sillY + 4, 0);
+    foldedMesh.position.set(rearHingeX - 25, sillY + 3.5, 0);
     rearSeatGroup.add(foldedMesh);
   } else {
-    // Upright rear bench (backrest stays well below roofline)
     const benchBaseGeo = new THREE.BoxGeometry(38, 8, archW + 10);
     const benchBase = new THREE.Mesh(benchBaseGeo, rearSeatMat);
     benchBase.position.set(rearHingeX + 16, sillY + 4, 0);
@@ -1061,67 +1436,48 @@ function update3DStudio(car, seatsFolded, fitResult) {
   }
   car3DGroup.add(rearSeatGroup);
 
-  // 7. Usable Boot Cargo Floor Surface
-  const bootFloorGeo = new THREE.BoxGeometry(currentFloorLen, 2.5, archW);
-  const bootFloorMat = new THREE.MeshStandardMaterial({
-    color: 0x0284c7,
-    roughness: 0.3,
-    transparent: true,
-    opacity: 0.65
-  });
-  const bootFloorMesh = new THREE.Mesh(bootFloorGeo, bootFloorMat);
-  bootFloorMesh.position.set(rearSillX - (currentFloorLen / 2), sillY + 1.25, 0);
-  bootFloorMesh.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(bootFloorGeo),
-    new THREE.LineBasicMaterial({ color: 0x38bdf8 })
-  ));
-  car3DGroup.add(bootFloorMesh);
-
-  // 8. Rounded Wheel Arch Tubs (True Curved Humps Inside the Cargo Bay!)
-  const archThick = (totalCarWidth - archW) / 2;
-  const leftTub = createRoundedWheelArchTub(26, archThick);
-  leftTub.position.set(rearWheelX, sillY + 12, (archW / 2) + (archThick / 2));
-  
-  const rightTub = createRoundedWheelArchTub(26, archThick);
-  rightTub.position.set(rearWheelX, sillY + 12, -((archW / 2) + (archThick / 2)));
-  
-  car3DGroup.add(leftTub);
-  car3DGroup.add(rightTub);
-
-  // Ground Ambient Occlusion Plate
-  const shadowGeo = new THREE.PlaneGeometry(rearBumperX - carFrontX + 40, totalCarWidth + 30);
-  const shadowMat = new THREE.MeshBasicMaterial({ color: 0x02050b, transparent: true, opacity: 0.75 });
+  // Ground Ambient Occlusion Plate & Wheel Shadows
+  const shadowGeo = new THREE.PlaneGeometry(rearBumperX - carFrontX + 30, totalCarWidth + 24);
+  const shadowMat = new THREE.MeshBasicMaterial({ color: 0x02050b, transparent: true, opacity: 0.8 });
   const shadowPlate = new THREE.Mesh(shadowGeo, shadowMat);
   shadowPlate.rotation.x = -Math.PI / 2;
   shadowPlate.position.set((carFrontX + rearBumperX) / 2, groundY + 0.2, 0);
   car3DGroup.add(shadowPlate);
 
+  wheelPositions.forEach(([wx, wy, wz]) => {
+    const tireShadowGeo = new THREE.PlaneGeometry(wheelRadius * 1.5, 26);
+    const tireShadow = new THREE.Mesh(tireShadowGeo, shadowMat);
+    tireShadow.rotation.x = -Math.PI / 2;
+    tireShadow.position.set(wx, groundY + 0.3, wz);
+    car3DGroup.add(tireShadow);
+  });
+
   scene.add(car3DGroup);
 
-  // 9. Physical Cargo Box (Positioned cleanly relative to rear sill)
+  // 10. PHYSICAL CARGO BOX (High-contrast, 1:1 scale, with glowing CAD outlines)
   if (fitResult && fitResult.rot) {
     const rot = fitResult.rot;
     const boxGeo = new THREE.BoxGeometry(rot.l, rot.h, rot.w);
 
-    let boxColor = 0x22c55e;
-    let edgeColor = 0x4ade80;
+    let boxColor = 0x10b981; // Emerald green
+    let edgeColor = 0x34d399;
     if (fitResult.status === 'tight') {
-      boxColor = 0xf59e0b;
+      boxColor = 0xf59e0b; // Amber
       edgeColor = 0xfbbf24;
     } else if (fitResult.status === 'angled') {
-      boxColor = 0x0284c7;
+      boxColor = 0x0284c7; // Cyan
       edgeColor = 0x38bdf8;
     } else if (fitResult.status === 'colliding') {
-      boxColor = 0xef4444;
+      boxColor = 0xef4444; // Crimson
       edgeColor = 0xf87171;
     }
 
-    const boxMat = new THREE.MeshStandardMaterial({
+    const boxMat = new THREE.MeshPhysicalMaterial({
       color: boxColor,
-      roughness: 0.25,
-      metalness: 0.1,
+      roughness: 0.2,
+      metalness: 0.15,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.82
     });
 
     cargo3DMesh = new THREE.Mesh(boxGeo, boxMat);
@@ -1131,7 +1487,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
     ));
 
     if (fitResult.mode === 'pitch') {
-      // Propped on seatback: Pivot at rear sill and pitch front edge UPWARDS
       const pivot = new THREE.Group();
       pivot.position.set(rearSillX - 4, sillY + 2.5, 0);
       cargo3DMesh.position.set(-(rot.l / 2), rot.h / 2, 0);
@@ -1144,7 +1499,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
       cargo3DMesh.rotation.y = (fitResult.angle * Math.PI) / 180;
       scene.add(cargo3DMesh);
     } else {
-      // Flat orthogonal placement
       const posX = rearSillX - (rot.l / 2) - 4;
       cargo3DMesh.position.set(posX, sillY + (rot.h / 2) + 2.5, 0);
       scene.add(cargo3DMesh);

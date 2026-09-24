@@ -552,6 +552,19 @@ function checkApertureIngress(rot, apW, apH) {
   };
 }
 
+/**
+ * Calculates realistic usable cargo length at a given height above the cargo floor.
+ * Real vehicle tailgates have a vertical lower steel panel up to the beltline (waistline).
+ * Rake angle (forward slope of rear windscreen glass) only intrudes above the beltline.
+ * Additionally, folding rear seats down provides extra forward clearance buffer.
+ */
+function calculateUsableLength(floorLength, heightAboveFloor, tanRake, seatsFolded, roofHeight) {
+  const beltH = Math.min(24, roofHeight * 0.35); // Lower tailgate vertical panel height above boot floor
+  const fwdBuffer = seatsFolded ? 14 : 0; // Forward buffer into folded seatback / footwell area
+  const rakeIntrusion = Math.max(0, heightAboveFloor - beltH) * tanRake;
+  return Math.max(20, (floorLength + fwdBuffer) - rakeIntrusion);
+}
+
 function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
   const floorLength = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
   const archWidth = car.wheel_arch_width;
@@ -561,6 +574,8 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
   const rakeRad = (car.rake_angle_deg * Math.PI) / 180;
   const tanRake = Math.tan(rakeRad);
   const cabinWidth = car.overall_width * 0.82;
+  const beltH = Math.min(24, roofHeight * 0.35);
+  const fwdBuffer = seatsFolded ? 14 : 0;
 
   const rotations = getUniqueRotations(rawL, rawW, rawH);
 
@@ -573,7 +588,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
 
   for (const rot of rotations) {
     const ingress = checkApertureIngress(rot, apWidth, apHeight);
-    const usableLengthAtH = floorLength - (rot.h * tanRake);
+    const usableLengthAtH = calculateUsableLength(floorLength, rot.h, tanRake, seatsFolded, roofHeight);
 
     // Track best aperture ingress pass-through
     if (ingress.canEnter) {
@@ -604,7 +619,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       }
     } else {
       if (!passesRake && passesArch && passesRoof) {
-        failureReasons.push(`Hits sloping rear window (max length at ${rot.h} cm height is ${Math.round(usableLengthAtH)} cm).`);
+        failureReasons.push(`Hits sloping rear window (max length at ${rot.h} cm height is ~${Math.round(usableLengthAtH)} cm).`);
       } else if (!passesArch) {
         failureReasons.push(`Exceeds wheel arch width (${rot.w} cm vs ${archWidth} cm limit).`);
       } else if (!passesRoof) {
@@ -628,8 +643,8 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
 
         const rearTopH = rot.h * cosA;
         const rearTopShiftX = rot.h * sinA;
-        const glassXAtRearTop = rearTopH * tanRake;
-        const glassClearance = (floorLength - horizSpan) + rearTopShiftX - glassXAtRearTop;
+        const glassXAtRearTop = Math.max(0, rearTopH - beltH) * tanRake;
+        const glassClearance = (floorLength + fwdBuffer - horizSpan) + rearTopShiftX - glassXAtRearTop;
         const roofClearance = roofHeight - topFrontH;
 
         if (glassClearance >= 0 && roofClearance >= 0) {
@@ -657,7 +672,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
 
         const boundingL = (rot.l * cosP) + (rot.w * sinP);
         const boundingW = (rot.l * sinP) + (rot.w * cosP);
-        const usableL = floorLength - (rot.h * tanRake);
+        const usableL = calculateUsableLength(floorLength, rot.h, tanRake, seatsFolded, roofHeight);
 
         // Allows lateral expansion into cabin width forward of wheel arches
         const allowedWidth = boundingL > 75 ? Math.min(cabinWidth - 6, archWidth + 18) : archWidth;
@@ -680,11 +695,11 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
 
     // 4. Banked Sidewall Roll Test (Banked against wheel arch/sidewall)
     if (ingress.canEnter) {
-      for (let deg = 6; deg <= 50; deg += 0.5) {
+      for (let deg = 4; deg <= 50; deg += 0.5) {
         const rad = (deg * Math.PI) / 180;
         const projW = (rot.w * Math.cos(rad)) + (rot.h * Math.sin(rad));
         const projH = (rot.w * Math.sin(rad)) + (rot.h * Math.cos(rad));
-        const usableL = floorLength - (projH * tanRake);
+        const usableL = calculateUsableLength(floorLength, projH, tanRake, seatsFolded, roofHeight);
 
         if (projW <= archWidth && projH <= roofHeight && rot.l <= usableL) {
           const margin = Math.min(archWidth - projW, roofHeight - projH, usableL - rot.l);
@@ -884,7 +899,7 @@ function evaluateFitment() {
 
       const passesArch = candidateRot.w <= archWidth;
       const passesRoof = candidateRot.h <= roofHeight;
-      const usableL = floorLength - (candidateRot.h * tanRake);
+      const usableL = calculateUsableLength(floorLength, candidateRot.h, tanRake, seatsFolded, roofHeight);
       const passesRake = candidateRot.l <= usableL;
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
 
@@ -901,11 +916,11 @@ function evaluateFitment() {
           instruction: `Laid flat on boot floor with ${Math.round(m * 10) / 10} cm clearance buffer.`
         };
       } else {
-        let failMsg = 'Hits boundary limits when laid flat. ';
-        if (!passesArch) failMsg += `Width (${candidateRot.w} cm) exceeds wheel arches (${archWidth} cm). `;
-        if (!passesRoof) failMsg += `Height (${candidateRot.h} cm) exceeds roof height (${roofHeight} cm). `;
-        if (!passesRake) failMsg += `Length (${candidateRot.l} cm) hits sloping glass (limit ~${Math.round(usableL)} cm). `;
-        if (!ingress.canEnter) failMsg += 'Exceeds tailgate aperture frame opening. ';
+        let failReasons = [];
+        if (!passesArch) failReasons.push(`Width (${candidateRot.w} cm) exceeds wheel arches (${archWidth} cm)`);
+        if (!passesRoof) failReasons.push(`Height (${candidateRot.h} cm) exceeds roof ceiling (${roofHeight} cm)`);
+        if (!passesRake) failReasons.push(`Length (${candidateRot.l} cm) exceeds usable cargo depth (~${Math.round(usableL)} cm)`);
+        if (!ingress.canEnter) failReasons.push('Exceeds tailgate aperture frame opening');
 
         activeResult = {
           mode: 'flat',
@@ -915,7 +930,7 @@ function evaluateFitment() {
           margin: -1,
           ingress,
           heading: 'Collides When Laid Flat',
-          instruction: failMsg.trim()
+          instruction: failReasons.join('; ') + '.'
         };
       }
 
@@ -929,12 +944,32 @@ function evaluateFitment() {
       const maxAllowedSpan = seatsFolded ? (floorLength + 14) : floorLength;
       const rearTopH = candidateRot.h * Math.cos(rad);
       const rearTopShiftX = candidateRot.h * Math.sin(rad);
-      const glassXAtRearTop = rearTopH * tanRake;
-      const glassClearance = (floorLength - horizSpan) + rearTopShiftX - glassXAtRearTop;
+      const beltH = Math.min(24, roofHeight * 0.35);
+      const glassXAtRearTop = Math.max(0, rearTopH - beltH) * tanRake;
+      const fwdBuffer = seatsFolded ? 14 : 0;
+      const glassClearance = (floorLength + fwdBuffer - horizSpan) + rearTopShiftX - glassXAtRearTop;
       const roofClearance = roofHeight - topFrontH;
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
 
-      const clears = (glassClearance >= 0 && roofClearance >= 0 && horizSpan <= maxAllowedSpan && candidateRot.w <= archWidth && ingress.canEnter);
+      const passesArch = candidateRot.w <= archWidth;
+      const passesRoof = roofClearance >= 0;
+      const passesSpan = horizSpan <= maxAllowedSpan;
+      const passesGlass = glassClearance >= 0;
+      const passesIngress = ingress.canEnter;
+      const clears = passesArch && passesRoof && passesSpan && passesGlass && passesIngress;
+
+      let instruction = '';
+      if (clears) {
+        instruction = `Tilted ~${Math.round(testAngle)}° with front propped on seatback. Clears glass by ${Math.round(glassClearance * 10) / 10} cm, ceiling by ${Math.round(roofClearance * 10) / 10} cm.`;
+      } else {
+        let failReasons = [];
+        if (!passesRoof) failReasons.push(`Hits ceiling (elevated front reaches ${Math.round(topFrontH)} cm vs ${roofHeight} cm roof limit)`);
+        if (!passesGlass) failReasons.push('Rear edge contacts sloping rear window');
+        if (!passesArch) failReasons.push(`Width (${candidateRot.w} cm) exceeds wheel arches (${archWidth} cm)`);
+        if (!passesSpan) failReasons.push('Horizontal span exceeds cargo floor depth');
+        if (!passesIngress) failReasons.push('Exceeds tailgate aperture frame');
+        instruction = `At ${Math.round(testAngle)}° tilt: ${failReasons.join('; ')}.`;
+      }
 
       activeResult = {
         mode: 'pitch',
@@ -944,9 +979,7 @@ function evaluateFitment() {
         margin: clears ? Math.min(glassClearance, roofClearance) : -1,
         ingress,
         heading: clears ? `Seatback Tilt (~${Math.round(testAngle)}° Tilt)` : `Tilt Colliding at ${Math.round(testAngle)}°`,
-        instruction: clears
-          ? `Tilted ~${Math.round(testAngle)}° with front propped on seatback. Clears glass by ${Math.round(glassClearance * 10) / 10} cm, roof by ${Math.round(roofClearance * 10) / 10} cm.`
-          : (roofClearance < 0 ? `Hits ceiling at ${Math.round(testAngle)}° tilt (exceeds roof height by ${Math.round(Math.abs(roofClearance))} cm).` : `Rear edge hits window glass at this tilt angle.`)
+        instruction
       };
 
     } else if (activeAngleMode === 'yaw') {
@@ -956,11 +989,28 @@ function evaluateFitment() {
       const rad = (testAngle * Math.PI) / 180;
       const boundingL = (candidateRot.l * Math.cos(rad)) + (candidateRot.w * Math.sin(rad));
       const boundingW = (candidateRot.l * Math.sin(rad)) + (candidateRot.w * Math.cos(rad));
-      const usableL = floorLength - (candidateRot.h * tanRake);
+      const usableL = calculateUsableLength(floorLength, candidateRot.h, tanRake, seatsFolded, roofHeight);
       const cabinWidth = selectedCar.overall_width * 0.82;
       const allowedW = boundingL > 75 ? Math.min(cabinWidth - 6, archWidth + 18) : archWidth;
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
-      const clears = (boundingL <= usableL && boundingW <= allowedW && candidateRot.h <= roofHeight && ingress.canEnter);
+
+      const passesL = boundingL <= usableL;
+      const passesW = boundingW <= allowedW;
+      const passesRoof = candidateRot.h <= roofHeight;
+      const passesIngress = ingress.canEnter;
+      const clears = passesL && passesW && passesRoof && passesIngress;
+
+      let instruction = '';
+      if (clears) {
+        instruction = `Angled ${Math.round(testAngle)}° diagonally across cargo floor with ${Math.round((usableL - boundingL) * 10) / 10} cm length margin and ${Math.round(allowedW - boundingW)} cm lateral clearance.`;
+      } else {
+        let failReasons = [];
+        if (!passesL) failReasons.push(`Diagonal length span (${Math.round(boundingL)} cm) exceeds usable cargo depth (~${Math.round(usableL)} cm)`);
+        if (!passesW) failReasons.push(`Diagonal width span (${Math.round(boundingW)} cm) exceeds bay width (${Math.round(allowedW)} cm)`);
+        if (!passesRoof) failReasons.push(`Height (${candidateRot.h} cm) exceeds roof ceiling (${roofHeight} cm)`);
+        if (!passesIngress) failReasons.push('Cannot enter tailgate aperture opening');
+        instruction = `At ${Math.round(testAngle)}° diagonal angle: ${failReasons.join('; ')}.`;
+      }
 
       activeResult = {
         mode: 'yaw',
@@ -970,9 +1020,7 @@ function evaluateFitment() {
         margin: clears ? Math.min(usableL - boundingL, allowedW - boundingW, roofHeight - candidateRot.h) : -1,
         ingress,
         heading: clears ? `Diagonal Floor (~${Math.round(testAngle)}° Angle)` : `Diagonal Colliding at ${Math.round(testAngle)}°`,
-        instruction: clears
-          ? `Angled ${Math.round(testAngle)}° diagonally across cargo floor with ${Math.round((usableL - boundingL) * 10) / 10} cm length margin.`
-          : `Diagonal angle of ${Math.round(testAngle)}° exceeds cargo bay boundary limits (length span ${Math.round(boundingL)} cm vs ${Math.round(usableL)} cm usable).`
+        instruction
       };
 
     } else if (activeAngleMode === 'roll') {
@@ -982,9 +1030,26 @@ function evaluateFitment() {
       const rad = (testAngle * Math.PI) / 180;
       const projW = (candidateRot.w * Math.cos(rad)) + (candidateRot.h * Math.sin(rad));
       const projH = (candidateRot.w * Math.sin(rad)) + (candidateRot.h * Math.cos(rad));
-      const usableL = floorLength - (projH * tanRake);
+      const usableL = calculateUsableLength(floorLength, projH, tanRake, seatsFolded, roofHeight);
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
-      const clears = (projW <= archWidth && projH <= roofHeight && candidateRot.l <= usableL && ingress.canEnter);
+
+      const passesArch = projW <= archWidth;
+      const passesRoof = projH <= roofHeight;
+      const passesLength = candidateRot.l <= usableL;
+      const passesIngress = ingress.canEnter;
+      const clears = passesArch && passesRoof && passesLength && passesIngress;
+
+      let instruction = '';
+      if (clears) {
+        instruction = `Banked at ~${Math.round(testAngle)}° against sidewall. Projected width is ${Math.round(projW)} cm (limit ${archWidth} cm), height is ${Math.round(projH)} cm (limit ${roofHeight} cm), with ${Math.round((usableL - candidateRot.l) * 10) / 10} cm length margin.`;
+      } else {
+        let failReasons = [];
+        if (!passesArch) failReasons.push(`Banked width (${Math.round(projW)} cm) exceeds wheel arches (${archWidth} cm)`);
+        if (!passesRoof) failReasons.push(`Banked height (${Math.round(projH)} cm) exceeds roof ceiling (${roofHeight} cm)`);
+        if (!passesLength) failReasons.push(`Length (${candidateRot.l} cm) contacts sloping window glass at this height (limit ~${Math.round(usableL)} cm)`);
+        if (!passesIngress) failReasons.push('Exceeds tailgate aperture frame opening');
+        instruction = `At ${Math.round(testAngle)}° roll: ${failReasons.join('; ')}.`;
+      }
 
       activeResult = {
         mode: 'roll',
@@ -994,9 +1059,7 @@ function evaluateFitment() {
         margin: clears ? Math.min(archWidth - projW, roofHeight - projH, usableL - candidateRot.l) : -1,
         ingress,
         heading: clears ? `Banked Sidewall (~${Math.round(testAngle)}° Roll)` : `Banked Colliding at ${Math.round(testAngle)}°`,
-        instruction: clears
-          ? `Banked at ~${Math.round(testAngle)}° against sidewall. Width is ${Math.round(projW)} cm (limit ${archWidth} cm), height is ${Math.round(projH)} cm (limit ${roofHeight} cm).`
-          : `At ${Math.round(testAngle)}° roll, item exceeds arch width (${Math.round(projW)} vs ${archWidth} cm) or roof height (${Math.round(projH)} vs ${roofHeight} cm).`
+        instruction
       };
 
     } else if (activeAngleMode === 'ingress') {
@@ -1015,6 +1078,18 @@ function evaluateFitment() {
         margin: Math.round(margin * 10) / 10
       };
 
+      let instruction = '';
+      if (passesAperture) {
+        instruction = testAngle > 0
+          ? `Slips through the ${apWidth} × ${apHeight} cm tailgate opening tilted at ~${Math.round(testAngle)}° roll with ${Math.round(margin)} cm clearance.`
+          : `Passes directly through the ${apWidth} × ${apHeight} cm tailgate aperture without tilting with ${Math.round(margin)} cm clearance buffer.`;
+      } else {
+        let failReasons = [];
+        if (projW > apWidth) failReasons.push(`Width (${Math.round(projW)} cm vs ${apWidth} cm opening width)`);
+        if (projH > apHeight) failReasons.push(`Height (${Math.round(projH)} cm vs ${apHeight} cm opening height)`);
+        instruction = `At ${Math.round(testAngle)}° ingress angle, item exceeds tailgate frame: ${failReasons.join(', ')}.`;
+      }
+
       activeResult = {
         mode: 'ingress',
         rot: candidateRot,
@@ -1025,9 +1100,7 @@ function evaluateFitment() {
         heading: passesAperture
           ? (testAngle > 0 ? `Hatch Entry Clears (~${Math.round(testAngle)}° Roll)` : `Direct Hatch Entry Clears (0°)`)
           : `Aperture Blocked at ${Math.round(testAngle)}°`,
-        instruction: passesAperture
-          ? (testAngle > 0 ? `Slips through the ${apWidth} × ${apHeight} cm tailgate opening tilted at ~${Math.round(testAngle)}° roll with ${Math.round(margin)} cm clearance.` : `Passes directly through the tailgate aperture without tilting with ${Math.round(margin)} cm clearance buffer.`)
-          : `Projected dimensions (${Math.round(projW)} × ${Math.round(projH)} cm) exceed the ${apWidth} × ${apHeight} cm opening.`
+        instruction
       };
     }
   }
@@ -2257,18 +2330,20 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
   const roofY = floorY - (roofHeight * scale);
   const glassTopX = rearSillX - (roofHeight * tanRake * scale);
 
+  const rad = (angle * Math.PI) / 180;
+  const effectiveH = mode === 'roll' ? ((rot.w * Math.sin(rad)) + (rot.h * Math.cos(rad))) : rot.h;
   const boxLPx = rot.l * scale;
-  const boxHPx = rot.h * scale;
+  const boxHPx = effectiveH * scale;
 
   let cargoMarkup = '';
 
   if (mode === 'pitch') {
     const pivotX = rearSillX - 8;
     const pivotY = floorY;
-    const rad = (Math.max(1, angle) * Math.PI) / 180;
+    const radA = (Math.max(1, angle) * Math.PI) / 180;
     const arcR = 55;
-    const arcEndX = (pivotX - arcR * Math.cos(rad)).toFixed(1);
-    const arcEndY = (pivotY - arcR * Math.sin(rad)).toFixed(1);
+    const arcEndX = (pivotX - arcR * Math.cos(radA)).toFixed(1);
+    const arcEndY = (pivotY - arcR * Math.sin(radA)).toFixed(1);
     cargoMarkup = `
       <g transform="rotate(${-angle}, ${pivotX}, ${pivotY})">
         <rect x="${pivotX - boxLPx}" y="${pivotY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
@@ -2282,6 +2357,19 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
       <path d="M ${pivotX - arcR} ${pivotY} A ${arcR} ${arcR} 0 0 1 ${arcEndX} ${arcEndY}" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="3,2" />
       <text x="${pivotX - 60}" y="${pivotY - 14}" fill="#38bdf8" font-size="10.5" font-family="ui-monospace, monospace" font-weight="800" text-anchor="end">
         ~${Math.round(angle)}° tilt
+      </text>
+    `;
+  } else if (mode === 'roll') {
+    const boxX = Math.max(seatFrontX, rearSillX - boxLPx);
+    cargoMarkup = `
+      <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
+            fill="url(#box-grad-cyan)" stroke="#38bdf8" stroke-width="2" rx="3" filter="url(#glow-cyan)" />
+      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
+        ${rot.l} × ${Math.round(effectiveH)} cm
+      </text>
+      <rect x="${boxX + 6}" y="${floorY - boxHPx - 20}" width="96" height="16" rx="3" fill="#0c1a2e" stroke="#38bdf8" stroke-width="1" />
+      <text x="${boxX + 54}" y="${floorY - boxHPx - 8}" fill="#38bdf8" font-size="9" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
+        BANKED ~${Math.round(angle)}°
       </text>
     `;
   } else if (mode === 'yaw') {

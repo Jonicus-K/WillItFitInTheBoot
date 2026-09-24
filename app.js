@@ -13,7 +13,7 @@ const defaultCars = [
     overall_width: 179,
     overall_height: 145,
     wheelbase: 263,
-    floor_length_seats_folded: 140,
+    floor_length_seats_folded: 149,
     floor_length_seats_up: 77,
     wheel_arch_width: 100,
     roof_height: 71,
@@ -29,7 +29,7 @@ const defaultCars = [
     overall_width: 176,
     overall_height: 143,
     wheelbase: 254,
-    floor_length_seats_folded: 125,
+    floor_length_seats_folded: 130,
     floor_length_seats_up: 66,
     wheel_arch_width: 96,
     roof_height: 68,
@@ -77,7 +77,7 @@ const defaultCars = [
     overall_width: 184,
     overall_height: 162,
     wheelbase: 266,
-    floor_length_seats_folded: 153,
+    floor_length_seats_folded: 159,
     floor_length_seats_up: 86,
     wheel_arch_width: 105,
     roof_height: 80,
@@ -583,8 +583,12 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
   let bestPitch = null;
   let bestYaw = null;
   let bestRoll = null;
+  let bestThrough = null;
   let bestIngress = null;
   let failureReasons = [];
+
+  const maxFloorSpan = floorLength + fwdBuffer;
+  const centerMaxLen = floorLength + 68;
 
   for (const rot of rotations) {
     const ingress = checkApertureIngress(rot, apWidth, apHeight);
@@ -618,12 +622,31 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
         };
       }
     } else {
-      if (!passesRake && passesArch && passesRoof) {
-        failureReasons.push(`Hits sloping rear window (max length at ${rot.h} cm height is ~${Math.round(usableLengthAtH)} cm).`);
+      if (rot.l > maxFloorSpan) {
+        if (rot.w > 34) {
+          failureReasons.push(`Too long for boot floor (${rot.l} cm vs ${maxFloorSpan} cm max with seats folded) and too wide (${rot.w} cm) to slide between front seats (34 cm gap limit).`);
+        } else {
+          failureReasons.push(`Too long for boot floor (${rot.l} cm vs ${maxFloorSpan} cm max with seats folded).`);
+        }
+      } else if (rot.l > usableLengthAtH && passesArch && passesRoof) {
+        failureReasons.push(`Hits sloping rear window at ${rot.h} cm height (max length at this height is ~${Math.round(usableLengthAtH)} cm).`);
       } else if (!passesArch) {
         failureReasons.push(`Exceeds wheel arch width (${rot.w} cm vs ${archWidth} cm limit).`);
       } else if (!passesRoof) {
         failureReasons.push(`Exceeds interior roof height (${rot.h} cm vs ${roofHeight} cm limit).`);
+      }
+    }
+
+    // 5. Center Through-Load Test (Slide between front bucket seats over center console)
+    if (seatsFolded && ingress.canEnter && rot.w <= 34 && rot.h <= 26 && rot.l <= centerMaxLen) {
+      const margin = Math.min(centerMaxLen - rot.l, 34 - rot.w, 26 - rot.h);
+      if (!bestThrough || margin > bestThrough.margin) {
+        bestThrough = {
+          rot,
+          margin,
+          ingress,
+          centerMaxLen
+        };
       }
     }
 
@@ -787,6 +810,17 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       heading: `Banked Sidewall Fit (~${bestRoll.angle}° Roll)`,
       instruction: `Exceeds wheel arch width when flat, but fits safely banked against the sidewall/wheel arch at ~${bestRoll.angle}°.`
     };
+  } else if (bestThrough) {
+    overallOptimal = {
+      mode: 'center',
+      rot: bestThrough.rot,
+      angle: 0,
+      status: bestThrough.margin >= 4 ? 'comfortable' : 'tight',
+      margin: bestThrough.margin,
+      ingress: bestThrough.ingress,
+      heading: 'Fits Between Front Seats (Center Through-Load)',
+      instruction: `Extends through the center between the front seats over the armrest console (width: ${bestThrough.rot.w} cm clears 34 cm gap). Clears to dashboard with ${Math.round(bestThrough.margin)} cm buffer.`
+    };
   } else {
     overallOptimal = {
       mode: 'colliding',
@@ -807,6 +841,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       pitch: bestPitch,
       yaw: bestYaw,
       roll: bestRoll,
+      center: bestThrough,
       ingress: bestIngress
     },
     carLimits: {
@@ -866,6 +901,7 @@ function evaluateFitment() {
       else if (activeResult.mode === 'yaw') angleSliderLabel.textContent = 'Diagonal Yaw:';
       else if (activeResult.mode === 'roll') angleSliderLabel.textContent = 'Bank Roll:';
       else if (activeResult.mode === 'ingress') angleSliderLabel.textContent = 'Ingress Roll:';
+      else if (activeResult.mode === 'center') angleSliderLabel.textContent = 'Through-Load:';
       else angleSliderLabel.textContent = 'Loading Angle:';
     }
     if (angleStatusHint) angleStatusHint.textContent = `Auto optimal: ${activeResult.heading}`;
@@ -1102,6 +1138,47 @@ function evaluateFitment() {
           : `Aperture Blocked at ${Math.round(testAngle)}°`,
         instruction
       };
+    } else if (activeAngleMode === 'center') {
+      if (angleSliderLabel) angleSliderLabel.textContent = 'Through-Load:';
+      if (angleStatusHint) angleStatusHint.textContent = 'Slide between front seats to dash';
+      if (customAngleSlider) customAngleSlider.value = 0;
+      if (angleValueBadge) angleValueBadge.textContent = '0°';
+
+      const centerMaxLen = floorLength + 68;
+      const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
+      const fitsThrough = seatsFolded && ingress.canEnter && candidateRot.w <= 34 && candidateRot.h <= 26 && candidateRot.l <= centerMaxLen;
+
+      if (fitsThrough) {
+        const m = Math.min(centerMaxLen - candidateRot.l, 34 - candidateRot.w, 26 - candidateRot.h);
+        activeResult = {
+          mode: 'center',
+          rot: candidateRot,
+          angle: 0,
+          status: m >= 4 ? 'comfortable' : 'tight',
+          margin: m,
+          ingress,
+          heading: m >= 4 ? 'Fits Between Front Seats (Comfortable)' : 'Fits Between Front Seats (Tight)',
+          instruction: `Slides through the 34 cm gap between the front bucket seats over the center console, clearing to the dashboard with ${Math.round(m * 10) / 10} cm margin.`
+        };
+      } else {
+        let failReasons = [];
+        if (!seatsFolded) failReasons.push('Requires rear seats to be folded flat');
+        if (candidateRot.w > 34) failReasons.push(`Width (${candidateRot.w} cm) exceeds 34 cm gap between front seats`);
+        if (candidateRot.h > 26) failReasons.push(`Height (${candidateRot.h} cm) exceeds 26 cm console clearance`);
+        if (candidateRot.l > centerMaxLen) failReasons.push(`Length (${candidateRot.l} cm) exceeds dashboard clearance (~${centerMaxLen} cm)`);
+        if (!ingress.canEnter) failReasons.push('Exceeds tailgate aperture opening');
+
+        activeResult = {
+          mode: 'center',
+          rot: candidateRot,
+          angle: 0,
+          status: 'colliding',
+          margin: -1,
+          ingress,
+          heading: 'Cannot Fit Through Center',
+          instruction: failReasons.join('; ') + '.'
+        };
+      }
     }
   }
 
@@ -1537,49 +1614,52 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
     roughness: 0.1
   });
 
-  // Main Dashboard Crossbeam
-  const dashX = cowlX + 8;
-  const dashY = cowlY - 8;
-  const dashGeo = new THREE.BoxGeometry(22, 14, cabinWidth - 6);
+  // Main Dashboard Crossbeam & Top Shelf (stretches from cowl base under windscreen to instrument face)
+  const dashFaceX = frontSeatsX - 26;
+  const dashLen = Math.max(20, Math.abs(dashFaceX - cowlX) + 6);
+  const dashCenterX = (cowlX + dashFaceX) / 2;
+  const dashY = cowlY - 7;
+  const dashGeo = new THREE.BoxGeometry(dashLen, 14, cabinWidth - 6);
   const dashMesh = new THREE.Mesh(dashGeo, dashMat);
-  dashMesh.position.set(dashX, dashY, 0);
+  dashMesh.position.set(dashCenterX, dashY, 0);
+  addCadEdges(dashMesh, 0x38bdf8);
   cockpitGroup.add(dashMesh);
 
   // UK Right Hand Drive (RHD): Driver on the RIGHT (-Z)
   const driverZ = -((totalCarWidth / 4) - 6);
   const binnacleGeo = new THREE.BoxGeometry(16, 7, 24);
   const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
-  binnacle.position.set(dashX + 4, dashY + 8, driverZ);
+  binnacle.position.set(dashFaceX + 2, dashY + 8, driverZ);
   cockpitGroup.add(binnacle);
 
   const gaugeGeo = new THREE.PlaneGeometry(18, 5.5);
   const gauge = new THREE.Mesh(gaugeGeo, screenMat);
-  gauge.position.set(dashX + 12.2, dashY + 8, driverZ);
+  gauge.position.set(dashFaceX + 10.2, dashY + 8, driverZ);
   gauge.rotation.y = Math.PI / 2;
   cockpitGroup.add(gauge);
 
   // Center Infotainment Widescreen Display (angled toward UK driver at -Z)
   const centerScreenGeo = new THREE.BoxGeometry(3, 7, 22);
   const centerScreen = new THREE.Mesh(centerScreenGeo, screenMat);
-  centerScreen.position.set(dashX + 11, dashY + 4, 0);
+  centerScreen.position.set(dashFaceX + 9, dashY + 4, 0);
   centerScreen.rotation.y = -0.14;
   cockpitGroup.add(centerScreen);
 
   // Center Floor Console Tunnel running between front bucket seats
-  const tunnelLen = Math.max(20, Math.abs(frontSeatsX - dashX) + 12);
+  const tunnelLen = Math.max(20, Math.abs(frontSeatsX + 12 - dashFaceX));
   const tunnelGeo = new THREE.BoxGeometry(tunnelLen, 10, 16);
   const tunnel = new THREE.Mesh(tunnelGeo, trimMat);
-  tunnel.position.set(dashX + (tunnelLen / 2), cabinFloorY + 5, 0);
+  tunnel.position.set(dashFaceX + (tunnelLen / 2), cabinFloorY + 5, 0);
   cockpitGroup.add(tunnel);
 
-  // Armrest & Gear Selector
+  // Armrest & Gear Selector centered between front seats
   const armrestGeo = new THREE.BoxGeometry(18, 4, 14);
   const armrest = new THREE.Mesh(armrestGeo, dashMat);
-  armrest.position.set(frontSeatsX + 6, cabinFloorY + 11, 0);
+  armrest.position.set(frontSeatsX + 4, cabinFloorY + 11, 0);
   cockpitGroup.add(armrest);
 
-  // Sport 3-Spoke Steering Wheel
-  const wheelX = dashX + 18;
+  // Sport 3-Spoke Steering Wheel positioned right in front of UK driver
+  const wheelX = frontSeatsX - 18;
   const wheelY = dashY + 5;
   const columnGeo = new THREE.CylinderGeometry(2.4, 2.6, 14, 16);
   const column = new THREE.Mesh(columnGeo, dashMat);
@@ -1714,9 +1794,10 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const windshieldRun = isSaloon ? 70 : (isEstate ? 64 : (isSUV ? 62 : 62));
   const roofFrontX = cowlX + windshieldRun;
 
-  const dashX = cowlX + 10;
-  // Natural ergonomic driver seating position directly behind cockpit controls (eliminates massive gap!)
-  const frontSeatsX = dashX + 50;
+  const cargoBedFrontX = rearSillX - car.floor_length_seats_folded;
+  // Natural ergonomic driver seating position aligned at the B-pillar directly behind cockpit controls
+  const frontSeatsX = cargoBedFrontX - 21;
+  const dashX = frontSeatsX - 26;
 
   let roofRearX, deckFrontX;
   if (isSaloon) {
@@ -2441,9 +2522,10 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const rearHingeX = rearSillX - car.floor_length_seats_up;
 
   if (seatsFolded) {
-    const foldedGeo = new THREE.BoxGeometry(Math.max(30, car.floor_length_seats_folded - car.floor_length_seats_up), 5, archW + 10);
+    const foldedLen = Math.max(30, currentFloorLen - car.floor_length_seats_up);
+    const foldedGeo = new THREE.BoxGeometry(foldedLen, 5, archW + 10);
     const foldedMesh = new THREE.Mesh(foldedGeo, rearSeatMat);
-    foldedMesh.position.set(rearHingeX - 25, sillY + 3.5, 0);
+    foldedMesh.position.set(rearHingeX - (foldedLen / 2), sillY + 3.5, 0);
     rearSeatGroup.add(foldedMesh);
   } else {
     const benchBaseGeo = new THREE.BoxGeometry(38, 8, archW + 10);
@@ -2545,10 +2627,22 @@ function update3DStudio(car, seatsFolded, fitResult) {
       cargo3DMesh.rotation.x = rad;
       cargoSimulationBaseGroup.add(cargo3DMesh);
 
-    } else {
-      // Standard Flat
+    } else if (fitResult.mode === 'center') {
+      // Center through-load: rests flat on boot floor and glides between front bucket seats
       const posX = rearSillX - (rot.l / 2) - 4;
       cargo3DMesh.position.set(posX, sillY + (rot.h / 2) + 2.5, 0);
+      cargoSimulationBaseGroup.add(cargo3DMesh);
+
+    } else {
+      // Standard Flat or Colliding
+      if (fitResult.status === 'colliding' && rot.l > currentFloorLen) {
+        // Stopped by the front seatbacks, so it visibly sticks out the back of the car!
+        const posX = cargoBedFrontX + (rot.l / 2);
+        cargo3DMesh.position.set(posX, sillY + (rot.h / 2) + 2.5, 0);
+      } else {
+        const posX = rearSillX - (rot.l / 2) - 4;
+        cargo3DMesh.position.set(posX, sillY + (rot.h / 2) + 2.5, 0);
+      }
       cargoSimulationBaseGroup.add(cargo3DMesh);
     }
 
@@ -2719,12 +2813,29 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
         INGRESS ENTRY (~${angle}° ROLL)
       </text>
     `;
+  } else if (mode === 'center') {
+    const boxX = rearSillX - boxLPx;
+    cargoMarkup = `
+      <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
+            fill="url(#box-grad-green)" stroke="#22c55e" stroke-width="2" rx="3" filter="url(#glow-green)" />
+      <line x1="${boxX + 16}" y1="${floorY - boxHPx}" x2="${boxX + 16}" y2="${floorY}" stroke="rgba(34, 197, 94, 0.3)" stroke-width="1.5" />
+      <line x1="${boxX + boxLPx - 16}" y1="${floorY - boxHPx}" x2="${boxX + boxLPx - 16}" y2="${floorY}" stroke="rgba(34, 197, 94, 0.3)" stroke-width="1.5" />
+      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
+        ${rot.l} × ${rot.h} cm
+      </text>
+      <rect x="${boxX + 6}" y="${floorY - boxHPx - 20}" width="144" height="16" rx="3" fill="#0c1a2e" stroke="#22c55e" stroke-width="1" />
+      <text x="${boxX + 78}" y="${floorY - boxHPx - 8}" fill="#4ade80" font-size="9" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
+        THROUGH FRONT SEATS
+      </text>
+    `;
   } else if (mode === 'colliding') {
-    const boxX = Math.max(seatFrontX, rearSillX - boxLPx);
+    const isExceedingFloor = rot.l > floorLength;
+    const boxX = isExceedingFloor ? seatFrontX : Math.max(seatFrontX, rearSillX - boxLPx);
+    const rearOverflow = isExceedingFloor ? Math.max(20, (seatFrontX + boxLPx) - rearSillX) : 45;
     cargoMarkup = `
       <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
             fill="url(#box-grad-red)" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,3" rx="3" />
-      <rect x="${rearSillX - 40}" y="${floorY - boxHPx}" width="45" height="${boxHPx}" fill="url(#hazard-stripes)" opacity="0.65" rx="2" />
+      <rect x="${rearSillX - (isExceedingFloor ? 0 : 40)}" y="${floorY - boxHPx}" width="${rearOverflow}" height="${boxHPx}" fill="url(#hazard-stripes)" opacity="0.65" rx="2" />
       <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
         ${rot.l} × ${rot.h} cm
       </text>
@@ -2733,7 +2844,7 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
       <line x1="${rearSillX - 8}" y1="${floorY - boxHPx + 8}" x2="${rearSillX + 30}" y2="${floorY - boxHPx - 14}" stroke="#ef4444" stroke-width="1.5" />
       <rect x="${rearSillX + 30}" y="${floorY - boxHPx - 24}" width="88" height="17" rx="3" fill="#180e14" stroke="#ef4444" stroke-width="1" />
       <text x="${rearSillX + 74}" y="${floorY - boxHPx - 12}" fill="#fca5a5" font-size="8.5" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
-        COLLISION
+        ${isExceedingFloor ? 'TOO LONG' : 'COLLISION'}
       </text>
     `;
   } else {

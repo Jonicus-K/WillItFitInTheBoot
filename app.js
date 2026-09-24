@@ -159,8 +159,6 @@ const foldSeatsCheckbox = document.getElementById('fold-seats');
 
 const resultBanner = document.getElementById('result-banner');
 const resultExplanation = document.getElementById('result-explanation');
-const sideBadge = document.getElementById('side-badge');
-const rearBadge = document.getElementById('rear-badge');
 
 // Angle Strategy & Ingress Controls
 const strategyBadge = document.getElementById('strategy-badge');
@@ -176,9 +174,6 @@ const angleValueBadge = document.getElementById('angle-value-badge');
 const angleStatusHint = document.getElementById('angle-status-hint');
 const tickButtons = document.querySelectorAll('.tick-btn');
 
-const sideSvg = document.getElementById('side-svg');
-const rearSvg = document.getElementById('rear-svg');
-
 const specFloor = document.getElementById('spec-floor');
 const specArches = document.getElementById('spec-arches');
 const specRoof = document.getElementById('spec-roof');
@@ -187,10 +182,7 @@ const specsCarName = document.getElementById('specs-car-name');
 const hudBodyType = document.getElementById('hud-body-type');
 
 const presetButtons = document.querySelectorAll('.preset-btn');
-const tabBtn3d = document.getElementById('tab-btn-3d');
-const tabBtn2d = document.getElementById('tab-btn-2d');
 const view3dContainer = document.getElementById('view-3d-container');
-const view2dContainer = document.getElementById('view-2d-container');
 const camButtons = document.querySelectorAll('.cam-btn[data-view]');
 const btnXRayToggle = document.getElementById('btn-xray-toggle');
 const btnBootToggle = document.getElementById('btn-boot-toggle');
@@ -374,21 +366,6 @@ function attachEvents() {
       manualAngleSliderValue = null;
       evaluateFitment();
     });
-  });
-
-  tabBtn3d.addEventListener('click', () => {
-    tabBtn3d.classList.add('active');
-    tabBtn2d.classList.remove('active');
-    view3dContainer.classList.add('active');
-    view2dContainer.classList.remove('active');
-    onWindowResize();
-  });
-
-  tabBtn2d.addEventListener('click', () => {
-    tabBtn2d.classList.add('active');
-    tabBtn3d.classList.remove('active');
-    view2dContainer.classList.add('active');
-    view3dContainer.classList.remove('active');
   });
 
   camButtons.forEach(btn => {
@@ -1188,31 +1165,15 @@ function evaluateFitment() {
   if (activeResult.status === 'comfortable') {
     resultBanner.className = 'result-banner fits-comfortable';
     resultBanner.textContent = 'Fits Comfortably';
-    sideBadge.className = 'badge badge-clears';
-    sideBadge.textContent = 'Clears';
-    rearBadge.className = 'badge badge-clears';
-    rearBadge.textContent = 'Clears';
   } else if (activeResult.status === 'tight') {
     resultBanner.className = 'result-banner fits-tight';
     resultBanner.textContent = 'Tight Fit';
-    sideBadge.className = 'badge badge-clears';
-    sideBadge.textContent = 'Clears';
-    rearBadge.className = 'badge badge-clears';
-    rearBadge.textContent = 'Clears';
   } else if (activeResult.status === 'angled') {
     resultBanner.className = 'result-banner fits-angled';
     resultBanner.textContent = `Fits at an Angle (~${Math.round(activeResult.angle)}°)`;
-    sideBadge.className = 'badge badge-angled';
-    sideBadge.textContent = `Angle ~${Math.round(activeResult.angle)}°`;
-    rearBadge.className = 'badge badge-clears';
-    rearBadge.textContent = 'Clears';
   } else {
     resultBanner.className = 'result-banner will-not-fit';
     resultBanner.textContent = 'Will Not Fit';
-    sideBadge.className = 'badge badge-colliding';
-    sideBadge.textContent = 'Colliding';
-    rearBadge.className = 'badge badge-colliding';
-    rearBadge.textContent = 'Colliding';
   }
 
   resultExplanation.textContent = activeResult.instruction;
@@ -1250,8 +1211,6 @@ function evaluateFitment() {
     }
   }
 
-  renderSideSvg(activeResult.rot, floorLength, roofHeight, tanRake, activeResult.mode, activeResult.angle, seatsFolded, selectedCar);
-  renderRearSvg(activeResult.rot, archWidth, roofHeight, apWidth, apHeight, activeResult.status === 'colliding', selectedCar.body_type, activeResult.mode, activeResult.angle);
   update3DStudio(selectedCar, seatsFolded, activeResult);
 }
 
@@ -1452,78 +1411,195 @@ function snapCamera(view) {
 }
 
 /**
- * Procedural Realistic 3D Wheel Assembly (Bi-tone Diamond-Cut Alloy)
+ * Procedural High-Fidelity 3D Wheel Assembly
+ * (Hollow radial rubber tyre with sculpted tread shoulders, diamond-cut bi-tone alloy spokes,
+ * concave wheel barrel, machined rim flange, 5 chrome lug bolts, ventilated disc rotor & red caliper)
  */
 function createWheel3D(radius = 30, width = 22, isSUV = false) {
   const wheelGroup = new THREE.Group();
 
-  // Rubber Tire with subtle shoulder taper
-  const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 32);
+  const halfW = width / 2;
+  const rimRadius = isSUV ? radius * 0.68 : radius * 0.74;
+
+  // Materials
   const tireMat = new THREE.MeshStandardMaterial({
-    color: isSUV ? 0x090d14 : 0x111622,
-    roughness: 0.92,
-    metalness: 0.08
+    color: 0x121722, // Deep matte vulcanized tire rubber
+    roughness: 0.94,
+    metalness: 0.05
   });
-  const tire = new THREE.Mesh(tireGeo, tireMat);
-  tire.rotation.x = Math.PI / 2;
-  wheelGroup.add(tire);
 
-  // Outer Machined Rim Lip
-  const rimRadius = isSUV ? radius * 0.70 : radius * 0.75;
-  const rimRingGeo = new THREE.TorusGeometry(rimRadius, 2.2, 16, 32);
-  const rimMat = new THREE.MeshStandardMaterial({
-    color: 0xf1f5f9,
-    metalness: 0.96,
-    roughness: 0.12
+  const alloyMachinedMat = new THREE.MeshStandardMaterial({
+    color: 0xf8fafc, // Diamond-cut brilliant silver machined face
+    metalness: 0.95,
+    roughness: 0.14
   });
-  const rimRing = new THREE.Mesh(rimRingGeo, rimMat);
-  wheelGroup.add(rimRing);
 
-  // Dark Inner Wheel Barrel
-  const barrelGeo = new THREE.CylinderGeometry(rimRadius - 1.2, rimRadius - 1.2, width - 2, 24);
+  const alloyDarkPocketMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a, // Gloss black / anthracite spoke pocket contrast
+    metalness: 0.85,
+    roughness: 0.3
+  });
+
   const barrelMat = new THREE.MeshStandardMaterial({
-    color: 0x0b111e,
-    roughness: 0.85,
-    metalness: 0.4
+    color: 0x151e2e, // Dark metallic barrel cavity
+    metalness: 0.88,
+    roughness: 0.35,
+    side: THREE.DoubleSide
   });
+
+  const chromeMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0.98,
+    roughness: 0.08
+  });
+
+  const rotorMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8, // Drilled steel brake rotor
+    metalness: 0.95,
+    roughness: 0.22,
+    side: THREE.DoubleSide
+  });
+
+  const caliperMat = new THREE.MeshStandardMaterial({
+    color: 0xef4444, // Gloss Brembo race red
+    roughness: 0.2,
+    metalness: 0.3
+  });
+
+  // 1. TYRE: Hollow Tread Cylinder (Open-ended so rim & spokes are visible!)
+  const treadGeo = new THREE.CylinderGeometry(radius, radius, width - 2, 36, 1, true);
+  const tread = new THREE.Mesh(treadGeo, tireMat);
+  tread.rotation.x = Math.PI / 2;
+  wheelGroup.add(tread);
+
+  // Rounded Tyre Shoulders (Radial tread curves seamlessly into sidewalls)
+  [-halfW + 1.0, halfW - 1.0].forEach(zPos => {
+    const shoulderGeo = new THREE.TorusGeometry(radius - 1.0, 1.2, 12, 36);
+    const shoulder = new THREE.Mesh(shoulderGeo, tireMat);
+    shoulder.position.z = zPos;
+    wheelGroup.add(shoulder);
+  });
+
+  // Outer Tyre Sidewall Face Ring (leaving center completely open for the alloy rim!)
+  const sidewallGeo = new THREE.RingGeometry(rimRadius, radius - 1.0, 36);
+  const sidewall = new THREE.Mesh(sidewallGeo, tireMat);
+  sidewall.position.z = halfW - 0.2;
+  wheelGroup.add(sidewall);
+
+  // Inner Tyre Sidewall Face Ring (back of wheel)
+  const innerSidewall = new THREE.Mesh(sidewallGeo, tireMat);
+  innerSidewall.position.z = -halfW + 0.2;
+  innerSidewall.rotation.y = Math.PI;
+  wheelGroup.add(innerSidewall);
+
+  // 2. MACHINED ALLOY WHEEL RIM LIP / FLANGE
+  const rimFlangeGeo = new THREE.TorusGeometry(rimRadius, 1.3, 14, 36);
+  const rimFlange = new THREE.Mesh(rimFlangeGeo, alloyMachinedMat);
+  rimFlange.position.z = halfW - 0.3;
+  wheelGroup.add(rimFlange);
+
+  // Inner Rim Lip
+  const innerRimFlange = new THREE.Mesh(rimFlangeGeo, barrelMat);
+  innerRimFlange.position.z = -halfW + 0.3;
+  wheelGroup.add(innerRimFlange);
+
+  // 3. DEEP CONCAVE WHEEL BARREL
+  const barrelGeo = new THREE.CylinderGeometry(rimRadius - 0.6, rimRadius - 1.0, width - 1.6, 32, 1, true);
   const barrel = new THREE.Mesh(barrelGeo, barrelMat);
   barrel.rotation.x = Math.PI / 2;
+  barrel.position.z = 0;
   wheelGroup.add(barrel);
 
-  // Diamond-Cut Multi-Spoke Alloy Face
-  const spokeCount = isSUV ? 6 : 5;
-  const spokeGeo = new THREE.BoxGeometry(3.6, rimRadius * 1.88, 2.4);
+  // 4. VENTILATED CROSS-DRILLED BRAKE ROTOR DISC (Visible through open spokes!)
+  const rotorRadius = rimRadius * 0.78;
+  const rotorGeo = new THREE.CylinderGeometry(rotorRadius, rotorRadius, 1.8, 28);
+  const rotor = new THREE.Mesh(rotorGeo, rotorMat);
+  rotor.rotation.x = Math.PI / 2;
+  rotor.position.z = halfW - 5.5;
+  wheelGroup.add(rotor);
+
+  // Rotor Center Hat (Iron bell hub)
+  const hatGeo = new THREE.CylinderGeometry(rotorRadius * 0.42, rotorRadius * 0.42, 2.8, 24);
+  const hatMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6, metalness: 0.6 });
+  const hat = new THREE.Mesh(hatGeo, hatMat);
+  hat.rotation.x = Math.PI / 2;
+  hat.position.z = halfW - 5.0;
+  wheelGroup.add(hat);
+
+  // Sport Red Caliper clamped over rotor (at 10 o'clock position)
+  const caliperGeo = new THREE.BoxGeometry(6.5, 12, 4.2);
+  const caliper = new THREE.Mesh(caliperGeo, caliperMat);
+  const calAngle = Math.PI * 0.62;
+  caliper.position.set(Math.cos(calAngle) * (rotorRadius * 0.88), Math.sin(calAngle) * (rotorRadius * 0.88), halfW - 4.6);
+  caliper.rotation.z = calAngle + Math.PI / 2;
+  wheelGroup.add(caliper);
+
+  // 5. DIAMOND-CUT BI-TONE ALLOY SPOKES (Sculpted 5-Twin Spoke Sport Design)
   const spokeGroup = new THREE.Group();
-  for (let i = 0; i < spokeCount; i++) {
-    const spoke = new THREE.Mesh(spokeGeo, rimMat);
-    spoke.rotation.z = (i * Math.PI) / (spokeCount / 2);
-    spokeGroup.add(spoke);
+  const numSpokes = isSUV ? 6 : 5;
+
+  for (let i = 0; i < numSpokes; i++) {
+    const angle = (i * Math.PI * 2) / numSpokes;
+    const pairGroup = new THREE.Group();
+    pairGroup.rotation.z = angle;
+
+    // Twin spoke pair angled slightly
+    [-0.075, 0.075].forEach(offsetAngle => {
+      const singleSpokeGroup = new THREE.Group();
+      singleSpokeGroup.rotation.z = offsetAngle;
+
+      const spokeLen = rimRadius - 2.0;
+
+      // Machined Silver Top Face
+      const spokeTopGeo = new THREE.BoxGeometry(2.4, spokeLen, 1.4);
+      const spokeTop = new THREE.Mesh(spokeTopGeo, alloyMachinedMat);
+      spokeTop.position.set(0, (spokeLen / 2) + 2.0, halfW - 0.7);
+      // Subtle concave angle (spokes dip slightly toward center hub)
+      spokeTop.rotation.x = -0.06;
+      singleSpokeGroup.add(spokeTop);
+
+      // Dark Contrast Pocket Underneath
+      const spokeDarkGeo = new THREE.BoxGeometry(3.6, spokeLen + 0.5, 1.8);
+      const spokeDark = new THREE.Mesh(spokeDarkGeo, alloyDarkPocketMat);
+      spokeDark.position.set(0, (spokeLen / 2) + 2.0, halfW - 1.8);
+      spokeDark.rotation.x = -0.06;
+      singleSpokeGroup.add(spokeDark);
+
+      pairGroup.add(singleSpokeGroup);
+    });
+
+    spokeGroup.add(pairGroup);
   }
-  spokeGroup.position.z = (width / 2) - 1.6;
   wheelGroup.add(spokeGroup);
 
-  // Center Wheel Hub Cap
-  const hubGeo = new THREE.CylinderGeometry(rimRadius * 0.28, rimRadius * 0.28, 3.2, 24);
-  const hubMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
-  const hub = new THREE.Mesh(hubGeo, hubMat);
-  hub.rotation.x = Math.PI / 2;
-  hub.position.z = (width / 2) - 1.3;
-  wheelGroup.add(hub);
+  // 6. CENTER WHEEL HUB CAP & 5 CHROME LUG BOLTS
+  const centerCapGeo = new THREE.CylinderGeometry(rimRadius * 0.28, rimRadius * 0.26, 2.4, 24);
+  const centerCapMat = new THREE.MeshStandardMaterial({
+    color: 0x090e17,
+    roughness: 0.2,
+    metalness: 0.8
+  });
+  const centerCap = new THREE.Mesh(centerCapGeo, centerCapMat);
+  centerCap.rotation.x = Math.PI / 2;
+  centerCap.position.z = halfW - 0.8;
+  wheelGroup.add(centerCap);
 
-  // Ventilated Steel Brake Rotor Disc
-  const discGeo = new THREE.CylinderGeometry(radius * 0.54, radius * 0.54, 2.2, 24);
-  const discMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.94, roughness: 0.22 });
-  const disc = new THREE.Mesh(discGeo, discMat);
-  disc.rotation.x = Math.PI / 2;
-  disc.position.z = 2;
-  wheelGroup.add(disc);
+  // Chrome Center Badge Ring
+  const badgeRingGeo = new THREE.TorusGeometry(rimRadius * 0.16, 0.45, 12, 24);
+  const badgeRing = new THREE.Mesh(badgeRingGeo, chromeMat);
+  badgeRing.position.z = halfW + 0.3;
+  wheelGroup.add(badgeRing);
 
-  // Sport Red Caliper (at 2 o'clock position)
-  const caliperGeo = new THREE.BoxGeometry(7, 13, 5);
-  const caliperMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.25, metalness: 0.2 });
-  const caliper = new THREE.Mesh(caliperGeo, caliperMat);
-  caliper.position.set(radius * 0.38, radius * 0.24, 2);
-  wheelGroup.add(caliper);
+  // 5 Hexagonal Chrome Lug Bolts in a 5-hole circular pattern
+  const boltCircleR = rimRadius * 0.38;
+  for (let b = 0; b < 5; b++) {
+    const bAngle = (b * Math.PI * 2) / 5;
+    const boltGeo = new THREE.CylinderGeometry(0.85, 0.85, 1.4, 6);
+    const bolt = new THREE.Mesh(boltGeo, chromeMat);
+    bolt.rotation.x = Math.PI / 2;
+    bolt.position.set(Math.cos(bAngle) * boltCircleR, Math.sin(bAngle) * boltCircleR, halfW - 0.7);
+    wheelGroup.add(bolt);
+  }
 
   return wheelGroup;
 }
@@ -1614,57 +1690,72 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
     roughness: 0.1
   });
 
-  // Main Dashboard Crossbeam & Top Shelf (stretches from cowl base under windscreen to instrument face)
-  const dashFaceX = frontSeatsX - 26;
-  const dashLen = Math.max(20, Math.abs(dashFaceX - cowlX) + 6);
-  const dashCenterX = (cowlX + dashFaceX) / 2;
-  const dashY = cowlY - 7;
-  const dashGeo = new THREE.BoxGeometry(dashLen, 14, cabinWidth - 6);
-  const dashMesh = new THREE.Mesh(dashGeo, dashMat);
-  dashMesh.position.set(dashCenterX, dashY, 0);
-  addCadEdges(dashMesh, 0x38bdf8);
-  cockpitGroup.add(dashMesh);
+  // 1. Sculpted Instrument Panel Main Housing (Sleek 22 cm depth, eliminating the massive banquet table!)
+  const dashFaceX = frontSeatsX - 22;
+  const ipDepth = 22;
+  const ipHeight = 11;
+  const ipWidth = cabinWidth - 8;
+  const ipCenterX = dashFaceX - (ipDepth / 2);
+  const ipCenterY = cowlY - 6;
 
-  // UK Right Hand Drive (RHD): Driver on the RIGHT (-Z)
+  const ipGeo = new THREE.BoxGeometry(ipDepth, ipHeight, ipWidth);
+  const ipMesh = new THREE.Mesh(ipGeo, dashMat);
+  ipMesh.position.set(ipCenterX, ipCenterY, 0);
+  addCadEdges(ipMesh, 0x38bdf8);
+  cockpitGroup.add(ipMesh);
+
+  // 2. Slim Defroster Scuttle Shelf (thin 1.6 cm plate bridging to cowl base, keeping driver footwells completely open!)
+  const scuttleFrontX = cowlX + 2;
+  const scuttleRearX = dashFaceX - ipDepth;
+  const scuttleLen = Math.max(4, Math.abs(scuttleRearX - scuttleFrontX));
+  const scuttleGeo = new THREE.BoxGeometry(scuttleLen, 1.6, cabinWidth - 8);
+  const scuttleMesh = new THREE.Mesh(scuttleGeo, trimMat);
+  scuttleMesh.position.set((scuttleFrontX + scuttleRearX) / 2, cowlY - 2.5, 0);
+  cockpitGroup.add(scuttleMesh);
+
+  // 3. UK Right Hand Drive (RHD): Driver on RIGHT side (-Z)
   const driverZ = -((totalCarWidth / 4) - 6);
-  const binnacleGeo = new THREE.BoxGeometry(16, 7, 24);
+
+  // Sculpted Instrument Cluster Binnacle
+  const binnacleGeo = new THREE.BoxGeometry(14, 6.5, 22);
   const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
-  binnacle.position.set(dashFaceX + 2, dashY + 8, driverZ);
+  binnacle.position.set(dashFaceX - 5, ipCenterY + 7.5, driverZ);
   cockpitGroup.add(binnacle);
 
-  const gaugeGeo = new THREE.PlaneGeometry(18, 5.5);
+  // Glowing Digital Virtual Cockpit Display
+  const gaugeGeo = new THREE.PlaneGeometry(16, 5.0);
   const gauge = new THREE.Mesh(gaugeGeo, screenMat);
-  gauge.position.set(dashFaceX + 10.2, dashY + 8, driverZ);
+  gauge.position.set(dashFaceX + 2.1, ipCenterY + 7.5, driverZ);
   gauge.rotation.y = Math.PI / 2;
   cockpitGroup.add(gauge);
 
-  // Center Infotainment Widescreen Display (angled toward UK driver at -Z)
-  const centerScreenGeo = new THREE.BoxGeometry(3, 7, 22);
+  // Center Infotainment Floating Display (angled 12° toward UK driver)
+  const centerScreenGeo = new THREE.BoxGeometry(2.5, 6.5, 18);
   const centerScreen = new THREE.Mesh(centerScreenGeo, screenMat);
-  centerScreen.position.set(dashFaceX + 9, dashY + 4, 0);
+  centerScreen.position.set(dashFaceX + 1.2, ipCenterY + 4, 0);
   centerScreen.rotation.y = -0.14;
   cockpitGroup.add(centerScreen);
 
-  // Center Floor Console Tunnel running between front bucket seats
-  const tunnelLen = Math.max(20, Math.abs(frontSeatsX + 12 - dashFaceX));
-  const tunnelGeo = new THREE.BoxGeometry(tunnelLen, 10, 16);
+  // Center Console Tunnel (running from dashboard center stack back between front seats)
+  const tunnelLen = Math.max(20, Math.abs(frontSeatsX + 10 - dashFaceX));
+  const tunnelGeo = new THREE.BoxGeometry(tunnelLen, 9, 15);
   const tunnel = new THREE.Mesh(tunnelGeo, trimMat);
-  tunnel.position.set(dashFaceX + (tunnelLen / 2), cabinFloorY + 5, 0);
+  tunnel.position.set(dashFaceX + (tunnelLen / 2), cabinFloorY + 4.5, 0);
   cockpitGroup.add(tunnel);
 
-  // Armrest & Gear Selector centered between front seats
-  const armrestGeo = new THREE.BoxGeometry(18, 4, 14);
+  // Center Armrest between front seats
+  const armrestGeo = new THREE.BoxGeometry(16, 4, 14);
   const armrest = new THREE.Mesh(armrestGeo, dashMat);
-  armrest.position.set(frontSeatsX + 4, cabinFloorY + 11, 0);
+  armrest.position.set(frontSeatsX + 4, cabinFloorY + 10.5, 0);
   cockpitGroup.add(armrest);
 
-  // Sport 3-Spoke Steering Wheel positioned right in front of UK driver
-  const wheelX = frontSeatsX - 18;
-  const wheelY = dashY + 5;
-  const columnGeo = new THREE.CylinderGeometry(2.4, 2.6, 14, 16);
+  // Sport 3-Spoke Steering Wheel positioned in front of driver
+  const wheelX = frontSeatsX - 16;
+  const wheelY = ipCenterY + 4.5;
+  const columnGeo = new THREE.CylinderGeometry(2.2, 2.5, 12, 16);
   const column = new THREE.Mesh(columnGeo, dashMat);
   column.rotation.z = -Math.PI / 4;
-  column.position.set(wheelX - 5, wheelY - 4, driverZ);
+  column.position.set(wheelX - 4.5, wheelY - 3.5, driverZ);
   cockpitGroup.add(column);
 
   const steerGroup = new THREE.Group();
@@ -2726,466 +2817,6 @@ function updateCargoSimulationFrame(p) {
   } else {
     cargoSimulationBaseGroup.rotation.set(0, 0, 0);
   }
-}
-
-/* ==========================================================================
-   CAD 2D BLUEPRINT VECTOR VISUALIZERS (Static Chassis Datum)
-   ========================================================================== */
-
-function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seatsFolded, car) {
-  const groundY = 205;
-  const sillY = car.body_type === 'suv' ? 150 : 165;
-  const floorY = sillY;
-  const rearSillX = 490; // Fixed rear sill datum
-  const scale = 1.45;
-  const bodyType = car.body_type;
-
-  const floorLenPx = floorLength * scale;
-  const seatFrontX = rearSillX - floorLenPx;
-  const roofY = floorY - (roofHeight * scale);
-  const glassTopX = rearSillX - (roofHeight * tanRake * scale);
-
-  const rad = (angle * Math.PI) / 180;
-  const effectiveH = mode === 'roll' ? ((rot.w * Math.sin(rad)) + (rot.h * Math.cos(rad))) : rot.h;
-  const boxLPx = rot.l * scale;
-  const boxHPx = effectiveH * scale;
-
-  let cargoMarkup = '';
-
-  if (mode === 'pitch') {
-    const pivotX = rearSillX - 8;
-    const pivotY = floorY;
-    const radA = (Math.max(1, angle) * Math.PI) / 180;
-    const arcR = 55;
-    const arcEndX = (pivotX - arcR * Math.cos(radA)).toFixed(1);
-    const arcEndY = (pivotY - arcR * Math.sin(radA)).toFixed(1);
-    cargoMarkup = `
-      <g transform="rotate(${-angle}, ${pivotX}, ${pivotY})">
-        <rect x="${pivotX - boxLPx}" y="${pivotY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
-              fill="url(#box-grad-cyan)" stroke="#38bdf8" stroke-width="2" rx="3" filter="url(#glow-cyan)" />
-        <text x="${pivotX - (boxLPx / 2)}" y="${pivotY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
-          ${rot.l} × ${rot.h} cm
-        </text>
-        <line x1="${pivotX - boxLPx + 14}" y1="${pivotY - boxHPx}" x2="${pivotX - boxLPx + 14}" y2="${pivotY}" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" />
-        <line x1="${pivotX - 14}" y1="${pivotY - boxHPx}" x2="${pivotX - 14}" y2="${pivotY}" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" />
-      </g>
-      <path d="M ${pivotX - arcR} ${pivotY} A ${arcR} ${arcR} 0 0 1 ${arcEndX} ${arcEndY}" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="3,2" />
-      <text x="${pivotX - 60}" y="${pivotY - 14}" fill="#38bdf8" font-size="10.5" font-family="ui-monospace, monospace" font-weight="800" text-anchor="end">
-        ~${Math.round(angle)}° tilt
-      </text>
-    `;
-  } else if (mode === 'roll') {
-    const boxX = Math.max(seatFrontX, rearSillX - boxLPx);
-    cargoMarkup = `
-      <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
-            fill="url(#box-grad-cyan)" stroke="#38bdf8" stroke-width="2" rx="3" filter="url(#glow-cyan)" />
-      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
-        ${rot.l} × ${Math.round(effectiveH)} cm
-      </text>
-      <rect x="${boxX + 6}" y="${floorY - boxHPx - 20}" width="96" height="16" rx="3" fill="#0c1a2e" stroke="#38bdf8" stroke-width="1" />
-      <text x="${boxX + 54}" y="${floorY - boxHPx - 8}" fill="#38bdf8" font-size="9" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
-        BANKED ~${Math.round(angle)}°
-      </text>
-    `;
-  } else if (mode === 'yaw') {
-    const boxX = Math.max(seatFrontX, rearSillX - boxLPx);
-    cargoMarkup = `
-      <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
-            fill="url(#box-grad-cyan)" stroke="#38bdf8" stroke-width="2" rx="3" filter="url(#glow-cyan)" />
-      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
-        ${rot.l} × ${rot.h} cm
-      </text>
-      <rect x="${boxX + 6}" y="${floorY - boxHPx - 20}" width="96" height="16" rx="3" fill="#0c1a2e" stroke="#38bdf8" stroke-width="1" />
-      <text x="${boxX + 54}" y="${floorY - boxHPx - 8}" fill="#38bdf8" font-size="9" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
-        DIAGONAL ~${angle}°
-      </text>
-    `;
-  } else if (mode === 'ingress') {
-    const ingressX = rearSillX - 10;
-    cargoMarkup = `
-      <rect x="${ingressX}" y="${floorY - boxHPx - 12}" width="${boxLPx}" height="${boxHPx}" 
-            fill="url(#box-grad-cyan)" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,2" rx="3" filter="url(#glow-cyan)" />
-      <text x="${ingressX + (boxLPx / 2)}" y="${floorY - boxHPx - 12 + (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
-        ${rot.l} × ${rot.h} cm
-      </text>
-      <line x1="${ingressX + (boxLPx / 2)}" y1="${floorY - boxHPx - 24}" x2="${ingressX + (boxLPx / 2) - 40}" y2="${floorY - boxHPx - 24}" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-ingress)" />
-      <text x="${ingressX + (boxLPx / 2) - 45}" y="${floorY - boxHPx - 21}" fill="#38bdf8" font-size="9.5" font-family="ui-monospace, monospace" font-weight="700" text-anchor="end">
-        INGRESS ENTRY (~${angle}° ROLL)
-      </text>
-    `;
-  } else if (mode === 'center') {
-    const boxX = rearSillX - boxLPx;
-    cargoMarkup = `
-      <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
-            fill="url(#box-grad-green)" stroke="#22c55e" stroke-width="2" rx="3" filter="url(#glow-green)" />
-      <line x1="${boxX + 16}" y1="${floorY - boxHPx}" x2="${boxX + 16}" y2="${floorY}" stroke="rgba(34, 197, 94, 0.3)" stroke-width="1.5" />
-      <line x1="${boxX + boxLPx - 16}" y1="${floorY - boxHPx}" x2="${boxX + boxLPx - 16}" y2="${floorY}" stroke="rgba(34, 197, 94, 0.3)" stroke-width="1.5" />
-      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
-        ${rot.l} × ${rot.h} cm
-      </text>
-      <rect x="${boxX + 6}" y="${floorY - boxHPx - 20}" width="144" height="16" rx="3" fill="#0c1a2e" stroke="#22c55e" stroke-width="1" />
-      <text x="${boxX + 78}" y="${floorY - boxHPx - 8}" fill="#4ade80" font-size="9" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
-        THROUGH FRONT SEATS
-      </text>
-    `;
-  } else if (mode === 'colliding') {
-    const isExceedingFloor = rot.l > floorLength;
-    const boxX = isExceedingFloor ? seatFrontX : Math.max(seatFrontX, rearSillX - boxLPx);
-    const rearOverflow = isExceedingFloor ? Math.max(20, (seatFrontX + boxLPx) - rearSillX) : 45;
-    cargoMarkup = `
-      <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
-            fill="url(#box-grad-red)" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,3" rx="3" />
-      <rect x="${rearSillX - (isExceedingFloor ? 0 : 40)}" y="${floorY - boxHPx}" width="${rearOverflow}" height="${boxHPx}" fill="url(#hazard-stripes)" opacity="0.65" rx="2" />
-      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
-        ${rot.l} × ${rot.h} cm
-      </text>
-      <circle cx="${rearSillX - 8}" cy="${floorY - boxHPx + 8}" r="8" fill="rgba(239, 68, 68, 0.3)" stroke="#ef4444" stroke-width="2" />
-      <circle cx="${rearSillX - 8}" cy="${floorY - boxHPx + 8}" r="3" fill="#ef4444" />
-      <line x1="${rearSillX - 8}" y1="${floorY - boxHPx + 8}" x2="${rearSillX + 30}" y2="${floorY - boxHPx - 14}" stroke="#ef4444" stroke-width="1.5" />
-      <rect x="${rearSillX + 30}" y="${floorY - boxHPx - 24}" width="88" height="17" rx="3" fill="#180e14" stroke="#ef4444" stroke-width="1" />
-      <text x="${rearSillX + 74}" y="${floorY - boxHPx - 12}" fill="#fca5a5" font-size="8.5" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
-        ${isExceedingFloor ? 'TOO LONG' : 'COLLISION'}
-      </text>
-    `;
-  } else {
-    // Flat fit
-    const boxX = Math.max(seatFrontX, rearSillX - boxLPx);
-    cargoMarkup = `
-      <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
-            fill="url(#box-grad-green)" stroke="#22c55e" stroke-width="2" rx="3" filter="url(#glow-green)" />
-      <line x1="${boxX + 16}" y1="${floorY - boxHPx}" x2="${boxX + 16}" y2="${floorY}" stroke="rgba(34, 197, 94, 0.3)" stroke-width="1.5" />
-      <line x1="${boxX + boxLPx - 16}" y1="${floorY - boxHPx}" x2="${boxX + boxLPx - 16}" y2="${floorY}" stroke="rgba(34, 197, 94, 0.3)" stroke-width="1.5" />
-      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
-        ${rot.l} × ${rot.h} cm
-      </text>
-    `;
-  }
-
-  // Authentic CAD Vector Body Silhouettes
-  let bodyPath = '';
-  let greenhousePath = '';
-  let roofRail = '';
-  let claddingSvg = '';
-
-  if (bodyType === 'estate') {
-    // Estate: Long flat roofline, 4 pillars, D-pillar, 3 windows, roof rails
-    bodyPath = `
-      M 45 192 L 40 176 L 42 160 L 55 145 L 165 124 L 230 70 L 468 70 L 488 74 
-      L 485 84 L 506 142 L 515 152 L 510 178 L 488 192 
-      L 484 178 A 34 34 0 0 0 416 178 L 416 190 L 159 190 L 159 178 A 34 34 0 0 0 91 178 L 91 192 Z`;
-    greenhousePath = `
-      M 172 122 L 234 75 L 468 75 L 480 110 L 480 122 Z`;
-    roofRail = `<line x1="236" y1="65" x2="470" y2="65" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />`;
-
-  } else if (bodyType === 'suv') {
-    // SUV: High ground clearance, wheel cladding, skid plates, upright roof
-    bodyPath = `
-      M 45 186 L 40 162 L 44 142 L 60 130 L 165 110 L 225 48 L 442 48 L 472 54 
-      L 468 64 L 500 132 L 518 142 L 512 172 L 488 186 
-      L 484 172 A 38 38 0 0 0 408 172 L 408 186 L 167 186 L 167 172 A 38 38 0 0 0 91 172 L 91 186 Z`;
-    greenhousePath = `
-      M 172 108 L 230 54 L 440 54 L 470 94 L 470 110 Z`;
-    roofRail = `<line x1="236" y1="44" x2="438" y2="44" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />`;
-    claddingSvg = `
-      <path d="M 86 172 A 42 42 0 0 1 172 172" fill="none" stroke="#0f172a" stroke-width="6" />
-      <path d="M 404 172 A 42 42 0 0 1 488 172" fill="none" stroke="#0f172a" stroke-width="6" />
-      <rect x="42" y="172" width="16" height="6" fill="#e2e8f0" rx="1" />
-      <rect x="502" y="172" width="16" height="6" fill="#e2e8f0" rx="1" />
-    `;
-
-  } else if (bodyType === 'saloon') {
-    // Saloon: 3-box notchback profile with clear stepped trunk deck and fixed rear glass
-    bodyPath = `
-      M 45 192 L 40 176 L 42 160 L 55 145 L 165 124 L 230 70 L 375 70 L 425 118 
-      L 485 118 L 515 142 L 510 178 L 488 192 
-      L 484 178 A 34 34 0 0 0 416 178 L 416 190 L 159 190 L 159 178 A 34 34 0 0 0 91 178 L 91 192 Z`;
-    greenhousePath = `
-      M 172 122 L 234 76 L 372 76 L 420 122 Z`;
-
-  } else {
-    // Hatchback: Compact sporty 2-box silhouette with raked hatch and roof spoiler
-    bodyPath = `
-      M 45 192 L 40 176 L 42 160 L 55 145 L 165 122 L 230 68 L 415 70 L 455 74 
-      L 445 82 L 495 138 L 515 148 L 510 175 L 488 192 
-      L 484 178 A 34 34 0 0 0 416 178 L 416 190 L 159 190 L 159 178 A 34 34 0 0 0 91 178 L 91 192 Z`;
-    greenhousePath = `
-      M 172 122 L 234 74 L 408 74 L 440 92 L 440 122 Z`;
-  }
-
-  let seatGraphics = '';
-  if (seatsFolded) {
-    seatGraphics = `
-      <path d="M ${seatFrontX} ${floorY} 
-               L ${seatFrontX - 25} ${floorY - 12} 
-               L ${seatFrontX + 50} ${floorY - 12} 
-               L ${seatFrontX + 42} ${floorY} Z" 
-            fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-      <circle cx="${seatFrontX - 2}" cy="${floorY - 6}" r="3" fill="#38bdf8" />
-    `;
-  } else {
-    seatGraphics = `
-      <path d="M ${seatFrontX} ${floorY} 
-               L ${seatFrontX - 10} ${floorY - 45} 
-               L ${seatFrontX - 20} ${floorY - 45} 
-               L ${seatFrontX - 16} ${floorY} Z" 
-            fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-      <rect x="${seatFrontX - 18}" y="${floorY - 56}" width="14" height="9" rx="2" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-    `;
-  }
-
-  sideSvg.innerHTML = `
-    <defs>
-      <pattern id="grid-side" width="20" height="20" patternUnits="userSpaceOnUse">
-        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#131e33" stroke-width="0.8" />
-        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#1c2c46" stroke-width="1.2" />
-      </pattern>
-
-      <pattern id="hazard-stripes" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-        <line x1="0" y1="0" x2="0" y2="10" stroke="#ef4444" stroke-width="4" />
-        <line x1="5" y1="0" x2="5" y2="10" stroke="#1e1014" stroke-width="6" />
-      </pattern>
-
-      <linearGradient id="body-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#1e2d4a" />
-        <stop offset="100%" stop-color="#0c1424" />
-      </linearGradient>
-
-      <linearGradient id="glass-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="rgba(56, 189, 248, 0.28)" />
-        <stop offset="100%" stop-color="rgba(14, 165, 233, 0.06)" />
-      </linearGradient>
-
-      <linearGradient id="box-grad-green" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="rgba(34, 197, 94, 0.45)" />
-        <stop offset="100%" stop-color="rgba(34, 197, 94, 0.15)" />
-      </linearGradient>
-
-      <linearGradient id="box-grad-cyan" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="rgba(56, 189, 248, 0.5)" />
-        <stop offset="100%" stop-color="rgba(56, 189, 248, 0.18)" />
-      </linearGradient>
-
-      <linearGradient id="box-grad-red" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="rgba(239, 68, 68, 0.4)" />
-        <stop offset="100%" stop-color="rgba(239, 68, 68, 0.12)" />
-      </linearGradient>
-
-      <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#38bdf8" flood-opacity="0.4" />
-      </filter>
-      <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#22c55e" flood-opacity="0.4" />
-      </filter>
-    </defs>
-
-    <rect width="600" height="240" fill="#070c18" />
-    <rect width="600" height="240" fill="url(#grid-side)" />
-
-    <path d="M 12 20 L 22 20 M 22 10 L 22 20" stroke="#2a3c5a" stroke-width="1.5" />
-    <path d="M 588 20 L 578 20 M 578 10 L 578 20" stroke="#2a3c5a" stroke-width="1.5" />
-    <path d="M 12 220 L 22 220 M 22 230 L 22 220" stroke="#2a3c5a" stroke-width="1.5" />
-    <path d="M 588 220 L 578 220 M 578 230 L 578 220" stroke="#2a3c5a" stroke-width="1.5" />
-
-    <line x1="25" y1="${groundY}" x2="575" y2="${groundY}" stroke="#1e2c47" stroke-width="2" />
-    <line x1="25" y1="${groundY + 4}" x2="575" y2="${groundY + 4}" stroke="#10192a" stroke-dasharray="3,3" stroke-width="1" />
-
-    <path d="${bodyPath}" fill="url(#body-grad)" stroke="#2a3f66" stroke-width="2" />
-    <path d="${greenhousePath}" fill="url(#glass-grad)" stroke="#203352" stroke-width="1.5" />
-    ${roofRail}
-    ${claddingSvg}
-
-    <circle cx="125" cy="${car.body_type === 'suv' ? 172 : 178}" r="${car.body_type === 'suv' ? 32 : 27}" fill="#080e1a" stroke="#1e2c47" stroke-width="3" />
-    <circle cx="125" cy="${car.body_type === 'suv' ? 172 : 178}" r="${car.body_type === 'suv' ? 20 : 17}" fill="#111c2e" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="6,4" />
-    <circle cx="125" cy="${car.body_type === 'suv' ? 172 : 178}" r="7" fill="#1e2c47" />
-
-    <circle cx="450" cy="${car.body_type === 'suv' ? 172 : 178}" r="${car.body_type === 'suv' ? 32 : 27}" fill="#080e1a" stroke="#1e2c47" stroke-width="3" />
-    <circle cx="450" cy="${car.body_type === 'suv' ? 172 : 178}" r="${car.body_type === 'suv' ? 20 : 17}" fill="#111c2e" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="6,4" />
-    <circle cx="450" cy="${car.body_type === 'suv' ? 172 : 178}" r="7" fill="#1e2c47" />
-
-    <polygon points="42,160 55,145 62,156" fill="#38bdf8" opacity="0.9" filter="url(#glow-cyan)" />
-    <polygon points="515,148 495,138 497,152" fill="#ef4444" opacity="0.95" />
-
-    <line x1="${seatFrontX}" y1="${floorY}" x2="${rearSillX}" y2="${floorY}" stroke="#38bdf8" stroke-width="3" />
-    <line x1="${seatFrontX}" y1="${floorY + 2}" x2="${rearSillX}" y2="${floorY + 2}" stroke="#0369a1" stroke-width="1" />
-    
-    <line x1="${seatFrontX}" y1="${floorY + 16}" x2="${rearSillX}" y2="${floorY + 16}" stroke="#64748b" stroke-width="1" />
-    <line x1="${seatFrontX}" y1="${floorY + 10}" x2="${seatFrontX}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
-    <line x1="${rearSillX}" y1="${floorY + 10}" x2="${rearSillX}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
-    <text x="${seatFrontX + (floorLenPx / 2)}" y="${floorY + 28}" fill="#94a3b8" font-size="9.5" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
-      FLOOR ${floorLength} cm
-    </text>
-
-    <line x1="${seatFrontX}" y1="${roofY}" x2="${glassTopX}" y2="${roofY}" stroke="#334b73" stroke-dasharray="4,4" stroke-width="1.5" />
-    <line x1="${rearSillX}" y1="${floorY}" x2="${glassTopX}" y2="${roofY}" stroke="#38bdf8" stroke-dasharray="4,3" stroke-width="1.8" />
-
-    ${seatGraphics}
-
-    ${cargoMarkup}
-  `;
-}
-
-function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isColliding, bodyType, mode, angle) {
-  const groundY = 205;
-  const floorY = bodyType === 'suv' ? 150 : 165;
-  const centerX = 210;
-  const scale = 1.35;
-
-  const archWPx = archWidth * scale;
-  const apWPx = apWidth * scale;
-  const apHPx = apHeight * scale;
-
-  const boxWPx = rot.w * scale;
-  const boxHPx = rot.h * scale;
-  const boxLeftX = centerX - (boxWPx / 2);
-
-  const boxStroke = isColliding ? '#ef4444' : '#22c55e';
-  const boxFill = isColliding ? 'url(#box-rear-red)' : 'url(#box-rear-green)';
-  const boxGlow = isColliding ? '' : 'filter="url(#glow-green)"';
-
-  let rearBodyPath = '';
-  let rearWindowPoly = '';
-  let rearRails = '';
-
-  if (bodyType === 'suv') {
-    rearBodyPath = `
-      M 88 186 L 46 162 L 44 120 L 60 110 L 105 44 L 315 44 L 360 110 L 376 120 L 374 162 L 332 186 Z`;
-    rearWindowPoly = `points="114,50 306,50 345,105 75,105"`;
-    rearRails = `
-      <rect x="98" y="38" width="14" height="6" fill="#38bdf8" rx="2" />
-      <rect x="308" y="38" width="14" height="6" fill="#38bdf8" rx="2" />
-    `;
-  } else if (bodyType === 'estate') {
-    rearBodyPath = `
-      M 88 192 L 48 168 L 46 130 L 62 120 L 108 60 L 312 60 L 358 120 L 374 130 L 372 168 L 332 192 Z`;
-    rearWindowPoly = `points="118,66 302,66 342,115 78,115"`;
-    rearRails = `
-      <rect x="102" y="54" width="14" height="6" fill="#38bdf8" rx="2" />
-      <rect x="304" y="54" width="14" height="6" fill="#38bdf8" rx="2" />
-    `;
-  } else if (bodyType === 'saloon') {
-    rearBodyPath = `
-      M 88 192 L 48 168 L 46 142 L 65 132 L 120 74 L 300 74 L 355 132 L 374 142 L 372 168 L 332 192 Z`;
-    rearWindowPoly = `points="130,80 290,80 335,124 85,124"`;
-  } else {
-    // Hatchback
-    rearBodyPath = `
-      M 88 192 L 48 168 L 46 138 L 65 130 L 115 68 L 305 68 L 355 130 L 374 138 L 372 168 L 332 192 Z`;
-    rearWindowPoly = `points="126,74 294,74 340,122 80,122"`;
-  }
-
-  // Tilted roll or ingress visualization
-  let boxTransform = '';
-  let rollLabel = '';
-  let renderBoxY = floorY - boxHPx;
-
-  if ((mode === 'roll' || mode === 'ingress') && angle > 0) {
-    const rad = (angle * Math.PI) / 180;
-    const contactHalfH = (boxWPx / 2) * Math.sin(rad) + (boxHPx / 2) * Math.cos(rad);
-    const pivotY = floorY - contactHalfH;
-    renderBoxY = pivotY - (boxHPx / 2);
-    boxTransform = `transform="rotate(${angle}, ${centerX}, ${pivotY})"`;
-    rollLabel = `
-      <text x="${centerX}" y="${floorY - apHPx - 8}" fill="#38bdf8" font-size="10" font-family="ui-monospace, monospace" font-weight="800" text-anchor="middle">
-        ${mode === 'ingress' ? 'INGRESS ROLL' : 'BANKED ROLL'} ~${Math.round(angle)}°
-      </text>
-    `;
-  } else if (mode === 'yaw' && angle > 0) {
-    rollLabel = `
-      <text x="${centerX}" y="${floorY - apHPx - 8}" fill="#38bdf8" font-size="10" font-family="ui-monospace, monospace" font-weight="800" text-anchor="middle">
-        DIAGONAL FLOOR ~${Math.round(angle)}°
-      </text>
-    `;
-  }
-
-  rearSvg.innerHTML = `
-    <defs>
-      <pattern id="grid-rear" width="20" height="20" patternUnits="userSpaceOnUse">
-        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#131e33" stroke-width="0.8" />
-        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#1c2c46" stroke-width="1.2" />
-      </pattern>
-
-      <linearGradient id="body-rear-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#1e2d4a" />
-        <stop offset="100%" stop-color="#0b1322" />
-      </linearGradient>
-
-      <linearGradient id="box-rear-green" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="rgba(34, 197, 94, 0.45)" />
-        <stop offset="100%" stop-color="rgba(34, 197, 94, 0.15)" />
-      </linearGradient>
-
-      <linearGradient id="box-rear-red" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="rgba(239, 68, 68, 0.45)" />
-        <stop offset="100%" stop-color="rgba(239, 68, 68, 0.15)" />
-      </linearGradient>
-
-      <linearGradient id="rear-lightbar" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#ef4444" />
-        <stop offset="20%" stop-color="#dc2626" />
-        <stop offset="50%" stop-color="#f87171" />
-        <stop offset="80%" stop-color="#dc2626" />
-        <stop offset="100%" stop-color="#ef4444" />
-      </linearGradient>
-    </defs>
-
-    <rect width="420" height="240" fill="#070c18" />
-    <rect width="420" height="240" fill="url(#grid-rear)" />
-
-    <path d="M 12 20 L 22 20 M 22 10 L 22 20" stroke="#2a3c5a" stroke-width="1.5" />
-    <path d="M 408 20 L 398 20 M 398 10 L 398 20" stroke="#2a3c5a" stroke-width="1.5" />
-    <path d="M 12 220 L 22 220 M 22 230 L 22 220" stroke="#2a3c5a" stroke-width="1.5" />
-    <path d="M 408 220 L 398 220 M 398 230 L 398 220" stroke="#2a3c5a" stroke-width="1.5" />
-
-    <line x1="25" y1="${groundY}" x2="395" y2="${groundY}" stroke="#1e2c47" stroke-width="2" />
-
-    <rect x="55" y="${bodyType === 'suv' ? 150 : 158}" width="33" height="${bodyType === 'suv' ? 44 : 47}" rx="4" fill="#080e1a" stroke="#1e2c47" stroke-width="2" />
-    <rect x="332" y="${bodyType === 'suv' ? 150 : 158}" width="33" height="${bodyType === 'suv' ? 44 : 47}" rx="4" fill="#080e1a" stroke="#1e2c47" stroke-width="2" />
-
-    <path d="${rearBodyPath}" fill="url(#body-rear-grad)" stroke="#2a3f66" stroke-width="2" />
-    ${rearRails}
-
-    <polygon ${rearWindowPoly} fill="url(#glass-grad)" stroke="#203352" stroke-width="1.5" />
-
-    <rect x="50" y="${bodyType === 'suv' ? 124 : 132}" width="320" height="9" rx="3" fill="url(#rear-lightbar)" opacity="0.9" />
-
-    <!-- Aperture Opening Boundary Frame -->
-    <rect x="${centerX - (apWPx / 2)}" y="${floorY - apHPx}" width="${apWPx}" height="${apHPx}" 
-          fill="#060b16" stroke="#38bdf8" stroke-dasharray="5,4" stroke-width="1.8" rx="6" />
-
-    <!-- Wheel Arch Tubs Contour -->
-    <path d="M ${centerX - (apWPx / 2)} ${floorY} 
-             L ${centerX - (archWPx / 2)} ${floorY} 
-             C ${centerX - (archWPx / 2) + 6} ${floorY - 20}, ${centerX - (archWPx / 2) - 2} ${floorY - 36}, ${centerX - (apWPx / 2)} ${floorY - 38} Z" 
-          fill="#111c2e" stroke="#38bdf8" stroke-width="1.5" />
-
-    <path d="M ${centerX + (apWPx / 2)} ${floorY} 
-             L ${centerX + (archWPx / 2)} ${floorY} 
-             C ${centerX + (archWPx / 2) - 6} ${floorY - 20}, ${centerX + (archWPx / 2) + 2} ${floorY - 36}, ${centerX + (apWPx / 2)} ${floorY - 38} Z" 
-          fill="#111c2e" stroke="#38bdf8" stroke-width="1.5" />
-
-    <line x1="${centerX - (archWPx / 2)}" y1="${floorY + 16}" x2="${centerX + (archWPx / 2)}" y2="${floorY + 16}" stroke="#64748b" stroke-width="1" />
-    <line x1="${centerX - (archWPx / 2)}" y1="${floorY + 10}" x2="${centerX - (archWPx / 2)}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
-    <line x1="${centerX + (archWPx / 2)}" y1="${floorY + 10}" x2="${centerX + (archWPx / 2)}" y2="${floorY + 22}" stroke="#64748b" stroke-width="1" />
-    <text x="${centerX}" y="${floorY + 28}" fill="#94a3b8" font-size="9.5" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
-      ARCHES ${archWidth} cm
-    </text>
-
-    ${rollLabel}
-
-    <g ${boxTransform}>
-      <rect x="${boxLeftX}" y="${renderBoxY}" width="${boxWPx}" height="${boxHPx}" 
-            fill="${boxFill}" stroke="${boxStroke}" stroke-width="2" rx="3" ${boxGlow} />
-
-      <text x="${centerX}" y="${renderBoxY + (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
-        ${rot.w} × ${rot.h} cm
-      </text>
-    </g>
-
-    ${isColliding ? `
-      <circle cx="${centerX - (archWPx / 2)}" cy="${floorY - (boxHPx / 2)}" r="6" fill="#ef4444" />
-      <circle cx="${centerX + (archWPx / 2)}" cy="${floorY - (boxHPx / 2)}" r="6" fill="#ef4444" />
-    ` : ''}
-  `;
 }
 
 document.addEventListener('DOMContentLoaded', init);

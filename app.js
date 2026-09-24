@@ -138,6 +138,12 @@ const defaultCars = [
 let vehicles = [];
 let selectedCar = null;
 let lastFitResult = null;
+let currentSolverOutcome = null; // Comprehensive solver result across all modes
+let activeAngleMode = 'auto'; // 'auto' | 'flat' | 'pitch' | 'yaw' | 'roll' | 'ingress'
+let manualAngleSliderValue = 0; // User slider angle in degrees
+let isIngressSimulating = false; // Animated loading in progress
+let ingressSimProgress = 0; // 0 to 1
+let cargoSimulationBaseGroup = null; // Container for animated simulation mesh
 let xRayMode = 0.70; // 0.70 (Sleek CAD Cutaway) or 1.0 (Solid Showroom Paint)
 let isTailgateOpen = true;
 let currentTailgateAngle = 1.08;
@@ -155,6 +161,19 @@ const resultBanner = document.getElementById('result-banner');
 const resultExplanation = document.getElementById('result-explanation');
 const sideBadge = document.getElementById('side-badge');
 const rearBadge = document.getElementById('rear-badge');
+
+// Angle Strategy & Ingress Controls
+const strategyBadge = document.getElementById('strategy-badge');
+const strategyHeading = document.getElementById('strategy-heading');
+const chipIngress = document.getElementById('chip-ingress');
+const chipStowed = document.getElementById('chip-stowed');
+const btnSimulateIngress = document.getElementById('btn-simulate-ingress');
+const animBtnLabel = document.getElementById('anim-btn-label');
+const strategyPills = document.querySelectorAll('.strategy-pill');
+const customAngleSlider = document.getElementById('custom-angle-slider');
+const angleValueBadge = document.getElementById('angle-value-badge');
+const angleStatusHint = document.getElementById('angle-status-hint');
+const tickButtons = document.querySelectorAll('.tick-btn');
 
 const sideSvg = document.getElementById('side-svg');
 const rearSvg = document.getElementById('rear-svg');
@@ -383,7 +402,6 @@ function attachEvents() {
     });
   }
 
-  const btnBootToggle = document.getElementById('btn-boot-toggle');
   if (btnBootToggle) {
     btnBootToggle.addEventListener('click', () => {
       isTailgateOpen = !isTailgateOpen;
@@ -393,6 +411,54 @@ function attachEvents() {
         Boot: ${isTailgateOpen ? 'Open' : 'Closed'}
       `;
       targetTailgateAngle = isTailgateOpen ? getOpenTailgateAngle(selectedCar ? selectedCar.body_type : 'hatchback') : 0;
+    });
+  }
+
+  // Strategy Mode Pills
+  strategyPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      strategyPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeAngleMode = pill.dataset.angleMode;
+      evaluateFitment();
+    });
+  });
+
+  // Angle Slider
+  if (customAngleSlider) {
+    customAngleSlider.addEventListener('input', (e) => {
+      manualAngleSliderValue = parseFloat(e.target.value) || 0;
+      if (angleValueBadge) angleValueBadge.textContent = `${Math.round(manualAngleSliderValue)}°`;
+      if (activeAngleMode === 'auto' || activeAngleMode === 'flat') {
+        activeAngleMode = 'pitch';
+        strategyPills.forEach(p => p.classList.toggle('active', p.dataset.angleMode === 'pitch'));
+      }
+      evaluateFitment();
+    });
+  }
+
+  // Quick Angle Ticks
+  tickButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = parseFloat(btn.dataset.tick) || 0;
+      if (customAngleSlider) customAngleSlider.value = val;
+      manualAngleSliderValue = val;
+      if (angleValueBadge) angleValueBadge.textContent = `${val}°`;
+      if (val > 0 && (activeAngleMode === 'auto' || activeAngleMode === 'flat')) {
+        activeAngleMode = 'pitch';
+        strategyPills.forEach(p => p.classList.toggle('active', p.dataset.angleMode === 'pitch'));
+      } else if (val === 0 && activeAngleMode !== 'auto') {
+        activeAngleMode = 'flat';
+        strategyPills.forEach(p => p.classList.toggle('active', p.dataset.angleMode === 'flat'));
+      }
+      evaluateFitment();
+    });
+  });
+
+  // Ingress Loading Simulation Button
+  if (btnSimulateIngress) {
+    btnSimulateIngress.addEventListener('click', () => {
+      toggleIngressSimulation();
     });
   }
 
@@ -424,6 +490,310 @@ function getUniqueRotations(l, w, h) {
   return unique;
 }
 
+/**
+ * Comprehensive Multi-Angle Loading & Aperture Ingress Solver
+ */
+function checkApertureIngress(rot, apW, apH) {
+  // Check direct flat entry
+  if (rot.w <= apW && rot.h <= apH) {
+    return {
+      direct: true,
+      canEnter: true,
+      rollAngle: 0,
+      margin: Math.min(apW - rot.w, apH - rot.h)
+    };
+  }
+
+  // Check if angling / rolling the item diagonally allows entry through tailgate aperture
+  let bestRoll = null;
+  for (let deg = 1; deg <= 89; deg++) {
+    const rad = (deg * Math.PI) / 180;
+    const projW = (rot.w * Math.cos(rad)) + (rot.h * Math.sin(rad));
+    const projH = (rot.w * Math.sin(rad)) + (rot.h * Math.cos(rad));
+
+    if (projW <= apW && projH <= apH) {
+      const margin = Math.min(apW - projW, apH - projH);
+      if (!bestRoll || margin > bestRoll.margin) {
+        bestRoll = { deg, margin, projW, projH };
+      }
+    }
+  }
+
+  if (bestRoll) {
+    return {
+      direct: false,
+      canEnter: true,
+      rollAngle: bestRoll.deg,
+      margin: bestRoll.margin,
+      projW: bestRoll.projW,
+      projH: bestRoll.projH
+    };
+  }
+
+  return {
+    direct: false,
+    canEnter: false,
+    rollAngle: 0,
+    margin: Math.min(apW - rot.w, apH - rot.h)
+  };
+}
+
+function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
+  const floorLength = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
+  const archWidth = car.wheel_arch_width;
+  const roofHeight = car.roof_height;
+  const apWidth = car.aperture_width;
+  const apHeight = car.aperture_height;
+  const rakeRad = (car.rake_angle_deg * Math.PI) / 180;
+  const tanRake = Math.tan(rakeRad);
+  const cabinWidth = car.overall_width * 0.82;
+
+  const rotations = getUniqueRotations(rawL, rawW, rawH);
+
+  let bestFlat = null;
+  let bestPitch = null;
+  let bestYaw = null;
+  let bestRoll = null;
+  let bestIngressOnly = null;
+  let failureReasons = [];
+
+  for (const rot of rotations) {
+    const ingress = checkApertureIngress(rot, apWidth, apHeight);
+    const usableLengthAtH = floorLength - (rot.h * tanRake);
+
+    // 1. Flat Orthogonal Test
+    const passesArch = rot.w <= archWidth;
+    const passesRoof = rot.h <= roofHeight;
+    const passesRake = rot.l <= usableLengthAtH;
+
+    if (passesArch && passesRoof && passesRake) {
+      const margin = Math.min(usableLengthAtH - rot.l, archWidth - rot.w, roofHeight - rot.h);
+      if (ingress.canEnter) {
+        if (!ingress.direct) {
+          // Fits inside flat, but requires tilted roll ingress to pass tailgate!
+          if (!bestIngressOnly || margin > bestIngressOnly.margin) {
+            bestIngressOnly = {
+              rot,
+              margin,
+              ingress,
+              usableLengthAtH
+            };
+          }
+        } else {
+          // Fits directly flat and enters directly
+          if (!bestFlat || margin > bestFlat.margin) {
+            bestFlat = {
+              rot,
+              margin,
+              ingress,
+              usableLengthAtH
+            };
+          }
+        }
+      }
+    } else {
+      if (!passesRake && passesArch && passesRoof) {
+        failureReasons.push(`Hits sloping rear window (max length at ${rot.h} cm height is ${Math.round(usableLengthAtH)} cm).`);
+      } else if (!passesArch) {
+        failureReasons.push(`Exceeds wheel arch width (${rot.w} cm vs ${archWidth} cm limit).`);
+      } else if (!passesRoof) {
+        failureReasons.push(`Exceeds interior roof height (${rot.h} cm vs ${roofHeight} cm limit).`);
+      }
+    }
+
+    // 2. Seatback Pitch Tilt Test (Front elevated on folded seatback)
+    if (rot.w <= archWidth && ingress.canEnter) {
+      for (let deg = 2; deg <= 35; deg += 0.5) {
+        const rad = (deg * Math.PI) / 180;
+        const cosA = Math.cos(rad);
+        const sinA = Math.sin(rad);
+
+        const topFrontH = (rot.l * sinA) + (rot.h * cosA);
+        if (topFrontH > roofHeight) continue;
+
+        const horizSpan = rot.l * cosA;
+        const maxAllowedSpan = seatsFolded ? (floorLength + 14) : floorLength;
+        if (horizSpan > maxAllowedSpan) continue;
+
+        const rearTopH = rot.h * cosA;
+        const rearTopShiftX = rot.h * sinA;
+        const glassXAtRearTop = rearTopH * tanRake;
+        const glassClearance = (floorLength - horizSpan) + rearTopShiftX - glassXAtRearTop;
+        const roofClearance = roofHeight - topFrontH;
+
+        if (glassClearance >= 0 && roofClearance >= 0) {
+          const margin = Math.min(glassClearance, roofClearance, archWidth - rot.w);
+          if (!bestPitch || margin > bestPitch.margin) {
+            bestPitch = {
+              rot,
+              angle: Math.round(deg * 10) / 10,
+              margin,
+              topFrontH,
+              horizSpan,
+              ingress
+            };
+          }
+        }
+      }
+    }
+
+    // 3. Diagonal Floor Yaw Test (Corner-to-corner across boot floor)
+    if (rot.h <= roofHeight && ingress.canEnter) {
+      for (let deg = 2; deg <= 40; deg += 0.5) {
+        const rad = (deg * Math.PI) / 180;
+        const cosP = Math.cos(rad);
+        const sinP = Math.sin(rad);
+
+        const boundingL = (rot.l * cosP) + (rot.w * sinP);
+        const boundingW = (rot.l * sinP) + (rot.w * cosP);
+        const usableL = floorLength - (rot.h * tanRake);
+
+        // Allows lateral expansion into cabin width forward of wheel arches
+        const allowedWidth = boundingL > 75 ? Math.min(cabinWidth - 6, archWidth + 14) : archWidth;
+
+        if (boundingL <= usableL && boundingW <= allowedWidth) {
+          const margin = Math.min(usableL - boundingL, allowedWidth - boundingW, roofHeight - rot.h);
+          if (!bestYaw || margin > bestYaw.margin) {
+            bestYaw = {
+              rot,
+              angle: Math.round(deg * 10) / 10,
+              margin,
+              boundingL,
+              boundingW,
+              ingress
+            };
+          }
+        }
+      }
+    }
+
+    // 4. Banked Sidewall Roll Test (Banked against wheel arch/sidewall)
+    if (ingress.canEnter) {
+      for (let deg = 6; deg <= 50; deg += 0.5) {
+        const rad = (deg * Math.PI) / 180;
+        const projW = (rot.w * Math.cos(rad)) + (rot.h * Math.sin(rad));
+        const projH = (rot.w * Math.sin(rad)) + (rot.h * Math.cos(rad));
+        const usableL = floorLength - (projH * tanRake);
+
+        if (projW <= archWidth && projH <= roofHeight && rot.l <= usableL) {
+          const margin = Math.min(archWidth - projW, roofHeight - projH, usableL - rot.l);
+          if (!bestRoll || margin > bestRoll.margin) {
+            bestRoll = {
+              rot,
+              angle: Math.round(deg * 10) / 10,
+              margin,
+              projW,
+              projH,
+              ingress
+            };
+          }
+        }
+      }
+    }
+  }
+
+  // Synthesize Overall Optimal Strategy
+  let overallOptimal = null;
+
+  if (bestFlat && bestFlat.margin >= 4) {
+    overallOptimal = {
+      mode: 'flat',
+      rot: bestFlat.rot,
+      angle: 0,
+      status: 'comfortable',
+      margin: bestFlat.margin,
+      ingress: bestFlat.ingress,
+      heading: 'Fits Straight & Flat (Comfortable)',
+      instruction: `Clears all cargo boundaries with a generous ${Math.round(bestFlat.margin)} cm buffer (orientation: ${bestFlat.rot.l} × ${bestFlat.rot.w} × ${bestFlat.rot.h} cm).`
+    };
+  } else if (bestIngressOnly) {
+    overallOptimal = {
+      mode: 'ingress',
+      rot: bestIngressOnly.rot,
+      angle: bestIngressOnly.ingress.rollAngle,
+      status: 'angled',
+      margin: bestIngressOnly.margin,
+      ingress: bestIngressOnly.ingress,
+      heading: `Tilted Ingress Required (~${bestIngressOnly.ingress.rollAngle}° Roll)`,
+      instruction: `Too wide for standard flat entry, but slips through the tailgate opening when tilted at a ~${bestIngressOnly.ingress.rollAngle}° roll angle, then lays flat on the boot floor!`
+    };
+  } else if (bestFlat) {
+    overallOptimal = {
+      mode: 'flat',
+      rot: bestFlat.rot,
+      angle: 0,
+      status: 'tight',
+      margin: bestFlat.margin,
+      ingress: bestFlat.ingress,
+      heading: 'Fits Flat (Tight Margin)',
+      instruction: `Fits flat with a tight clearance margin of ${Math.round(bestFlat.margin * 10) / 10} cm. Close tailgate gently.`
+    };
+  } else if (bestPitch) {
+    overallOptimal = {
+      mode: 'pitch',
+      rot: bestPitch.rot,
+      angle: bestPitch.angle,
+      status: 'angled',
+      margin: bestPitch.margin,
+      ingress: bestPitch.ingress,
+      heading: `Seatback Tilt Fit (~${bestPitch.angle}° Tilt)`,
+      instruction: `Hits the rear window glass if laid flat, but fits cleanly by propping the front edge up onto the seatback (~${bestPitch.angle}° tilt), pulling the rear face clear of the glass.`
+    };
+  } else if (bestYaw) {
+    overallOptimal = {
+      mode: 'yaw',
+      rot: bestYaw.rot,
+      angle: bestYaw.angle,
+      status: 'angled',
+      margin: bestYaw.margin,
+      ingress: bestYaw.ingress,
+      heading: `Diagonal Floor Fit (~${bestYaw.angle}° Angle)`,
+      instruction: `Too long to fit straight, but clears comfortably when positioned diagonally corner-to-corner across the cargo bay.`
+    };
+  } else if (bestRoll) {
+    overallOptimal = {
+      mode: 'roll',
+      rot: bestRoll.rot,
+      angle: bestRoll.angle,
+      status: 'angled',
+      margin: bestRoll.margin,
+      ingress: bestRoll.ingress,
+      heading: `Banked Sidewall Fit (~${bestRoll.angle}° Roll)`,
+      instruction: `Exceeds wheel arch width when flat, but fits safely banked against the sidewall/wheel arch at ~${bestRoll.angle}°.`
+    };
+  } else {
+    overallOptimal = {
+      mode: 'colliding',
+      rot: { l: rawL, w: rawW, h: rawH },
+      angle: 0,
+      status: 'colliding',
+      margin: -1,
+      ingress: checkApertureIngress({ l: rawL, w: rawW, h: rawH }, apWidth, apHeight),
+      heading: 'Will Not Fit',
+      instruction: failureReasons[0] || 'Object dimensions exceed maximum interior vehicle limits.'
+    };
+  }
+
+  return {
+    optimal: overallOptimal,
+    modes: {
+      flat: bestFlat,
+      pitch: bestPitch,
+      yaw: bestYaw,
+      roll: bestRoll,
+      ingress: bestIngressOnly
+    },
+    carLimits: {
+      floorLength,
+      archWidth,
+      roofHeight,
+      apWidth,
+      apHeight,
+      tanRake
+    }
+  };
+}
+
 function evaluateFitment() {
   if (!selectedCar) return;
 
@@ -450,171 +820,215 @@ function evaluateFitment() {
     resultBanner.className = 'result-banner will-not-fit';
     resultBanner.textContent = 'Invalid Dimensions';
     resultExplanation.textContent = 'Please enter positive dimensions for length, width, and height.';
+    if (strategyHeading) strategyHeading.textContent = 'Enter dimensions above';
     return;
   }
 
-  const rotations = getUniqueRotations(rawL, rawW, rawH);
+  currentSolverOutcome = solveAllFitmentAngles(selectedCar, rawL, rawW, rawH, seatsFolded);
+  const optimal = currentSolverOutcome.optimal;
 
-  // Gate 1: Check standard flat (orthogonal) fitment across all 6 rotations
-  let bestFlatFit = null;
-  let flatCollisionReasons = [];
+  let activeResult = null;
 
-  for (const rot of rotations) {
-    const usableLengthAtH = floorLength - (rot.h * tanRake);
-    const passesAperture = rot.w <= apWidth && rot.h <= apHeight;
-    const passesArch = rot.w <= archWidth;
-    const passesRoof = rot.h <= roofHeight;
-    const passesRake = rot.l <= usableLengthAtH;
+  if (activeAngleMode === 'auto') {
+    activeResult = optimal;
+    // Update slider position to match the optimal angle
+    if (customAngleSlider) {
+      customAngleSlider.value = activeResult.angle || 0;
+      if (angleValueBadge) angleValueBadge.textContent = `${Math.round(activeResult.angle || 0)}°`;
+    }
+    if (angleStatusHint) angleStatusHint.textContent = `Auto optimal angle for ${activeResult.mode}`;
+  } else {
+    // Mode explicitly selected by user
+    const targetModeData = currentSolverOutcome.modes[activeAngleMode];
+    const candidateRot = (targetModeData && targetModeData.rot) || optimal.rot;
+    const testAngle = manualAngleSliderValue || (targetModeData ? targetModeData.angle : 0);
 
-    if (passesAperture && passesArch && passesRoof && passesRake) {
-      const margin = Math.min(
-        usableLengthAtH - rot.l,
-        archWidth - rot.w,
-        roofHeight - rot.h,
-        apWidth - rot.w,
-        apHeight - rot.h
-      );
-      if (!bestFlatFit || margin > bestFlatFit.margin) {
-        bestFlatFit = { rot, margin, usableLengthAtH };
+    if (activeAngleMode === 'flat') {
+      const passesArch = candidateRot.w <= archWidth;
+      const passesRoof = candidateRot.h <= roofHeight;
+      const usableL = floorLength - (candidateRot.h * tanRake);
+      const passesRake = candidateRot.l <= usableL;
+      const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
+
+      if (passesArch && passesRoof && passesRake && ingress.canEnter) {
+        const m = Math.min(usableL - candidateRot.l, archWidth - candidateRot.w, roofHeight - candidateRot.h);
+        activeResult = {
+          mode: 'flat',
+          rot: candidateRot,
+          angle: 0,
+          status: m >= 4 ? 'comfortable' : 'tight',
+          margin: m,
+          ingress,
+          heading: m >= 4 ? 'Fits Flat (Comfortable)' : 'Fits Flat (Tight)',
+          instruction: `Laid flat on boot floor with ${Math.round(m * 10) / 10} cm clearance.`
+        };
+      } else {
+        activeResult = {
+          mode: 'flat',
+          rot: candidateRot,
+          angle: 0,
+          status: 'colliding',
+          margin: -1,
+          ingress,
+          heading: 'Collides When Laid Flat',
+          instruction: 'Hits boundary limits when flat. Try tilting onto seatback or angling diagonally across floor.'
+        };
       }
-    } else {
-      if (!passesRake && passesArch && passesRoof) {
-        flatCollisionReasons.push(`Hits rear window glass (available length at ${rot.h} cm height is ${Math.round(usableLengthAtH)} cm).`);
-      } else if (!passesArch) {
-        flatCollisionReasons.push(`Exceeds wheel arch width (${rot.w} cm vs ${archWidth} cm limit).`);
-      } else if (!passesRoof) {
-        flatCollisionReasons.push(`Exceeds roof height (${rot.h} cm vs ${roofHeight} cm limit).`);
-      }
+    } else if (activeAngleMode === 'pitch') {
+      const rad = (testAngle * Math.PI) / 180;
+      const topFrontH = (candidateRot.l * Math.sin(rad)) + (candidateRot.h * Math.cos(rad));
+      const horizSpan = candidateRot.l * Math.cos(rad);
+      const maxAllowedSpan = seatsFolded ? (floorLength + 14) : floorLength;
+      const rearTopH = candidateRot.h * Math.cos(rad);
+      const rearTopShiftX = candidateRot.h * Math.sin(rad);
+      const glassXAtRearTop = rearTopH * tanRake;
+      const glassClearance = (floorLength - horizSpan) + rearTopShiftX - glassXAtRearTop;
+      const roofClearance = roofHeight - topFrontH;
+      const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
+
+      const clears = (glassClearance >= 0 && roofClearance >= 0 && horizSpan <= maxAllowedSpan && candidateRot.w <= archWidth);
+
+      activeResult = {
+        mode: 'pitch',
+        rot: candidateRot,
+        angle: testAngle,
+        status: clears ? 'angled' : 'colliding',
+        margin: clears ? Math.min(glassClearance, roofClearance) : -1,
+        ingress,
+        heading: clears ? `Seatback Tilt (~${testAngle}° Tilt)` : `Tilt Colliding at ${testAngle}°`,
+        instruction: clears
+          ? `Tilted ~${testAngle}° with front propped on seatback. Clears glass by ${Math.round(glassClearance * 10) / 10} cm, roof by ${Math.round(roofClearance * 10) / 10} cm.`
+          : (roofClearance < 0 ? `Hits ceiling at ${testAngle}° tilt (exceeds roof height by ${Math.round(Math.abs(roofClearance))} cm).` : `Rear edge hits window glass at this tilt angle.`)
+      };
+    } else if (activeAngleMode === 'yaw') {
+      const rad = (testAngle * Math.PI) / 180;
+      const boundingL = (candidateRot.l * Math.cos(rad)) + (candidateRot.w * Math.sin(rad));
+      const boundingW = (candidateRot.l * Math.sin(rad)) + (candidateRot.w * Math.cos(rad));
+      const usableL = floorLength - (candidateRot.h * tanRake);
+      const allowedW = boundingL > 75 ? Math.min(selectedCar.overall_width * 0.82 - 6, archWidth + 14) : archWidth;
+      const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
+      const clears = (boundingL <= usableL && boundingW <= allowedW && candidateRot.h <= roofHeight);
+
+      activeResult = {
+        mode: 'yaw',
+        rot: candidateRot,
+        angle: testAngle,
+        status: clears ? 'angled' : 'colliding',
+        margin: clears ? Math.min(usableL - boundingL, allowedW - boundingW) : -1,
+        ingress,
+        heading: clears ? `Diagonal Floor (~${testAngle}° Angle)` : `Diagonal Colliding at ${testAngle}°`,
+        instruction: clears
+          ? `Angled ${testAngle}° diagonally across cargo floor with ${Math.round((usableL - boundingL) * 10) / 10} cm length margin.`
+          : `Diagonal angle of ${testAngle}° exceeds cargo bay boundary limits.`
+      };
+    } else if (activeAngleMode === 'roll') {
+      const rad = (testAngle * Math.PI) / 180;
+      const projW = (candidateRot.w * Math.cos(rad)) + (candidateRot.h * Math.sin(rad));
+      const projH = (candidateRot.w * Math.sin(rad)) + (candidateRot.h * Math.cos(rad));
+      const usableL = floorLength - (projH * tanRake);
+      const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
+      const clears = (projW <= archWidth && projH <= roofHeight && candidateRot.l <= usableL);
+
+      activeResult = {
+        mode: 'roll',
+        rot: candidateRot,
+        angle: testAngle,
+        status: clears ? 'angled' : 'colliding',
+        margin: clears ? Math.min(archWidth - projW, roofHeight - projH) : -1,
+        ingress,
+        heading: clears ? `Banked Sidewall (~${testAngle}° Roll)` : `Banked Colliding at ${testAngle}°`,
+        instruction: clears
+          ? `Banked at ~${testAngle}° against sidewall. Width is ${Math.round(projW)} cm (limit ${archWidth} cm), height is ${Math.round(projH)} cm (limit ${roofHeight} cm).`
+          : `At ${testAngle}° roll, item exceeds arch width or interior roof height.`
+      };
+    } else if (activeAngleMode === 'ingress') {
+      const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
+      activeResult = {
+        mode: 'ingress',
+        rot: candidateRot,
+        angle: ingress.rollAngle || testAngle,
+        status: ingress.canEnter ? 'angled' : 'colliding',
+        margin: ingress.margin,
+        ingress,
+        heading: ingress.canEnter ? `Hatch Ingress Clearance (~${ingress.rollAngle}° Roll)` : 'Aperture Ingress Blocked',
+        instruction: ingress.canEnter
+          ? (ingress.direct ? `Passes through the tailgate aperture directly with ${Math.round(ingress.margin)} cm buffer.` : `Requires tilting at a ~${ingress.rollAngle}° roll angle to slip through the ${apWidth} × ${apHeight} cm tailgate opening!`)
+          : `Even at an angle, dimensions exceed the diagonal opening of the tailgate (${Math.round(Math.hypot(apWidth, apHeight))} cm max diagonal).`
+      };
     }
   }
 
-  if (bestFlatFit) {
-    const isComfortable = bestFlatFit.margin >= 4;
-    resultBanner.className = `result-banner ${isComfortable ? 'fits-comfortable' : 'fits-tight'}`;
-    resultBanner.textContent = isComfortable ? 'Fits Comfortably' : 'Tight Fit';
-    resultExplanation.textContent = isComfortable
-      ? `Clears all cargo limits with over ${Math.round(bestFlatFit.margin)} cm buffer (orientation: ${bestFlatFit.rot.l} × ${bestFlatFit.rot.w} × ${bestFlatFit.rot.h} cm).`
-      : `Fits with a tight margin of ${Math.round(bestFlatFit.margin * 10) / 10} cm. Take care when closing the tailgate.`;
+  lastFitResult = activeResult;
 
+  // Update UI Elements
+  if (activeResult.status === 'comfortable') {
+    resultBanner.className = 'result-banner fits-comfortable';
+    resultBanner.textContent = 'Fits Comfortably';
     sideBadge.className = 'badge badge-clears';
     sideBadge.textContent = 'Clears';
     rearBadge.className = 'badge badge-clears';
     rearBadge.textContent = 'Clears';
-
-    lastFitResult = { mode: 'flat', rot: bestFlatFit.rot, angle: 0, status: isComfortable ? 'comfortable' : 'tight' };
-    renderSideSvg(bestFlatFit.rot, floorLength, roofHeight, tanRake, 'flat', 0, seatsFolded, selectedCar);
-    renderRearSvg(bestFlatFit.rot, archWidth, roofHeight, apWidth, apHeight, false, selectedCar.body_type);
-    update3DStudio(selectedCar, seatsFolded, lastFitResult);
-    return;
-  }
-
-  // Gate 2: Angled Pitch Solver (Front propped up onto folded seatbacks to bypass hatch rake)
-  let bestPitchFit = null;
-
-  for (const rot of rotations) {
-    if (rot.w > archWidth || rot.w > apWidth) continue;
-
-    for (let deg = 2; deg <= 30; deg++) {
-      const rad = (deg * Math.PI) / 180;
-      const cosA = Math.cos(rad);
-      const sinA = Math.sin(rad);
-
-      const topFrontH = (rot.l * sinA) + (rot.h * cosA);
-      if (topFrontH > roofHeight) continue;
-
-      const horizSpan = rot.l * cosA;
-      const maxAllowedSpan = seatsFolded ? (floorLength + 10) : floorLength;
-
-      if (horizSpan <= maxAllowedSpan) {
-        bestPitchFit = {
-          rot,
-          angle: deg,
-          topFrontH,
-          horizSpan
-        };
-        break;
-      }
-    }
-    if (bestPitchFit) break;
-  }
-
-  // Gate 3: Angled Yaw Solver (Rotated diagonally corner-to-corner across boot floor)
-  let bestYawFit = null;
-
-  for (const rot of rotations) {
-    if (rot.h > roofHeight || rot.h > apHeight) continue;
-    const usableL = floorLength - (rot.h * tanRake);
-
-    for (let deg = 2; deg <= 35; deg++) {
-      const rad = (deg * Math.PI) / 180;
-      const cosP = Math.cos(rad);
-      const sinP = Math.sin(rad);
-
-      const boundingL = (rot.l * cosP) + (rot.w * sinP);
-      const boundingW = (rot.l * sinP) + (rot.w * cosP);
-
-      if (boundingL <= usableL && boundingW <= archWidth && boundingW <= apWidth) {
-        bestYawFit = {
-          rot,
-          angle: deg,
-          boundingL,
-          boundingW
-        };
-        break;
-      }
-    }
-    if (bestYawFit) break;
-  }
-
-  // Decide Angled Outcome
-  if (bestPitchFit) {
-    resultBanner.className = 'result-banner fits-angled';
-    resultBanner.textContent = `Fits at an Angle (Tilted ~${bestPitchFit.angle}°)`;
-    resultExplanation.textContent = `Hits rear window if laid flat, but fits by propping the front edge up onto the seatback (~${bestPitchFit.angle}° tilt), pulling the rear face clear of the glass.`;
-
-    sideBadge.className = 'badge badge-angled';
-    sideBadge.textContent = `Tilted ~${bestPitchFit.angle}°`;
+  } else if (activeResult.status === 'tight') {
+    resultBanner.className = 'result-banner fits-tight';
+    resultBanner.textContent = 'Tight Fit';
+    sideBadge.className = 'badge badge-clears';
+    sideBadge.textContent = 'Clears';
     rearBadge.className = 'badge badge-clears';
     rearBadge.textContent = 'Clears';
-
-    lastFitResult = { mode: 'pitch', rot: bestPitchFit.rot, angle: bestPitchFit.angle, status: 'angled' };
-    renderSideSvg(bestPitchFit.rot, floorLength, roofHeight, tanRake, 'pitch', bestPitchFit.angle, seatsFolded, selectedCar);
-    renderRearSvg(bestPitchFit.rot, archWidth, roofHeight, apWidth, apHeight, false, selectedCar.body_type);
-    update3DStudio(selectedCar, seatsFolded, lastFitResult);
-    return;
-  }
-
-  if (bestYawFit) {
+  } else if (activeResult.status === 'angled') {
     resultBanner.className = 'result-banner fits-angled';
-    resultBanner.textContent = `Fits Diagonally (Angled ~${bestYawFit.angle}°)`;
-    resultExplanation.textContent = `Too long to fit straight, but clears comfortably when positioned diagonally corner-to-corner across the boot floor.`;
-
+    resultBanner.textContent = `Fits at an Angle (~${Math.round(activeResult.angle)}°)`;
     sideBadge.className = 'badge badge-angled';
-    sideBadge.textContent = `Diagonal ~${bestYawFit.angle}°`;
-    rearBadge.className = 'badge badge-angled';
-    rearBadge.textContent = 'Diagonal';
-
-    lastFitResult = { mode: 'yaw', rot: bestYawFit.rot, angle: bestYawFit.angle, status: 'angled' };
-    renderSideSvg(bestYawFit.rot, floorLength, roofHeight, tanRake, 'yaw', bestYawFit.angle, seatsFolded, selectedCar);
-    renderRearSvg(bestYawFit.rot, archWidth, roofHeight, apWidth, apHeight, false, selectedCar.body_type);
-    update3DStudio(selectedCar, seatsFolded, lastFitResult);
-    return;
+    sideBadge.textContent = `Angle ~${Math.round(activeResult.angle)}°`;
+    rearBadge.className = 'badge badge-clears';
+    rearBadge.textContent = 'Clears';
+  } else {
+    resultBanner.className = 'result-banner will-not-fit';
+    resultBanner.textContent = 'Will Not Fit';
+    sideBadge.className = 'badge badge-colliding';
+    sideBadge.textContent = 'Colliding';
+    rearBadge.className = 'badge badge-colliding';
+    rearBadge.textContent = 'Colliding';
   }
 
-  // Gate 4: Will Not Fit
-  resultBanner.className = 'result-banner will-not-fit';
-  resultBanner.textContent = 'Will Not Fit';
-  resultExplanation.textContent = flatCollisionReasons[0] || 'Object dimensions exceed maximum interior vehicle limits.';
+  resultExplanation.textContent = activeResult.instruction;
 
-  sideBadge.className = 'badge badge-colliding';
-  sideBadge.textContent = 'Colliding';
-  rearBadge.className = rawW > archWidth ? 'badge badge-colliding' : 'badge badge-clears';
-  rearBadge.textContent = rawW > archWidth ? 'Colliding' : 'Clears';
+  if (strategyBadge) {
+    strategyBadge.textContent = activeAngleMode === 'auto' ? 'OPTIMAL STRATEGY' : `${activeAngleMode.toUpperCase()} STRATEGY`;
+  }
+  if (strategyHeading) {
+    strategyHeading.textContent = activeResult.heading;
+  }
 
-  lastFitResult = { mode: 'colliding', rot: { l: rawL, w: rawW, h: rawH }, angle: 0, status: 'colliding' };
-  renderSideSvg({ l: rawL, w: rawW, h: rawH }, floorLength, roofHeight, tanRake, 'colliding', 0, seatsFolded, selectedCar);
-  renderRearSvg({ l: rawL, w: rawW, h: rawH }, archWidth, roofHeight, apWidth, apHeight, rawW > archWidth, selectedCar.body_type);
-  update3DStudio(selectedCar, seatsFolded, lastFitResult);
+  // Update Status Chips
+  if (chipIngress && activeResult.ingress) {
+    if (activeResult.ingress.canEnter) {
+      chipIngress.className = 'strategy-chip clears';
+      chipIngress.textContent = activeResult.ingress.direct
+        ? '🚪 Hatch Entry: Direct (0°)'
+        : `🚪 Hatch Entry: Clears (Tilted ~${activeResult.ingress.rollAngle}°)`;
+    } else {
+      chipIngress.className = 'strategy-chip colliding';
+      chipIngress.textContent = '🚪 Hatch Entry: Blocked';
+    }
+  }
+
+  if (chipStowed) {
+    if (activeResult.status === 'comfortable' || activeResult.status === 'tight') {
+      chipStowed.className = 'strategy-chip clears';
+      chipStowed.textContent = `📦 Boot Stowed: Flat (+${Math.max(0, Math.round(activeResult.margin))} cm buffer)`;
+    } else if (activeResult.status === 'angled') {
+      chipStowed.className = 'strategy-chip angled';
+      chipStowed.textContent = `📦 Boot Stowed: Angled ~${Math.round(activeResult.angle)}° (+${Math.max(0, Math.round(activeResult.margin))} cm)`;
+    } else {
+      chipStowed.className = 'strategy-chip colliding';
+      chipStowed.textContent = '📦 Boot Stowed: Colliding';
+    }
+  }
+
+  renderSideSvg(activeResult.rot, floorLength, roofHeight, tanRake, activeResult.mode, activeResult.angle, seatsFolded, selectedCar);
+  renderRearSvg(activeResult.rot, archWidth, roofHeight, apWidth, apHeight, activeResult.status === 'colliding', selectedCar.body_type, activeResult.mode, activeResult.angle);
+  update3DStudio(selectedCar, seatsFolded, activeResult);
 }
 
 /* ==========================================================================
@@ -745,6 +1159,21 @@ function animateThree() {
     currentTailgateAngle += (targetTailgateAngle - currentTailgateAngle) * 0.12;
     tailgatePivot.rotation.z = currentTailgateAngle;
   }
+
+  // Smooth Loading Ingress Animation
+  if (isIngressSimulating) {
+    ingressSimProgress += 0.007;
+    if (ingressSimProgress >= 1.0) {
+      ingressSimProgress = 1.0;
+      isIngressSimulating = false;
+      if (btnSimulateIngress) {
+        btnSimulateIngress.classList.remove('playing');
+        if (animBtnLabel) animBtnLabel.textContent = 'Replay Loading';
+      }
+    }
+    updateCargoSimulationFrame(ingressSimProgress);
+  }
+
   if (controls) controls.update();
   if (renderer && scene && camera) renderer.render(scene, camera);
 }
@@ -775,6 +1204,9 @@ function snapCamera(view) {
   } else if (view === 'top') {
     fallbackOrbit.theta = 0;
     fallbackOrbit.phi = 0.05;
+  } else if (view === 'ingress') {
+    fallbackOrbit.theta = 0;
+    fallbackOrbit.phi = 1.48;
   } else {
     fallbackOrbit.theta = 0.85;
     fallbackOrbit.phi = 1.18;
@@ -784,7 +1216,10 @@ function snapCamera(view) {
     if (view === 'side') camera.position.set(-50, 42, 310);
     else if (view === 'rear') camera.position.set(230, 45, 0);
     else if (view === 'top') camera.position.set(-50, 360, 0);
-    else camera.position.set(165, 110, 145);
+    else if (view === 'ingress') {
+      camera.position.set(135, 60, 0);
+      targetCenter.set(30, 48, 0);
+    } else camera.position.set(165, 110, 145);
     controls.target.copy(targetCenter);
     controls.update();
   } else {
@@ -795,50 +1230,52 @@ function snapCamera(view) {
 /**
  * Procedural Realistic 3D Wheel Assembly
  */
-function createWheel3D(radius = 30, width = 22) {
+function createWheel3D(radius = 30, width = 22, isSUV = false) {
   const wheelGroup = new THREE.Group();
 
-  // Rubber Tire
+  // Rubber Tire with tread thickness
   const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 32);
   const tireMat = new THREE.MeshStandardMaterial({
-    color: 0x111622,
-    roughness: 0.85,
-    metalness: 0.1
+    color: isSUV ? 0x0c1018 : 0x111622,
+    roughness: 0.9,
+    metalness: 0.05
   });
   const tire = new THREE.Mesh(tireGeo, tireMat);
   tire.rotation.x = Math.PI / 2;
   wheelGroup.add(tire);
 
   // Outer Silver Rim Lip
-  const rimRingGeo = new THREE.TorusGeometry(radius * 0.72, 2.5, 16, 32);
+  const rimRadius = isSUV ? radius * 0.68 : radius * 0.74;
+  const rimRingGeo = new THREE.TorusGeometry(rimRadius, 2.4, 16, 32);
   const rimMat = new THREE.MeshStandardMaterial({
-    color: 0xd8e1ed,
+    color: 0xe2e8f0,
     metalness: 0.95,
     roughness: 0.15
   });
   const rimRing = new THREE.Mesh(rimRingGeo, rimMat);
   wheelGroup.add(rimRing);
 
-  // 5-Spoke Split Star Alloy Design
-  const spokeGeo = new THREE.BoxGeometry(3.5, radius * 1.35, 3.5);
-  for (let i = 0; i < 5; i++) {
+  // Multi-Spoke Alloy Design
+  const spokeCount = isSUV ? 6 : 5;
+  const spokeGeo = new THREE.BoxGeometry(3.2, rimRadius * 1.85, 3.2);
+  for (let i = 0; i < spokeCount; i++) {
     const spoke = new THREE.Mesh(spokeGeo, rimMat);
-    spoke.rotation.z = (i * Math.PI) / 2.5;
+    spoke.rotation.z = (i * Math.PI) / (spokeCount / 2);
     wheelGroup.add(spoke);
   }
 
   // Steel Brake Rotor Disc
-  const discGeo = new THREE.CylinderGeometry(radius * 0.55, radius * 0.55, 2, 24);
+  const discGeo = new THREE.CylinderGeometry(radius * 0.52, radius * 0.52, 2.2, 24);
   const discMat = new THREE.MeshStandardMaterial({ color: 0x8896a6, metalness: 0.92, roughness: 0.22 });
   const disc = new THREE.Mesh(discGeo, discMat);
   disc.rotation.x = Math.PI / 2;
   wheelGroup.add(disc);
 
   // Sport Red Caliper
-  const caliperGeo = new THREE.BoxGeometry(8, 14, 5);
+  const caliperGeo = new THREE.BoxGeometry(7, 13, 5);
   const caliperMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
   const caliper = new THREE.Mesh(caliperGeo, caliperMat);
-  caliper.position.set(radius * 0.38, radius * 0.25, 0);
+  caliper.position.set(radius * 0.36, radius * 0.24, 0);
   wheelGroup.add(caliper);
 
   return wheelGroup;
@@ -868,6 +1305,50 @@ function createSeat3D(width = 44, backHeight = 42) {
   seatGroup.add(headrest);
 
   return seatGroup;
+}
+
+/**
+ * Creates aerodynamic side wing mirror with indicator strip and reflective glass.
+ */
+function createSideMirror3D(isLeft, bodyPaintMat, trimMat) {
+  const mirrorGroup = new THREE.Group();
+
+  // Mounting arm
+  const stemGeo = new THREE.BoxGeometry(4.5, 3.0, 7.0);
+  const stem = new THREE.Mesh(stemGeo, trimMat);
+  stem.position.set(0, 0, isLeft ? 3.5 : -3.5);
+  mirrorGroup.add(stem);
+
+  // Aerodynamic painted mirror housing
+  const housingGeo = new THREE.BoxGeometry(11, 7.5, 6);
+  const housing = new THREE.Mesh(housingGeo, bodyPaintMat);
+  housing.position.set(1, 1.5, isLeft ? 8.5 : -8.5);
+  housing.rotation.y = isLeft ? -0.15 : 0.15;
+  mirrorGroup.add(housing);
+
+  // Mirror glass face
+  const mirrorGlassGeo = new THREE.BoxGeometry(0.8, 6.2, 5.0);
+  const mirrorGlassMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    metalness: 0.98,
+    roughness: 0.05
+  });
+  const mirrorFace = new THREE.Mesh(mirrorGlassGeo, mirrorGlassMat);
+  mirrorFace.position.set(housing.position.x + 5.2, housing.position.y, housing.position.z);
+  mirrorGroup.add(mirrorFace);
+
+  // Amber LED turn signal strip
+  const indicatorGeo = new THREE.BoxGeometry(6, 1.2, 0.8);
+  const indicatorMat = new THREE.MeshStandardMaterial({
+    color: 0xf59e0b,
+    emissive: 0xf59e0b,
+    emissiveIntensity: 1.2
+  });
+  const indicator = new THREE.Mesh(indicatorGeo, indicatorMat);
+  indicator.position.set(housing.position.x - 2, housing.position.y, isLeft ? housing.position.z + 3.1 : housing.position.z - 3.1);
+  mirrorGroup.add(indicator);
+
+  return mirrorGroup;
 }
 
 /**
@@ -902,14 +1383,16 @@ function addCadEdges(mesh, color = 0x38bdf8, thresholdAngle = 26) {
 }
 
 /**
- * Main 3D Studio Update: Generates 1:1 scale parametric CAD vehicle chassis,
- * authentic wheel arches, hollow interior cabin, toggleable tailgate, and cargo fitment.
+ * Main 3D Studio Update: Generates 1:1 scale authentic CAD vehicle body types,
+ * distinctive greenhouses (Estate D-pillars, Saloon 3-box trunk deck, SUV cladding),
+ * side mirrors, interior carpet bay, toggleable boot, and multi-angle cargo placement.
  */
 function update3DStudio(car, seatsFolded, fitResult) {
   if (!scene) return;
 
   if (car3DGroup) scene.remove(car3DGroup);
   if (cargo3DMesh) scene.remove(cargo3DMesh);
+  if (cargoSimulationBaseGroup) scene.remove(cargoSimulationBaseGroup);
 
   car3DGroup = new THREE.Group();
 
@@ -926,20 +1409,21 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const isEstate = bodyType === 'estate';
   const isHatch = bodyType === 'hatchback';
 
+  // Ground clearance and sill threshold
   const groundY = 0;
-  const sillY = isSUV ? 58 : 46;
+  const sillY = isSUV ? 58 : (isSaloon ? 44 : (isEstate ? 45 : 46));
   const cabinFloorY = sillY - 14;
-  const wheelRadius = isSUV ? 35 : (isHatch ? 30 : 31);
-  const wheelArchR = wheelRadius + 4.5;
+  const wheelRadius = isSUV ? 35 : (isHatch ? 30 : 31.5);
+  const wheelArchR = wheelRadius + (isSUV ? 5.5 : 4.5);
   const wheelY = wheelRadius;
 
   // FIXED VEHICLE DATUM: Rear bumper is at +X, front nose is at -X
   const rearBumperX = 70;
-  const rearSillX = rearBumperX - 22; // rear sill load threshold
+  const rearSillX = rearBumperX - (isEstate ? 18 : (isSaloon ? 24 : 22));
   const carFrontX = rearBumperX - totalLength;
 
-  // Accurate wheelbase from vehicle specifications!
-  const rearWheelX = rearSillX - 38;
+  // Wheelbase alignment
+  const rearWheelX = rearSillX - (isEstate ? 48 : (isSaloon ? 44 : 38));
   const frontWheelX = rearWheelX - car.wheelbase;
   const frontSeatsX = rearSillX - car.floor_length_seats_folded - 26;
 
@@ -955,17 +1439,21 @@ function update3DStudio(car, seatsFolded, fitResult) {
     roofRearX = rearWheelX - 25;
     deckFrontX = rearWheelX + 10;
   } else if (isEstate) {
-    roofRearX = rearSillX - 10;
+    // Estate: Long flat roofline extending back to rear sill
+    roofRearX = rearSillX - 8;
     deckFrontX = rearSillX;
   } else if (isSUV) {
-    roofRearX = rearWheelX + 6;
+    roofRearX = rearWheelX + 8;
     deckFrontX = rearSillX;
   } else {
-    roofRearX = rearWheelX - 4;
+    // Hatchback: Compact roof tapering to sporty rear roof spoiler
+    roofRearX = rearWheelX - 6;
     deckFrontX = rearSillX;
   }
 
-  const bPillarX = (roofFrontX + (isSaloon ? deckFrontX : roofRearX)) / 2 - 4;
+  const bPillarX = (roofFrontX + (isSaloon ? deckFrontX : (isEstate ? rearWheelX : roofRearX))) / 2 - 2;
+  const cPillarX = isEstate ? (bPillarX + (roofRearX - bPillarX) * 0.58) : (isSaloon ? deckFrontX : roofRearX);
+  const dPillarX = isEstate ? roofRearX : null;
 
   // Materials: CAD Cutaway vs Showroom Paint
   const isGhost = xRayMode < 0.85;
@@ -980,6 +1468,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
     opacity: isGhost ? 0.65 : 1.0,
     depthWrite: true,
     side: THREE.DoubleSide
+  });
+
+  const claddingMat = new THREE.MeshStandardMaterial({
+    color: 0x0a0f18, // Matte charcoal protective SUV cladding
+    roughness: 0.9,
+    metalness: 0.1
   });
 
   const pillarMat = new THREE.MeshStandardMaterial({
@@ -1024,7 +1518,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     roughness: 0.15
   });
 
-  // 1. FOUR WHEELS (Placed accurately using official vehicle wheelbase)
+  // 1. FOUR WHEELS
   const wheelZOffset = (totalCarWidth / 2) - 2;
   const wheelPositions = [
     [frontWheelX, wheelY, wheelZOffset],
@@ -1034,24 +1528,34 @@ function update3DStudio(car, seatsFolded, fitResult) {
   ];
 
   wheelPositions.forEach(([wx, wy, wz]) => {
-    const wheel = createWheel3D(wheelRadius, 22);
+    const wheel = createWheel3D(wheelRadius, 22, isSUV);
     wheel.position.set(wx, wy, wz);
     if (wz < 0) wheel.rotation.y = Math.PI;
     car3DGroup.add(wheel);
   });
 
-  // 2. LEFT & RIGHT SIDE FLANKS (Lower body with authentic wheel arches)
+  // 2. AUTHENTIC BODY-SPECIFIC FLANKS
   const flankShape = new THREE.Shape();
   flankShape.moveTo(carFrontX, sillY - 12);
   flankShape.lineTo(carFrontX, sillY + 4);
   flankShape.lineTo(carFrontX + 12, beltY - 2);
   flankShape.lineTo(cowlX, beltY);
+
   if (isSaloon) {
+    // Saloon: Horizontal rear deck trunk notch
     flankShape.lineTo(deckFrontX, beltY);
     flankShape.lineTo(rearBumperX - 4, beltY - 2);
+  } else if (isEstate) {
+    // Estate: Long rear cargo flank
+    flankShape.lineTo(rearSillX + 4, beltY);
+  } else if (isSUV) {
+    // SUV: Bold shoulder line
+    flankShape.lineTo(rearSillX + 2, beltY + 2);
   } else {
+    // Hatchback
     flankShape.lineTo(rearSillX + 4, beltY);
   }
+
   flankShape.lineTo(rearBumperX, sillY + 6);
   flankShape.lineTo(rearBumperX, sillY - 14);
 
@@ -1084,7 +1588,26 @@ function update3DStudio(car, seatsFolded, fitResult) {
   addCadEdges(rightFlank, 0x38bdf8);
   car3DGroup.add(rightFlank);
 
-  // 3. GREENHOUSE PILLARS (A-Pillar, Cantrails, B-Pillar, C-Pillar)
+  // SUV Protective Wheel Arch Cladding Flares
+  if (isSUV) {
+    [-wheelZOffset, wheelZOffset - 3].forEach(zPos => {
+      [frontWheelX, rearWheelX].forEach(wx => {
+        const archCladGeo = new THREE.TorusGeometry(wheelArchR + 1.5, 2.8, 12, 24, Math.PI);
+        const archClad = new THREE.Mesh(archCladGeo, claddingMat);
+        archClad.position.set(wx, wheelY, zPos + 1.5);
+        archClad.rotation.z = Math.PI;
+        car3DGroup.add(archClad);
+      });
+
+      // Rocker panel protective cladding
+      const rockerGeo = new THREE.BoxGeometry(Math.abs(rearWheelX - frontWheelX) - (wheelArchR * 2), 6, 2.5);
+      const rocker = new THREE.Mesh(rockerGeo, claddingMat);
+      rocker.position.set((frontWheelX + rearWheelX) / 2, sillY - 12, zPos + 1.5);
+      car3DGroup.add(rocker);
+    });
+  }
+
+  // 3. GREENHOUSE PILLARS (Tailored to Body Type)
   [-wheelZOffset, wheelZOffset - 3].forEach(zPos => {
     // A-Pillar
     const aLen = Math.hypot(roofFrontX - cowlX, roofTopY - beltY);
@@ -1109,26 +1632,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     bPillar.position.set(bPillarX, beltY + (bHeight / 2), zPos + 1.5);
     car3DGroup.add(bPillar);
 
-    // C-Pillar
-    if (isSaloon) {
-      const cLen = Math.hypot(deckFrontX - roofRearX, roofTopY - beltY);
-      const cAngle = Math.atan2(roofTopY - beltY, roofRearX - deckFrontX);
-      const cPillarGeo = new THREE.BoxGeometry(cLen, 5.0, 3.5);
-      const cPillar = new THREE.Mesh(cPillarGeo, bodyPaintMat);
-      cPillar.position.set((roofRearX + deckFrontX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
-      cPillar.rotation.z = -cAngle;
-      car3DGroup.add(cPillar);
-    } else {
-      const cLen = Math.hypot(rearSillX - roofRearX, roofTopY - beltY);
-      const cAngle = Math.atan2(roofTopY - beltY, roofRearX - rearSillX);
-      const cPillarGeo = new THREE.BoxGeometry(cLen, 5.0, 3.5);
-      const cPillar = new THREE.Mesh(cPillarGeo, bodyPaintMat);
-      cPillar.position.set((roofRearX + rearSillX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
-      cPillar.rotation.z = -cAngle;
-      car3DGroup.add(cPillar);
-    }
-
-    // Side Door Windows (Tinted Glass)
+    // Front Door Window
     const fWinWidth = Math.abs(bPillarX - cowlX) - 5;
     const winHeight = roofTopY - beltY - 6;
     const fWinGeo = new THREE.BoxGeometry(fWinWidth, winHeight, 1.2);
@@ -1136,15 +1640,93 @@ function update3DStudio(car, seatsFolded, fitResult) {
     fWin.position.set((cowlX + bPillarX) / 2 + 2, beltY + (winHeight / 2) + 1, zPos + 1.5);
     car3DGroup.add(fWin);
 
-    const rWinEndX = isSaloon ? deckFrontX : roofRearX;
-    const rWinWidth = Math.abs(rWinEndX - bPillarX) - 6;
-    const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
-    const rWin = new THREE.Mesh(rWinGeo, glassMat);
-    rWin.position.set((bPillarX + rWinEndX) / 2, beltY + (winHeight / 2) + 1, zPos + 1.5);
-    car3DGroup.add(rWin);
+    if (isEstate) {
+      // Estate: C-Pillar, D-Pillar, Rear Door Window AND Panoramic Cargo Quarter Window!
+      // C-Pillar post
+      const cPillarGeo = new THREE.BoxGeometry(6.0, bHeight, 3.2);
+      const cPillar = new THREE.Mesh(cPillarGeo, pillarMat);
+      cPillar.position.set(cPillarX, beltY + (bHeight / 2), zPos + 1.5);
+      car3DGroup.add(cPillar);
+
+      // Rear Door Window
+      const rWinWidth = Math.abs(cPillarX - bPillarX) - 5;
+      const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
+      const rWin = new THREE.Mesh(rWinGeo, glassMat);
+      rWin.position.set((bPillarX + cPillarX) / 2, beltY + (winHeight / 2) + 1, zPos + 1.5);
+      car3DGroup.add(rWin);
+
+      // D-Pillar at rear tailgate corner
+      const dLen = Math.hypot(rearSillX - roofRearX, roofTopY - beltY);
+      const dAngle = Math.atan2(roofTopY - beltY, roofRearX - rearSillX);
+      const dPillarGeo = new THREE.BoxGeometry(dLen, 5.5, 3.5);
+      const dPillar = new THREE.Mesh(dPillarGeo, bodyPaintMat);
+      dPillar.position.set((roofRearX + rearSillX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
+      dPillar.rotation.z = -dAngle;
+      car3DGroup.add(dPillar);
+
+      // Panoramic Rear Cargo Quarter Window (Unique to Estate!)
+      const cargoWinWidth = Math.abs(roofRearX - cPillarX) - 6;
+      const cargoWinGeo = new THREE.BoxGeometry(cargoWinWidth, winHeight - 2, 1.2);
+      const cargoWin = new THREE.Mesh(cargoWinGeo, glassMat);
+      cargoWin.position.set((cPillarX + roofRearX) / 2, beltY + (winHeight / 2), zPos + 1.5);
+      car3DGroup.add(cargoWin);
+
+    } else if (isSaloon) {
+      // Saloon: Sloping C-pillar down to trunk deck
+      const cLen = Math.hypot(deckFrontX - roofRearX, roofTopY - beltY);
+      const cAngle = Math.atan2(roofTopY - beltY, roofRearX - deckFrontX);
+      const cPillarGeo = new THREE.BoxGeometry(cLen, 5.5, 3.5);
+      const cPillar = new THREE.Mesh(cPillarGeo, bodyPaintMat);
+      cPillar.position.set((roofRearX + deckFrontX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
+      cPillar.rotation.z = -cAngle;
+      car3DGroup.add(cPillar);
+
+      // Rear Door Window
+      const rWinWidth = Math.abs(deckFrontX - bPillarX) - 6;
+      const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
+      const rWin = new THREE.Mesh(rWinGeo, glassMat);
+      rWin.position.set((bPillarX + deckFrontX) / 2, beltY + (winHeight / 2) + 1, zPos + 1.5);
+      car3DGroup.add(rWin);
+
+    } else {
+      // Hatchback / SUV
+      const cLen = Math.hypot(rearSillX - roofRearX, roofTopY - beltY);
+      const cAngle = Math.atan2(roofTopY - beltY, roofRearX - rearSillX);
+      const cPillarGeo = new THREE.BoxGeometry(cLen, 5.5, 3.5);
+      const cPillar = new THREE.Mesh(cPillarGeo, bodyPaintMat);
+      cPillar.position.set((roofRearX + rearSillX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
+      cPillar.rotation.z = -cAngle;
+      car3DGroup.add(cPillar);
+
+      // Rear Door Window
+      const rWinWidth = Math.abs(roofRearX - bPillarX) - 6;
+      const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
+      const rWin = new THREE.Mesh(rWinGeo, glassMat);
+      rWin.position.set((bPillarX + roofRearX) / 2, beltY + (winHeight / 2) + 1, zPos + 1.5);
+      car3DGroup.add(rWin);
+    }
   });
 
-  // 4. FRONT BONNET / HOOD & WINDSHIELD
+  // 4. SIDE WING MIRRORS
+  const leftMirror = createSideMirror3D(true, bodyPaintMat, trimMat);
+  leftMirror.position.set(cowlX + 4, beltY + 2, (totalCarWidth / 2) - 4);
+  car3DGroup.add(leftMirror);
+
+  const rightMirror = createSideMirror3D(false, bodyPaintMat, trimMat);
+  rightMirror.position.set(cowlX + 4, beltY + 2, -((totalCarWidth / 2) - 4));
+  car3DGroup.add(rightMirror);
+
+  // 5. DOOR HANDLES
+  [-wheelZOffset, wheelZOffset - 2].forEach(zPos => {
+    [bPillarX - 22, bPillarX + 26].forEach(hx => {
+      const handleGeo = new THREE.BoxGeometry(9, 2.2, 1.8);
+      const handle = new THREE.Mesh(handleGeo, bodyPaintMat);
+      handle.position.set(hx, beltY - 5, zPos + (zPos > 0 ? 3 : -3));
+      car3DGroup.add(handle);
+    });
+  });
+
+  // 6. FRONT BONNET / HOOD & WINDSHIELD
   const hoodLen = Math.abs(cowlX - carFrontX) - 10;
   const hoodSlopeAngle = Math.atan2((beltY + 2) - (sillY + 10), hoodLen);
   const hoodGeo = new THREE.BoxGeometry(hoodLen, 2.5, totalCarWidth - 10);
@@ -1163,7 +1745,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   windshield.rotation.z = windAngle;
   car3DGroup.add(windshield);
 
-  // 5. ROOF PANEL (Metal or Panoramic Glass for Tesla)
+  // 7. ROOF PANEL (Panoramic Glass for Tesla Model Y)
   const roofLen = Math.abs(roofRearX - roofFrontX);
   const roofGeo = new THREE.BoxGeometry(roofLen, 2.2, cabinWidth - 4);
   const roofMesh = new THREE.Mesh(roofGeo, (car.id.includes('tesla') ? glassMat : bodyPaintMat));
@@ -1171,17 +1753,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
   addCadEdges(roofMesh, 0x38bdf8);
   car3DGroup.add(roofMesh);
 
-  // Roof Rails (Estate & SUV)
+  // Longitudinal Roof Rails (Estate & SUV)
   if (isEstate || isSUV) {
     [-((cabinWidth / 2) - 1), (cabinWidth / 2) - 1].forEach(rz => {
-      const railGeo = new THREE.CylinderGeometry(1.6, 1.6, roofLen + 10, 12);
+      const railGeo = new THREE.CylinderGeometry(1.6, 1.6, roofLen + (isEstate ? 16 : 8), 12);
       const rail = new THREE.Mesh(railGeo, chromeMat);
       rail.rotation.z = Math.PI / 2;
       rail.position.set((roofFrontX + roofRearX) / 2, roofTopY + 3.2, rz);
       car3DGroup.add(rail);
 
-      // Mount stanchions
-      [-0.4, 0, 0.4].forEach(offsetPct => {
+      [-0.42, 0, 0.42].forEach(offsetPct => {
         const postGeo = new THREE.BoxGeometry(3, 3.5, 2.5);
         const post = new THREE.Mesh(postGeo, chromeMat);
         post.position.set((roofFrontX + roofRearX) / 2 + (roofLen * offsetPct), roofTopY + 1.5, rz);
@@ -1190,66 +1771,35 @@ function update3DStudio(car, seatsFolded, fitResult) {
     });
   }
 
-  // 6. FRONT FASCIA & BRAND-SPECIFIC GRILLE
-  const frontBumperGeo = new THREE.BoxGeometry(8, 22, totalCarWidth - 4);
+  // 8. FRONT FASCIA, HEADLAMPS & SKID PLATES
+  const frontBumperGeo = new THREE.BoxGeometry(8, isSUV ? 28 : 22, totalCarWidth - 4);
   const frontBumper = new THREE.Mesh(frontBumperGeo, bodyPaintMat);
   frontBumper.position.set(carFrontX + 4, sillY - 2, 0);
   car3DGroup.add(frontBumper);
 
-  // Lower air dam
-  const airDamGeo = new THREE.BoxGeometry(6, 9, totalCarWidth - 30);
-  const airDam = new THREE.Mesh(airDamGeo, trimMat);
-  airDam.position.set(carFrontX + 2, sillY - 8, 0);
-  car3DGroup.add(airDam);
-
-  // Brand Signature Grille Styling
-  const grilleGroup = new THREE.Group();
-  if (car.id.includes('bmw')) {
-    // Iconic Twin Kidney Grille
-    [-14, 14].forEach(gx => {
-      const kidneyGeo = new THREE.BoxGeometry(4, 13, 20);
-      const kidney = new THREE.Mesh(kidneyGeo, trimMat);
-      kidney.position.set(carFrontX + 3, sillY + 4, gx);
-      addCadEdges(kidney, 0xe2e8f0, 15);
-      grilleGroup.add(kidney);
-    });
-  } else if (car.id.includes('audi')) {
-    // Singleframe Hexagonal Grille
-    const singleGeo = new THREE.BoxGeometry(4, 16, 42);
-    const singleFrame = new THREE.Mesh(singleGeo, trimMat);
-    singleFrame.position.set(carFrontX + 3, sillY + 3, 0);
-    addCadEdges(singleFrame, 0xe2e8f0, 15);
-    grilleGroup.add(singleFrame);
-  } else if (car.id.includes('tesla')) {
-    // Smooth aerodynamic front
-    const noseGeo = new THREE.BoxGeometry(5, 14, totalCarWidth - 36);
-    const nose = new THREE.Mesh(noseGeo, bodyPaintMat);
-    nose.position.set(carFrontX + 3, sillY + 4, 0);
-    grilleGroup.add(nose);
-  } else {
-    // Golf / Horizontal LED Grille Bar
-    const barGeo = new THREE.BoxGeometry(4, 6, totalCarWidth - 40);
-    const bar = new THREE.Mesh(barGeo, trimMat);
-    bar.position.set(carFrontX + 3, sillY + 5, 0);
-    addCadEdges(bar, 0x38bdf8, 20);
-    grilleGroup.add(bar);
+  // Underbody Skid Plate for SUV
+  if (isSUV) {
+    const skidGeo = new THREE.BoxGeometry(10, 8, totalCarWidth - 40);
+    const skid = new THREE.Mesh(skidGeo, chromeMat);
+    skid.position.set(carFrontX + 4, sillY - 12, 0);
+    car3DGroup.add(skid);
   }
-  car3DGroup.add(grilleGroup);
 
-  // Headlights
+  // Front Headlights with dual projector styling
   [-1, 1].forEach(dir => {
-    const headGeo = new THREE.BoxGeometry(10, 7, 24);
+    const headGeo = new THREE.BoxGeometry(10, 7.5, 22);
     const head = new THREE.Mesh(headGeo, headlampMat);
     head.position.set(carFrontX + 6, sillY + 6, dir * ((totalCarWidth / 2) - 20));
     car3DGroup.add(head);
   });
 
-  // 7. TOGGLEABLE REAR BOOT / TAILGATE ASSEMBLY
+  // 9. TOGGLEABLE REAR BOOT / TAILGATE ASSEMBLY
   tailgatePivot = new THREE.Group();
   const openAngle = getOpenTailgateAngle(bodyType);
 
   if (isSaloon) {
-    // Fixed rear window for sedan
+    // SALOON NOTCHBACK SPECIFICS:
+    // Fixed rear glass window stays in place!
     const rearWinLen = Math.hypot(deckFrontX - roofRearX, roofTopY - beltY);
     const rearWinAngle = Math.atan2(roofTopY - beltY, deckFrontX - roofRearX);
     const rearWinGeo = new THREE.BoxGeometry(rearWinLen - 4, 1.8, cabinWidth - 8);
@@ -1258,7 +1808,20 @@ function update3DStudio(car, seatsFolded, fitResult) {
     rearWin.rotation.z = -rearWinAngle;
     car3DGroup.add(rearWin);
 
-    // Boot Trunk Lid Hinges at (deckFrontX, beltY, 0)
+    // Solid Interior Rear Parcel Shelf separating cabin from trunk
+    const parcelGeo = new THREE.BoxGeometry(32, 2.5, cabinWidth - 6);
+    const parcelShelf = new THREE.Mesh(parcelGeo, trimMat);
+    parcelShelf.position.set(rearWheelX - 6, beltY + 1.25, 0);
+    car3DGroup.add(parcelShelf);
+
+    // Shark fin antenna on roof
+    const finGeo = new THREE.ConeGeometry(2.5, 6, 4);
+    const fin = new THREE.Mesh(finGeo, bodyPaintMat);
+    fin.position.set(roofRearX - 8, roofTopY + 3, 0);
+    fin.rotation.y = Math.PI / 4;
+    car3DGroup.add(fin);
+
+    // Trunk lid hinges at deck joint (deckFrontX, beltY, 0)
     tailgatePivot.position.set(deckFrontX, beltY, 0);
 
     const trunkLen = Math.abs(rearBumperX - deckFrontX) - 4;
@@ -1288,8 +1851,9 @@ function update3DStudio(car, seatsFolded, fitResult) {
       hinge.rotation.z = 0.5;
       tailgatePivot.add(hinge);
     });
+
   } else {
-    // Hatchback, Estate, SUV: Hinges at (roofRearX, roofTopY, 0)
+    // HATCHBACK, ESTATE & SUV: Hinges at (roofRearX, roofTopY, 0)
     tailgatePivot.position.set(roofRearX, roofTopY, 0);
 
     const hatchSpanX = Math.abs(rearBumperX - roofRearX) - 4;
@@ -1298,7 +1862,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const hatchAngle = Math.atan2(hatchSpanY, hatchSpanX);
 
     // Roof Spoiler Lip
-    const spoilerGeo = new THREE.BoxGeometry(12, 3.5, cabinWidth - 4);
+    const spoilerGeo = new THREE.BoxGeometry(isHatch ? 14 : 10, 3.5, cabinWidth - 4);
     const spoiler = new THREE.Mesh(spoilerGeo, bodyPaintMat);
     spoiler.position.set(4, 1.5, 0);
     tailgatePivot.add(spoiler);
@@ -1310,7 +1874,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     tailgatePivot.add(thirdBrake);
 
     // Rear Hatch Window (Glass)
-    const glassLen = hatchDiagonal * 0.52;
+    const glassLen = hatchDiagonal * (isEstate ? 0.58 : 0.52);
     const rearHatchGlassGeo = new THREE.BoxGeometry(glassLen, 1.8, cabinWidth - 8);
     const rearHatchGlass = new THREE.Mesh(rearHatchGlassGeo, glassMat);
     rearHatchGlass.position.set(hatchSpanX * 0.28, -hatchSpanY * 0.28, 0);
@@ -1318,7 +1882,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     tailgatePivot.add(rearHatchGlass);
 
     // Lower Tailgate Sheet Metal
-    const sheetLen = hatchDiagonal * 0.48;
+    const sheetLen = hatchDiagonal * (isEstate ? 0.42 : 0.48);
     const sheetGeo = new THREE.BoxGeometry(sheetLen, 3.0, totalCarWidth - 12);
     const sheet = new THREE.Mesh(sheetGeo, bodyPaintMat);
     sheet.position.set(hatchSpanX * 0.74, -hatchSpanY * 0.74, 0);
@@ -1332,7 +1896,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     tailBar.position.set(hatchSpanX - 2, -hatchSpanY + 4, 0);
     tailgatePivot.add(tailBar);
 
-    // Hydraulic Gas Struts (Hold tailgate open)
+    // Hydraulic Gas Struts
     [-1, 1].forEach(side => {
       const strutGroup = new THREE.Group();
       const strutGeo = new THREE.CylinderGeometry(1.2, 1.2, 26, 12);
@@ -1351,16 +1915,15 @@ function update3DStudio(car, seatsFolded, fitResult) {
     });
   }
 
-  // Set initial tailgate angle according to isTailgateOpen state
   targetTailgateAngle = isTailgateOpen ? openAngle : 0;
   currentTailgateAngle = targetTailgateAngle;
   tailgatePivot.rotation.z = currentTailgateAngle;
   car3DGroup.add(tailgatePivot);
 
-  // 8. APERTURE CAD BOUNDARY FRAME (Rear Sill Reference)
+  // 10. APERTURE CAD BOUNDARY FRAME
   const apWidth = car.aperture_width;
   const apHeight = car.aperture_height;
-  const isApertureColliding = fitResult && fitResult.rot && (fitResult.rot.w > apWidth || fitResult.rot.h > apHeight);
+  const isApertureColliding = fitResult && fitResult.ingress && !fitResult.ingress.canEnter;
 
   const apFrameGeo = new THREE.BoxGeometry(1.5, apHeight, apWidth);
   const apFrameMat = new THREE.LineBasicMaterial({
@@ -1371,14 +1934,14 @@ function update3DStudio(car, seatsFolded, fitResult) {
   apFrame.position.set(rearSillX, sillY + (apHeight / 2), 0);
   car3DGroup.add(apFrame);
 
-  // 9. INTERIOR CARGO BAY & SEATING ARCHITECTURE
-  // Cargo Floor
+  // 11. INTERIOR CARGO BAY & SEATING ARCHITECTURE
+  // Cargo Floor Carpet
   const bootFloorGeo = new THREE.BoxGeometry(currentFloorLen, 2.5, archW);
   const bootFloorMat = new THREE.MeshStandardMaterial({
-    color: 0x1e3a5f,
-    roughness: 0.7,
+    color: 0x18263e,
+    roughness: 0.85,
     transparent: true,
-    opacity: 0.75
+    opacity: 0.8
   });
   const bootFloorMesh = new THREE.Mesh(bootFloorGeo, bootFloorMat);
   bootFloorMesh.position.set(rearSillX - (currentFloorLen / 2), sillY + 1.25, 0);
@@ -1454,7 +2017,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   scene.add(car3DGroup);
 
-  // 10. PHYSICAL CARGO BOX (High-contrast, 1:1 scale, with glowing CAD outlines)
+  // 12. PHYSICAL CARGO BOX (High-contrast 1:1 CAD scale, multi-angle positioning)
   if (fitResult && fitResult.rot) {
     const rot = fitResult.rot;
     const boxGeo = new THREE.BoxGeometry(rot.l, rot.h, rot.w);
@@ -1486,22 +2049,109 @@ function update3DStudio(car, seatsFolded, fitResult) {
       new THREE.LineBasicMaterial({ color: edgeColor, linewidth: 2 })
     ));
 
+    // Stowed positions and pivots
+    cargoSimulationBaseGroup = new THREE.Group();
+
     if (fitResult.mode === 'pitch') {
+      // Propped on seatback: pivot at rear sill floor contact
       const pivot = new THREE.Group();
       pivot.position.set(rearSillX - 4, sillY + 2.5, 0);
       cargo3DMesh.position.set(-(rot.l / 2), rot.h / 2, 0);
       pivot.rotation.z = -(fitResult.angle * Math.PI) / 180;
       pivot.add(cargo3DMesh);
-      scene.add(pivot);
-      cargo3DMesh = pivot;
+      cargoSimulationBaseGroup.add(pivot);
+
     } else if (fitResult.mode === 'yaw') {
+      // Diagonal corner-to-corner across cargo floor
       cargo3DMesh.position.set(rearSillX - (rot.l / 2) - 4, sillY + (rot.h / 2) + 2.5, 0);
       cargo3DMesh.rotation.y = (fitResult.angle * Math.PI) / 180;
-      scene.add(cargo3DMesh);
+      cargoSimulationBaseGroup.add(cargo3DMesh);
+
+    } else if (fitResult.mode === 'roll') {
+      // Banked against sidewall / wheel arch
+      cargo3DMesh.position.set(rearSillX - (rot.l / 2) - 4, sillY + (rot.h / 2) + 2.5, 0);
+      cargo3DMesh.rotation.x = (fitResult.angle * Math.PI) / 180;
+      cargoSimulationBaseGroup.add(cargo3DMesh);
+
+    } else if (fitResult.mode === 'ingress') {
+      // Demonstrating entry through the aperture opening
+      cargo3DMesh.position.set(rearSillX + 2, sillY + (rot.h / 2) + 2.5, 0);
+      cargo3DMesh.rotation.x = (fitResult.angle * Math.PI) / 180;
+      cargoSimulationBaseGroup.add(cargo3DMesh);
+
     } else {
+      // Standard Flat
       const posX = rearSillX - (rot.l / 2) - 4;
       cargo3DMesh.position.set(posX, sillY + (rot.h / 2) + 2.5, 0);
-      scene.add(cargo3DMesh);
+      cargoSimulationBaseGroup.add(cargo3DMesh);
+    }
+
+    scene.add(cargoSimulationBaseGroup);
+  }
+}
+
+/**
+ * Animated Loading Simulation:
+ * Shows the cargo item gliding from outside the tailgate, rotating to clear
+ * the aperture at the required angle, sliding into the cargo bay, and settling
+ * into its final stowed position.
+ */
+function toggleIngressSimulation() {
+  if (isIngressSimulating) {
+    isIngressSimulating = false;
+    if (btnSimulateIngress) btnSimulateIngress.classList.remove('playing');
+    if (animBtnLabel) animBtnLabel.textContent = 'Simulate Loading';
+  } else {
+    startIngressSimulation();
+  }
+}
+
+function startIngressSimulation() {
+  if (!lastFitResult || !cargoSimulationBaseGroup) return;
+  isIngressSimulating = true;
+  ingressSimProgress = 0;
+  if (btnSimulateIngress) {
+    btnSimulateIngress.classList.add('playing');
+    if (animBtnLabel) animBtnLabel.textContent = 'Pause Loading';
+  }
+  // Ensure tailgate is open for loading
+  if (!isTailgateOpen) {
+    const btnBootToggle = document.getElementById('btn-boot-toggle');
+    if (btnBootToggle) btnBootToggle.click();
+  }
+}
+
+function updateCargoSimulationFrame(p) {
+  if (!cargoSimulationBaseGroup || !lastFitResult || !lastFitResult.rot) return;
+
+  const rearBumperX = 70;
+  const rearSillX = rearBumperX - (selectedCar.body_type === 'estate' ? 18 : 22);
+  const startX = rearBumperX + 68;
+  const sillX = rearSillX;
+  const stowedX = 0; // relative base group position
+
+  if (p < 0.4) {
+    // Phase 1: Approaching tailgate from outside
+    const subP = p / 0.4;
+    const currentX = startX + (sillX - startX) * subP;
+    cargoSimulationBaseGroup.position.set(currentX, 0, 0);
+    // Orient to ingress angle as approaching opening
+    if (lastFitResult.ingress && !lastFitResult.ingress.direct) {
+      cargoSimulationBaseGroup.rotation.x = ((lastFitResult.ingress.rollAngle * Math.PI) / 180) * subP;
+    }
+  } else if (p < 0.7) {
+    // Phase 2: Passing cleanly through the tailgate aperture frame
+    const subP = (p - 0.4) / 0.3;
+    const currentX = sillX + (-24 - sillX) * subP;
+    cargoSimulationBaseGroup.position.set(currentX, 0, 0);
+  } else {
+    // Phase 3: Moving into final stowed position and rotating to stowed angle
+    const subP = (p - 0.7) / 0.3;
+    const currentX = -24 + (stowedX - (-24)) * subP;
+    cargoSimulationBaseGroup.position.set(currentX, 0, 0);
+    if (lastFitResult.ingress && !lastFitResult.ingress.direct && lastFitResult.mode !== 'roll') {
+      // Transition from ingress roll back to final mode
+      cargoSimulationBaseGroup.rotation.x = ((lastFitResult.ingress.rollAngle * Math.PI) / 180) * (1 - subP);
     }
   }
 }
@@ -1512,8 +2162,9 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
 function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seatsFolded, car) {
   const groundY = 205;
-  const floorY = 165;
-  const rearSillX = 490; // Fixed rear sill datum!
+  const sillY = car.body_type === 'suv' ? 150 : 165;
+  const floorY = sillY;
+  const rearSillX = 490; // Fixed rear sill datum
   const scale = 1.45;
   const bodyType = car.body_type;
 
@@ -1540,9 +2191,35 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
         <line x1="${pivotX - boxLPx + 14}" y1="${pivotY - boxHPx}" x2="${pivotX - boxLPx + 14}" y2="${pivotY}" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" />
         <line x1="${pivotX - 14}" y1="${pivotY - boxHPx}" x2="${pivotX - 14}" y2="${pivotY}" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" />
       </g>
-      <path d="M ${pivotX - 50} ${pivotY} A 50 50 0 0 1 ${pivotX - 48} ${pivotY - 18}" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="2,2" />
-      <text x="${pivotX - 56}" y="${pivotY - 8}" fill="#38bdf8" font-size="10" font-family="ui-monospace, monospace" font-weight="700" text-anchor="end">
+      <path d="M ${pivotX - 55} ${pivotY} A 55 55 0 0 1 ${pivotX - 52} ${pivotY - 22}" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="3,2" />
+      <text x="${pivotX - 60}" y="${pivotY - 10}" fill="#38bdf8" font-size="10.5" font-family="ui-monospace, monospace" font-weight="800" text-anchor="end">
         ~${angle}° tilt
+      </text>
+    `;
+  } else if (mode === 'yaw') {
+    const boxX = Math.max(seatFrontX, rearSillX - boxLPx);
+    cargoMarkup = `
+      <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
+            fill="url(#box-grad-cyan)" stroke="#38bdf8" stroke-width="2" rx="3" filter="url(#glow-cyan)" />
+      <text x="${boxX + (boxLPx / 2)}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
+        ${rot.l} × ${rot.h} cm
+      </text>
+      <rect x="${boxX + 6}" y="${floorY - boxHPx - 20}" width="96" height="16" rx="3" fill="#0c1a2e" stroke="#38bdf8" stroke-width="1" />
+      <text x="${boxX + 54}" y="${floorY - boxHPx - 8}" fill="#38bdf8" font-size="9" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
+        DIAGONAL ~${angle}°
+      </text>
+    `;
+  } else if (mode === 'ingress') {
+    const ingressX = rearSillX - 10;
+    cargoMarkup = `
+      <rect x="${ingressX}" y="${floorY - boxHPx - 12}" width="${boxLPx}" height="${boxHPx}" 
+            fill="url(#box-grad-cyan)" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,2" rx="3" filter="url(#glow-cyan)" />
+      <text x="${ingressX + (boxLPx / 2)}" y="${floorY - boxHPx - 12 + (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
+        ${rot.l} × ${rot.h} cm
+      </text>
+      <line x1="${ingressX + (boxLPx / 2)}" y1="${floorY - boxHPx - 24}" x2="${ingressX + (boxLPx / 2) - 40}" y2="${floorY - boxHPx - 24}" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-ingress)" />
+      <text x="${ingressX + (boxLPx / 2) - 45}" y="${floorY - boxHPx - 21}" fill="#38bdf8" font-size="9.5" font-family="ui-monospace, monospace" font-weight="700" text-anchor="end">
+        INGRESS ENTRY (~${angle}° ROLL)
       </text>
     `;
   } else if (mode === 'colliding') {
@@ -1559,10 +2236,11 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
       <line x1="${rearSillX - 8}" y1="${floorY - boxHPx + 8}" x2="${rearSillX + 30}" y2="${floorY - boxHPx - 14}" stroke="#ef4444" stroke-width="1.5" />
       <rect x="${rearSillX + 30}" y="${floorY - boxHPx - 24}" width="88" height="17" rx="3" fill="#180e14" stroke="#ef4444" stroke-width="1" />
       <text x="${rearSillX + 74}" y="${floorY - boxHPx - 12}" fill="#fca5a5" font-size="8.5" font-family="ui-monospace, monospace" font-weight="700" text-anchor="middle">
-        GLASS COLLISION
+        COLLISION
       </text>
     `;
   } else {
+    // Flat fit
     const boxX = Math.max(seatFrontX, rearSillX - boxLPx);
     cargoMarkup = `
       <rect x="${boxX}" y="${floorY - boxHPx}" width="${boxLPx}" height="${boxHPx}" 
@@ -1575,36 +2253,49 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
     `;
   }
 
-  // 2D Chassis Silhouette (Static for this car model)
+  // Authentic CAD Vector Body Silhouettes
   let bodyPath = '';
   let greenhousePath = '';
   let roofRail = '';
+  let claddingSvg = '';
 
   if (bodyType === 'estate') {
+    // Estate: Long flat roofline, 4 pillars, D-pillar, 3 windows, roof rails
     bodyPath = `
-      M 45 192 L 40 176 L 42 160 L 55 145 L 165 124 L 230 70 L 465 72 L 485 76 
-      L 482 85 L 505 142 L 515 152 L 510 178 L 488 192 
+      M 45 192 L 40 176 L 42 160 L 55 145 L 165 124 L 230 70 L 468 70 L 488 74 
+      L 485 84 L 506 142 L 515 152 L 510 178 L 488 192 
       L 484 178 A 34 34 0 0 0 416 178 L 416 190 L 159 190 L 159 178 A 34 34 0 0 0 91 178 L 91 192 Z`;
     greenhousePath = `
-      M 172 122 L 234 76 L 465 76 L 480 110 L 480 122 Z`;
-    roofRail = `<line x1="240" y1="67" x2="465" y2="67" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />`;
+      M 172 122 L 234 75 L 468 75 L 480 110 L 480 122 Z`;
+    roofRail = `<line x1="236" y1="65" x2="470" y2="65" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />`;
+
   } else if (bodyType === 'suv') {
+    // SUV: High ground clearance, wheel cladding, skid plates, upright roof
     bodyPath = `
-      M 45 192 L 40 168 L 44 148 L 60 135 L 165 116 L 225 54 L 440 54 L 470 60 
-      L 465 70 L 498 136 L 518 146 L 512 175 L 488 192 
-      L 484 178 A 34 34 0 0 0 416 178 L 416 190 L 159 190 L 159 178 A 34 34 0 0 0 91 178 L 91 192 Z`;
+      M 45 186 L 40 162 L 44 142 L 60 130 L 165 110 L 225 48 L 442 48 L 472 54 
+      L 468 64 L 500 132 L 518 142 L 512 172 L 488 186 
+      L 484 172 A 38 38 0 0 0 408 172 L 408 186 L 167 186 L 167 172 A 38 38 0 0 0 91 172 L 91 186 Z`;
     greenhousePath = `
-      M 172 114 L 230 60 L 438 60 L 468 96 L 468 114 Z`;
-    roofRail = `<line x1="240" y1="50" x2="435" y2="50" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />`;
+      M 172 108 L 230 54 L 440 54 L 470 94 L 470 110 Z`;
+    roofRail = `<line x1="236" y1="44" x2="438" y2="44" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />`;
+    claddingSvg = `
+      <path d="M 86 172 A 42 42 0 0 1 172 172" fill="none" stroke="#0f172a" stroke-width="6" />
+      <path d="M 404 172 A 42 42 0 0 1 488 172" fill="none" stroke="#0f172a" stroke-width="6" />
+      <rect x="42" y="172" width="16" height="6" fill="#e2e8f0" rx="1" />
+      <rect x="502" y="172" width="16" height="6" fill="#e2e8f0" rx="1" />
+    `;
+
   } else if (bodyType === 'saloon') {
+    // Saloon: 3-box notchback profile with clear stepped trunk deck and fixed rear glass
     bodyPath = `
       M 45 192 L 40 176 L 42 160 L 55 145 L 165 124 L 230 70 L 375 70 L 425 118 
       L 485 118 L 515 142 L 510 178 L 488 192 
       L 484 178 A 34 34 0 0 0 416 178 L 416 190 L 159 190 L 159 178 A 34 34 0 0 0 91 178 L 91 192 Z`;
     greenhousePath = `
       M 172 122 L 234 76 L 372 76 L 420 122 Z`;
+
   } else {
-    // Hatchback
+    // Hatchback: Compact sporty 2-box silhouette with raked hatch and roof spoiler
     bodyPath = `
       M 45 192 L 40 176 L 42 160 L 55 145 L 165 122 L 230 68 L 415 70 L 455 74 
       L 445 82 L 495 138 L 515 148 L 510 175 L 488 192 
@@ -1693,14 +2384,15 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
     <path d="${bodyPath}" fill="url(#body-grad)" stroke="#2a3f66" stroke-width="2" />
     <path d="${greenhousePath}" fill="url(#glass-grad)" stroke="#203352" stroke-width="1.5" />
     ${roofRail}
+    ${claddingSvg}
 
-    <circle cx="125" cy="178" r="27" fill="#080e1a" stroke="#1e2c47" stroke-width="3" />
-    <circle cx="125" cy="178" r="17" fill="#111c2e" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="6,4" />
-    <circle cx="125" cy="178" r="7" fill="#1e2c47" />
+    <circle cx="125" cy="${car.body_type === 'suv' ? 172 : 178}" r="${car.body_type === 'suv' ? 32 : 27}" fill="#080e1a" stroke="#1e2c47" stroke-width="3" />
+    <circle cx="125" cy="${car.body_type === 'suv' ? 172 : 178}" r="${car.body_type === 'suv' ? 20 : 17}" fill="#111c2e" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="6,4" />
+    <circle cx="125" cy="${car.body_type === 'suv' ? 172 : 178}" r="7" fill="#1e2c47" />
 
-    <circle cx="450" cy="178" r="27" fill="#080e1a" stroke="#1e2c47" stroke-width="3" />
-    <circle cx="450" cy="178" r="17" fill="#111c2e" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="6,4" />
-    <circle cx="450" cy="178" r="7" fill="#1e2c47" />
+    <circle cx="450" cy="${car.body_type === 'suv' ? 172 : 178}" r="${car.body_type === 'suv' ? 32 : 27}" fill="#080e1a" stroke="#1e2c47" stroke-width="3" />
+    <circle cx="450" cy="${car.body_type === 'suv' ? 172 : 178}" r="${car.body_type === 'suv' ? 20 : 17}" fill="#111c2e" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="6,4" />
+    <circle cx="450" cy="${car.body_type === 'suv' ? 172 : 178}" r="7" fill="#1e2c47" />
 
     <polygon points="42,160 55,145 62,156" fill="#38bdf8" opacity="0.9" filter="url(#glow-cyan)" />
     <polygon points="515,148 495,138 497,152" fill="#ef4444" opacity="0.95" />
@@ -1724,9 +2416,9 @@ function renderSideSvg(rot, floorLength, roofHeight, tanRake, mode, angle, seats
   `;
 }
 
-function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColliding, bodyType) {
+function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isColliding, bodyType, mode, angle) {
   const groundY = 205;
-  const floorY = 165;
+  const floorY = bodyType === 'suv' ? 150 : 165;
   const centerX = 210;
   const scale = 1.35;
 
@@ -1738,29 +2430,51 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColl
   const boxHPx = rot.h * scale;
   const boxLeftX = centerX - (boxWPx / 2);
 
-  const boxStroke = isArchColliding ? '#ef4444' : '#22c55e';
-  const boxFill = isArchColliding ? 'url(#box-rear-red)' : 'url(#box-rear-green)';
-  const boxGlow = isArchColliding ? '' : 'filter="url(#glow-green)"';
+  const boxStroke = isColliding ? '#ef4444' : '#22c55e';
+  const boxFill = isColliding ? 'url(#box-rear-red)' : 'url(#box-rear-green)';
+  const boxGlow = isColliding ? '' : 'filter="url(#glow-green)"';
 
   let rearBodyPath = '';
   let rearWindowPoly = '';
+  let rearRails = '';
 
   if (bodyType === 'suv') {
     rearBodyPath = `
-      M 88 192 L 46 168 L 44 125 L 60 115 L 105 50 L 315 50 L 360 115 L 376 125 L 374 168 L 332 192 Z`;
-    rearWindowPoly = `points="114,56 306,56 345,110 75,110"`;
+      M 88 186 L 46 162 L 44 120 L 60 110 L 105 44 L 315 44 L 360 110 L 376 120 L 374 162 L 332 186 Z`;
+    rearWindowPoly = `points="114,50 306,50 345,105 75,105"`;
+    rearRails = `
+      <rect x="98" y="38" width="14" height="6" fill="#38bdf8" rx="2" />
+      <rect x="308" y="38" width="14" height="6" fill="#38bdf8" rx="2" />
+    `;
   } else if (bodyType === 'estate') {
     rearBodyPath = `
       M 88 192 L 48 168 L 46 130 L 62 120 L 108 60 L 312 60 L 358 120 L 374 130 L 372 168 L 332 192 Z`;
     rearWindowPoly = `points="118,66 302,66 342,115 78,115"`;
+    rearRails = `
+      <rect x="102" y="54" width="14" height="6" fill="#38bdf8" rx="2" />
+      <rect x="304" y="54" width="14" height="6" fill="#38bdf8" rx="2" />
+    `;
   } else if (bodyType === 'saloon') {
     rearBodyPath = `
       M 88 192 L 48 168 L 46 142 L 65 132 L 120 74 L 300 74 L 355 132 L 374 142 L 372 168 L 332 192 Z`;
     rearWindowPoly = `points="130,80 290,80 335,124 85,124"`;
   } else {
+    // Hatchback
     rearBodyPath = `
       M 88 192 L 48 168 L 46 138 L 65 130 L 115 68 L 305 68 L 355 130 L 374 138 L 372 168 L 332 192 Z`;
     rearWindowPoly = `points="126,74 294,74 340,122 80,122"`;
+  }
+
+  // Tilted roll or ingress visualization
+  let boxTransform = '';
+  let rollLabel = '';
+  if ((mode === 'roll' || mode === 'ingress') && angle > 0) {
+    boxTransform = `transform="rotate(${angle}, ${centerX}, ${floorY - (boxHPx / 2)})"`;
+    rollLabel = `
+      <text x="${centerX}" y="${floorY - apHPx - 8}" fill="#38bdf8" font-size="10" font-family="ui-monospace, monospace" font-weight="800" text-anchor="middle">
+        ROLLED ~${angle}° TO CLEAR APERTURE
+      </text>
+    `;
   }
 
   rearSvg.innerHTML = `
@@ -1804,19 +2518,21 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColl
 
     <line x1="25" y1="${groundY}" x2="395" y2="${groundY}" stroke="#1e2c47" stroke-width="2" />
 
-    <rect x="55" y="158" width="33" height="47" rx="4" fill="#080e1a" stroke="#1e2c47" stroke-width="2" />
-    <rect x="332" y="158" width="33" height="47" rx="4" fill="#080e1a" stroke="#1e2c47" stroke-width="2" />
+    <rect x="55" y="${bodyType === 'suv' ? 150 : 158}" width="33" height="${bodyType === 'suv' ? 44 : 47}" rx="4" fill="#080e1a" stroke="#1e2c47" stroke-width="2" />
+    <rect x="332" y="${bodyType === 'suv' ? 150 : 158}" width="33" height="${bodyType === 'suv' ? 44 : 47}" rx="4" fill="#080e1a" stroke="#1e2c47" stroke-width="2" />
 
     <path d="${rearBodyPath}" fill="url(#body-rear-grad)" stroke="#2a3f66" stroke-width="2" />
-    <path d="M 207 66 L 210 52 L 214 66 Z" fill="#1b283d" stroke="#2a3f66" stroke-width="1.5" />
+    ${rearRails}
 
     <polygon ${rearWindowPoly} fill="url(#glass-grad)" stroke="#203352" stroke-width="1.5" />
 
-    <rect x="50" y="132" width="320" height="9" rx="3" fill="url(#rear-lightbar)" opacity="0.9" />
+    <rect x="50" y="${bodyType === 'suv' ? 124 : 132}" width="320" height="9" rx="3" fill="url(#rear-lightbar)" opacity="0.9" />
 
+    <!-- Aperture Opening Boundary Frame -->
     <rect x="${centerX - (apWPx / 2)}" y="${floorY - apHPx}" width="${apWPx}" height="${apHPx}" 
-          fill="#060b16" stroke="#334b73" stroke-dasharray="5,4" stroke-width="1.8" rx="6" />
+          fill="#060b16" stroke="#38bdf8" stroke-dasharray="5,4" stroke-width="1.8" rx="6" />
 
+    <!-- Wheel Arch Tubs Contour -->
     <path d="M ${centerX - (apWPx / 2)} ${floorY} 
              L ${centerX - (archWPx / 2)} ${floorY} 
              C ${centerX - (archWPx / 2) + 6} ${floorY - 20}, ${centerX - (archWPx / 2) - 2} ${floorY - 36}, ${centerX - (apWPx / 2)} ${floorY - 38} Z" 
@@ -1834,14 +2550,18 @@ function renderRearSvg(rot, archWidth, roofHeight, apWidth, apHeight, isArchColl
       ARCHES ${archWidth} cm
     </text>
 
-    <rect x="${boxLeftX}" y="${floorY - boxHPx}" width="${boxWPx}" height="${boxHPx}" 
-          fill="${boxFill}" stroke="${boxStroke}" stroke-width="2" rx="3" ${boxGlow} />
+    ${rollLabel}
 
-    <text x="${centerX}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
-      ${rot.w} × ${rot.h} cm
-    </text>
+    <g ${boxTransform}>
+      <rect x="${boxLeftX}" y="${floorY - boxHPx}" width="${boxWPx}" height="${boxHPx}" 
+            fill="${boxFill}" stroke="${boxStroke}" stroke-width="2" rx="3" ${boxGlow} />
 
-    ${isArchColliding ? `
+      <text x="${centerX}" y="${floorY - (boxHPx / 2) + 4}" fill="#ffffff" font-size="11" font-weight="700" font-family="ui-monospace, monospace" text-anchor="middle">
+        ${rot.w} × ${rot.h} cm
+      </text>
+    </g>
+
+    ${isColliding ? `
       <circle cx="${centerX - (archWPx / 2)}" cy="${floorY - (boxHPx / 2)}" r="6" fill="#ef4444" />
       <circle cx="${centerX + (archWPx / 2)}" cy="${floorY - (boxHPx / 2)}" r="6" fill="#ef4444" />
     ` : ''}

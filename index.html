@@ -91,6 +91,57 @@
           <div id="result-banner" class="result-banner will-not-fit">Will Not Fit</div>
           <p id="result-explanation" class="result-explanation">Calculating fitment...</p>
 
+          <!-- Loading Angle & Ingress Strategy Control Card -->
+          <div class="angle-strategy-card" id="angle-strategy-card">
+            <div class="strategy-header">
+              <div class="strategy-title-wrap">
+                <span class="strategy-badge" id="strategy-badge">AUTO STRATEGY</span>
+                <h3 id="strategy-heading">Evaluating loading angles...</h3>
+                <div class="strategy-chips-row" id="strategy-chips-row">
+                  <span class="strategy-chip" id="chip-ingress">🚪 Hatch Entry: Clears</span>
+                  <span class="strategy-chip" id="chip-stowed">📦 Boot Stowed: Clears</span>
+                </div>
+              </div>
+              <div class="strategy-actions">
+                <button type="button" class="anim-btn" id="btn-simulate-ingress" title="Watch item slide into the boot at this angle">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span id="anim-btn-label">Simulate Loading</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Strategy Mode Switcher -->
+            <div class="strategy-modes-row">
+              <span class="strategy-label">Loading Mode:</span>
+              <div class="strategy-pills" id="strategy-pills">
+                <button type="button" class="strategy-pill active" data-angle-mode="auto" title="Automatically finds the best fitting angle">✨ Auto Best Fit</button>
+                <button type="button" class="strategy-pill" data-angle-mode="flat" title="Test flat 0° orthogonal fit">📐 Flat (0°)</button>
+                <button type="button" class="strategy-pill" data-angle-mode="pitch" title="Prop front edge up onto folded seatbacks to clear sloping hatch glass">↗ Seatback Tilt</button>
+                <button type="button" class="strategy-pill" data-angle-mode="yaw" title="Angle diagonally corner-to-corner across the cargo floor">↔ Diagonal Floor</button>
+                <button type="button" class="strategy-pill" data-angle-mode="roll" title="Bank sideways against wheel arch/sidewall">🔄 Banked Roll</button>
+                <button type="button" class="strategy-pill" data-angle-mode="ingress" title="Inspect passing through the rear tailgate opening">🚪 Hatch Ingress</button>
+              </div>
+            </div>
+
+            <!-- Interactive Angle Slider -->
+            <div class="angle-slider-row" id="angle-slider-row">
+              <div class="slider-info">
+                <label for="custom-angle-slider" id="angle-slider-label">Tilt Angle:</label>
+                <span class="angle-value-badge" id="angle-value-badge">0°</span>
+                <span class="angle-status-hint" id="angle-status-hint">Optimal fit angle</span>
+              </div>
+              <div class="slider-track-wrap">
+                <input type="range" id="custom-angle-slider" min="0" max="45" step="1" value="0" class="custom-slider">
+                <div class="angle-quick-ticks">
+                  <button type="button" class="tick-btn" data-tick="0">0° Flat</button>
+                  <button type="button" class="tick-btn" data-tick="12">12° Gentle</button>
+                  <button type="button" class="tick-btn" data-tick="22">22° Medium</button>
+                  <button type="button" class="tick-btn" data-tick="35">35° Steep</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- 3D Interactive Viewport (Primary Default) -->
           <div id="view-3d-container" class="view-container active">
             <div class="viewport-3d-wrap">
@@ -102,6 +153,7 @@
                 <button type="button" class="cam-btn" data-view="side">Side</button>
                 <button type="button" class="cam-btn" data-view="rear">Rear</button>
                 <button type="button" class="cam-btn" data-view="top">Top</button>
+                <button type="button" class="cam-btn" data-view="ingress" title="Tailgate Aperture Entry Close-Up">Ingress</button>
                 <button type="button" class="cam-btn boot-toggle-btn active" id="btn-boot-toggle" title="Toggle Boot Tailgate Open/Closed">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px; margin-right: 3px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   Boot: Open

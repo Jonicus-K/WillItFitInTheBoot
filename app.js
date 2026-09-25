@@ -1803,12 +1803,12 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
     roughness: 0.1
   });
 
-  // 1. Ergonomic Instrument Panel: sweeps smoothly from cowlX (windshield base) to dashFaceX
-  const dashFaceX = frontSeatsX - 26;
-  const ipDepth = Math.max(26, Math.abs(dashFaceX - cowlX));
+  // 1. Sleek, Compact Automotive Dashboard (Instrument Panel under base of windshield)
+  // Strictly compact 24 cm depth directly under cowl - NEVER a giant conference table!
+  const ipDepth = 24;
   const ipHeight = 12;
   const ipWidth = cabinWidth - 8;
-  const ipCenterX = (cowlX + dashFaceX) / 2;
+  const ipCenterX = cowlX + (ipDepth / 2);
   const ipCenterY = cowlY - 6;
 
   const ipGeo = new THREE.BoxGeometry(ipDepth, ipHeight, ipWidth);
@@ -1826,38 +1826,45 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   // 2. UK Right Hand Drive (RHD): Driver on RIGHT side (-Z)
   const driverZ = -((totalCarWidth / 4) - 6);
 
-  // Sculpted Instrument Cluster Binnacle
-  const binnacleGeo = new THREE.BoxGeometry(12, 6.5, 20);
+  // Cockpit controls sit in natural ergonomic driving position in front of driver
+  const wheelX = frontSeatsX - 20;
+  const wheelY = ipCenterY + 4.5;
+  const fasciaX = frontSeatsX - 26;
+
+  // Sculpted Instrument Cluster Binnacle in front of driver
+  const binnacleGeo = new THREE.BoxGeometry(10, 6.5, 20);
   const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
-  binnacle.position.set(dashFaceX - 5, ipCenterY + 7.5, driverZ);
+  binnacle.position.set(fasciaX - 3, ipCenterY + 7.5, driverZ);
   cockpitGroup.add(binnacle);
 
   // Glowing Digital Virtual Cockpit Display
   const gaugeGeo = new THREE.PlaneGeometry(15, 5.0);
   const gauge = new THREE.Mesh(gaugeGeo, screenMat);
-  gauge.position.set(dashFaceX + 0.2, ipCenterY + 7.5, driverZ);
+  gauge.position.set(fasciaX + 0.2, ipCenterY + 7.5, driverZ);
   gauge.rotation.y = Math.PI / 2;
   cockpitGroup.add(gauge);
 
   // Center Infotainment Floating Display (angled 12° toward UK driver)
   const centerScreenGeo = new THREE.BoxGeometry(2.5, 6.5, 18);
   const centerScreen = new THREE.Mesh(centerScreenGeo, screenMat);
-  centerScreen.position.set(dashFaceX + 0.5, ipCenterY + 4, 0);
+  centerScreen.position.set(fasciaX + 0.5, ipCenterY + 4, 0);
   centerScreen.rotation.y = -0.14;
   cockpitGroup.add(centerScreen);
 
-  // Center Console Tunnel (running from dashboard center stack back between front seats)
-  const tunnelLen = Math.max(16, Math.abs(frontSeatsX + 8 - dashFaceX));
-  const tunnelHeight = 20;
+  // Center Console Tunnel (running along floor from dashboard base back between front seats)
+  const tunnelStart = cowlX + ipDepth;
+  const tunnelEnd = frontSeatsX + 10;
+  const tunnelLen = Math.max(16, tunnelEnd - tunnelStart);
+  const tunnelHeight = 18;
   const tunnelGeo = new THREE.BoxGeometry(tunnelLen, tunnelHeight, 15);
   const tunnel = new THREE.Mesh(tunnelGeo, trimMat);
-  tunnel.position.set(dashFaceX + (tunnelLen / 2), cabinFloorY + (tunnelHeight / 2), 0);
+  tunnel.position.set(tunnelStart + (tunnelLen / 2), cabinFloorY + (tunnelHeight / 2), 0);
   cockpitGroup.add(tunnel);
 
   // Modern Electronic Drive Selector on Console Tunnel
   const shifterGeo = new THREE.BoxGeometry(4.5, 4.0, 3.5);
   const shifter = new THREE.Mesh(shifterGeo, dashMat);
-  shifter.position.set(dashFaceX + (tunnelLen * 0.45), cabinFloorY + tunnelHeight + 2, 0);
+  shifter.position.set(frontSeatsX - 12, cabinFloorY + tunnelHeight + 2, 0);
   cockpitGroup.add(shifter);
 
   // Center Armrest between front seats (cushioned, matching seat cushion level)
@@ -1867,8 +1874,6 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   cockpitGroup.add(armrest);
 
   // Sport 3-Spoke Steering Wheel positioned in front of driver
-  const wheelX = frontSeatsX - 20;
-  const wheelY = ipCenterY + 4.5;
   const columnGeo = new THREE.CylinderGeometry(2.2, 2.5, 9, 16);
   const column = new THREE.Mesh(columnGeo, dashMat);
   column.rotation.z = -Math.PI / 4;

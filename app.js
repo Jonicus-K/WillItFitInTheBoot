@@ -167,6 +167,8 @@ const chipIngress = document.getElementById('chip-ingress');
 const chipStowed = document.getElementById('chip-stowed');
 const btnSimulateIngress = document.getElementById('btn-simulate-ingress');
 const animBtnLabel = document.getElementById('anim-btn-label');
+const btnToggleAdvanced = document.getElementById('btn-toggle-advanced');
+const advancedControlsPanel = document.getElementById('advanced-controls-panel');
 const strategyPills = document.querySelectorAll('.strategy-pill');
 const customAngleSlider = document.getElementById('custom-angle-slider');
 const angleSliderLabel = document.getElementById('angle-slider-label');
@@ -379,10 +381,20 @@ function attachEvents() {
   if (btnXRayToggle) {
     btnXRayToggle.addEventListener('click', () => {
       xRayMode = xRayMode < 0.85 ? 1.0 : 0.70;
-      btnXRayToggle.textContent = xRayMode < 0.85 ? 'CAD Cutaway' : 'Solid Paint';
+      btnXRayToggle.textContent = xRayMode < 0.85 ? '👁️ See Inside' : '🚗 Solid Paint';
       if (selectedCar && lastFitResult) {
         update3DStudio(selectedCar, foldSeatsCheckbox.checked, lastFitResult);
       }
+    });
+  }
+
+  if (btnToggleAdvanced && advancedControlsPanel) {
+    btnToggleAdvanced.addEventListener('click', () => {
+      const isCollapsed = advancedControlsPanel.classList.toggle('collapsed');
+      btnToggleAdvanced.innerHTML = isCollapsed
+        ? '⚙️ Adjust Angles (Optional) ▾'
+        : '⚙️ Hide Angle Controls ▴';
+      btnToggleAdvanced.classList.toggle('active', !isCollapsed);
     });
   }
 
@@ -1161,53 +1173,53 @@ function evaluateFitment() {
 
   lastFitResult = activeResult;
 
-  // Update UI Elements
+  // Update UI Elements with friendly, human-first copy
   if (activeResult.status === 'comfortable') {
     resultBanner.className = 'result-banner fits-comfortable';
-    resultBanner.textContent = 'Fits Comfortably';
+    resultBanner.textContent = '🎉 Yes, It Fits Comfortably!';
   } else if (activeResult.status === 'tight') {
     resultBanner.className = 'result-banner fits-tight';
-    resultBanner.textContent = 'Tight Fit';
+    resultBanner.textContent = '⚠️ Tight Fit – But It Fits!';
   } else if (activeResult.status === 'angled') {
     resultBanner.className = 'result-banner fits-angled';
-    resultBanner.textContent = `Fits at an Angle (~${Math.round(activeResult.angle)}°)`;
+    resultBanner.textContent = `📐 Fits With A Tilt (~${Math.round(activeResult.angle)}°)`;
   } else {
     resultBanner.className = 'result-banner will-not-fit';
-    resultBanner.textContent = 'Will Not Fit';
+    resultBanner.textContent = '❌ Won\'t Fit In This Car';
   }
 
   resultExplanation.textContent = activeResult.instruction;
 
   if (strategyBadge) {
-    strategyBadge.textContent = activeAngleMode === 'auto' ? 'OPTIMAL STRATEGY' : `${activeAngleMode.toUpperCase()} STRATEGY`;
+    strategyBadge.textContent = activeAngleMode === 'auto' ? '💡 BEST FIT' : `⚙️ ${activeAngleMode.toUpperCase()}`;
   }
   if (strategyHeading) {
     strategyHeading.textContent = activeResult.heading;
   }
 
-  // Update Status Chips
+  // Update Status Chips (friendly plain-English)
   if (chipIngress && activeResult.ingress) {
     if (activeResult.ingress.canEnter) {
       chipIngress.className = 'strategy-chip clears';
       chipIngress.textContent = activeResult.ingress.direct
-        ? '🚪 Hatch Entry: Direct (0°)'
-        : `🚪 Hatch Entry: Clears (Tilted ~${Math.round(activeResult.ingress.rollAngle)}°)`;
+        ? '🚪 Boot Entrance: Clears easily'
+        : `🚪 Boot Entrance: Clears (Tilted ~${Math.round(activeResult.ingress.rollAngle)}°)`;
     } else {
       chipIngress.className = 'strategy-chip colliding';
-      chipIngress.textContent = '🚪 Hatch Entry: Blocked';
+      chipIngress.textContent = '🚪 Boot Entrance: Too large to enter';
     }
   }
 
   if (chipStowed) {
     if (activeResult.status === 'comfortable' || activeResult.status === 'tight') {
       chipStowed.className = 'strategy-chip clears';
-      chipStowed.textContent = `📦 Boot Stowed: Flat (+${Math.max(0, Math.round(activeResult.margin))} cm buffer)`;
+      chipStowed.textContent = `📦 Inside Boot: Fits Flat (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
     } else if (activeResult.status === 'angled') {
       chipStowed.className = 'strategy-chip angled';
-      chipStowed.textContent = `📦 Boot Stowed: Angled ~${Math.round(activeResult.angle)}° (+${Math.max(0, Math.round(activeResult.margin))} cm)`;
+      chipStowed.textContent = `📦 Inside Boot: Tilted ~${Math.round(activeResult.angle)}° (+${Math.max(0, Math.round(activeResult.margin))} cm)`;
     } else {
       chipStowed.className = 'strategy-chip colliding';
-      chipStowed.textContent = '📦 Boot Stowed: Colliding';
+      chipStowed.textContent = '📦 Inside Boot: Exceeds boot space';
     }
   }
 
@@ -1351,7 +1363,7 @@ function animateThree() {
       isIngressSimulating = false;
       if (btnSimulateIngress) {
         btnSimulateIngress.classList.remove('playing');
-        if (animBtnLabel) animBtnLabel.textContent = 'Replay Loading';
+        if (animBtnLabel) animBtnLabel.textContent = 'Watch Again';
       }
     }
     updateCargoSimulationFrame(ingressSimProgress);
@@ -1713,12 +1725,12 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
     roughness: 0.1
   });
 
-  // 1. Sculpted Instrument Panel Main Housing (Sleek 18 cm depth)
-  const dashFaceX = frontSeatsX - 24;
-  const ipDepth = 18;
+  // 1. Sculpted Instrument Panel Main Housing (compact 24 cm depth directly under windshield)
+  const ipDepth = 24;
+  const dashFaceX = cowlX + ipDepth;
   const ipHeight = 12;
   const ipWidth = cabinWidth - 8;
-  const ipCenterX = dashFaceX - (ipDepth / 2);
+  const ipCenterX = (cowlX + dashFaceX) / 2;
   const ipCenterY = cowlY - 6;
 
   const ipGeo = new THREE.BoxGeometry(ipDepth, ipHeight, ipWidth);
@@ -1727,35 +1739,32 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   addCadEdges(ipMesh, 0x38bdf8);
   cockpitGroup.add(ipMesh);
 
-  // 2. Slim Defroster Scuttle Shelf (compact plate bridging directly to cowl base, keeping footwells completely open!)
-  const scuttleFrontX = cowlX + 1;
-  const scuttleRearX = dashFaceX - ipDepth;
-  const scuttleLen = Math.max(4, Math.abs(scuttleRearX - scuttleFrontX));
-  const scuttleGeo = new THREE.BoxGeometry(scuttleLen, 1.8, cabinWidth - 8);
-  const scuttleMesh = new THREE.Mesh(scuttleGeo, trimMat);
-  scuttleMesh.position.set((scuttleFrontX + scuttleRearX) / 2, cowlY - 2.0, 0);
-  cockpitGroup.add(scuttleMesh);
+  // Slim Defroster Vent Strip at base of windshield
+  const defrosterGeo = new THREE.BoxGeometry(4, 1.2, cabinWidth - 10);
+  const defroster = new THREE.Mesh(defrosterGeo, trimMat);
+  defroster.position.set(cowlX + 2, cowlY - 1.5, 0);
+  cockpitGroup.add(defroster);
 
-  // 3. UK Right Hand Drive (RHD): Driver on RIGHT side (-Z)
+  // 2. UK Right Hand Drive (RHD): Driver on RIGHT side (-Z)
   const driverZ = -((totalCarWidth / 4) - 6);
 
   // Sculpted Instrument Cluster Binnacle
-  const binnacleGeo = new THREE.BoxGeometry(14, 6.5, 22);
+  const binnacleGeo = new THREE.BoxGeometry(12, 6.5, 20);
   const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
-  binnacle.position.set(dashFaceX - 4, ipCenterY + 7.5, driverZ);
+  binnacle.position.set(dashFaceX - 6, ipCenterY + 7.5, driverZ);
   cockpitGroup.add(binnacle);
 
   // Glowing Digital Virtual Cockpit Display
-  const gaugeGeo = new THREE.PlaneGeometry(16, 5.0);
+  const gaugeGeo = new THREE.PlaneGeometry(15, 5.0);
   const gauge = new THREE.Mesh(gaugeGeo, screenMat);
-  gauge.position.set(dashFaceX + 2.1, ipCenterY + 7.5, driverZ);
+  gauge.position.set(dashFaceX + 0.2, ipCenterY + 7.5, driverZ);
   gauge.rotation.y = Math.PI / 2;
   cockpitGroup.add(gauge);
 
   // Center Infotainment Floating Display (angled 12° toward UK driver)
   const centerScreenGeo = new THREE.BoxGeometry(2.5, 6.5, 18);
   const centerScreen = new THREE.Mesh(centerScreenGeo, screenMat);
-  centerScreen.position.set(dashFaceX + 1.2, ipCenterY + 4, 0);
+  centerScreen.position.set(dashFaceX + 0.5, ipCenterY + 4, 0);
   centerScreen.rotation.y = -0.14;
   cockpitGroup.add(centerScreen);
 
@@ -1773,7 +1782,7 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   cockpitGroup.add(armrest);
 
   // Sport 3-Spoke Steering Wheel positioned in front of driver
-  const wheelX = frontSeatsX - 14;
+  const wheelX = dashFaceX + 8;
   const wheelY = ipCenterY + 4.5;
   const columnGeo = new THREE.CylinderGeometry(2.2, 2.5, 12, 16);
   const column = new THREE.Mesh(columnGeo, dashMat);
@@ -1850,7 +1859,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   // Reset active simulation when geometry updates to avoid orphan anim loops
   isIngressSimulating = false;
   if (btnSimulateIngress) btnSimulateIngress.classList.remove('playing');
-  if (animBtnLabel) animBtnLabel.textContent = 'Simulate Loading';
+  if (animBtnLabel) animBtnLabel.textContent = 'Watch It Load';
 
   if (car3DGroup) scene.remove(car3DGroup);
   if (cargo3DMesh) scene.remove(cargo3DMesh);
@@ -1900,21 +1909,27 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const beltY = sillY + 22;
   const roofTopY = car.overall_height;
 
-  // Real-world cabin architecture:
-  // Cargo floor ends at back of front seats
-  const cargoBedFrontX = rearSillX - currentFloorLen;
-  // Front bucket seats cushion center (back of seat is against cargo floor)
-  const frontSeatsX = cargoBedFrontX - 22;
-  const dashFaceX = frontSeatsX - 24;
-
-  // Authentic modern dashboard depth (from instrument fascia forward to windshield base): ~38 to 44 cm
-  const dashDepth = isSUV ? 38 : (isSaloon ? 44 : (isEstate ? 40 : 38));
-  const cowlX = dashFaceX - dashDepth;
+  // PROPER PRODUCTION AUTOMOTIVE PROPORTIONS:
+  // In all production passenger cars, the cowl (base of windshield) sits just behind the front axle line:
+  // - Hatchback (FWD transverse): ~46 cm behind front axle line (realistic ~124-128 cm bonnet, ~30% of car length)
+  // - Estate: ~48 cm behind front axle (sleek ~130 cm bonnet, ~28% of car length)
+  // - SUV: ~48 cm behind front axle (upright ~132 cm bonnet, ~29% of car length)
+  // - Saloon: ~56 cm behind front axle (classic longitudinal prestige bonnet ~136 cm, ~29% of car length)
+  const cowlX = frontWheelX + (isSaloon ? 56 : (isSUV ? 48 : (isEstate ? 48 : 46)));
   const cowlY = beltY + 4;
 
-  // Aerodynamic windscreen rake (~38°-42° from horizontal):
-  const windshieldRun = isSaloon ? 44 : (isEstate ? 40 : (isSUV ? 38 : 38));
+  // Modern windscreen rake (~36°-40° from horizontal):
+  // Rakes back ~38 to 44 cm horizontally from cowl to roof header
+  const windshieldRun = isSaloon ? 44 : (isSUV ? 38 : (isEstate ? 40 : 38));
   const roofFrontX = cowlX + windshieldRun;
+
+  // The dashboard sits directly at the base of the windshield (cowlX) and extends ~24 cm into the cabin
+  const ipDepth = 24;
+  const dashFaceX = cowlX + ipDepth;
+
+  // Front seats sit in the front cabin with natural ergonomic reach to the steering wheel (~34 cm behind dash)
+  const frontSeatsX = dashFaceX + 34;
+  const cargoBedFrontX = rearSillX - currentFloorLen;
 
   let roofRearX, deckFrontX;
   if (isSaloon) {
@@ -1936,7 +1951,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   }
 
   // B-pillar is aligned directly beside the driver's seat
-  const bPillarX = frontSeatsX + 6;
+  const bPillarX = frontSeatsX + 16;
   const cPillarX = isEstate ? (bPillarX + (roofRearX - bPillarX) * 0.58) : (isSaloon ? deckFrontX : roofRearX);
   const dPillarX = isEstate ? roofRearX : null;
 
@@ -2770,7 +2785,7 @@ function toggleIngressSimulation() {
   if (isIngressSimulating) {
     isIngressSimulating = false;
     if (btnSimulateIngress) btnSimulateIngress.classList.remove('playing');
-    if (animBtnLabel) animBtnLabel.textContent = 'Simulate Loading';
+    if (animBtnLabel) animBtnLabel.textContent = 'Watch It Load';
   } else {
     startIngressSimulation();
   }
@@ -2782,7 +2797,7 @@ function startIngressSimulation() {
   ingressSimProgress = 0;
   if (btnSimulateIngress) {
     btnSimulateIngress.classList.add('playing');
-    if (animBtnLabel) animBtnLabel.textContent = 'Pause Loading';
+    if (animBtnLabel) animBtnLabel.textContent = 'Pause';
   }
   // Ensure tailgate is open for loading
   if (!isTailgateOpen) {

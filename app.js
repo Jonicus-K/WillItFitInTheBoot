@@ -1967,11 +1967,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
   // Clean athletic ground clearance ~15-18 cm that covers the lower axle hubs
   const rockerY = Math.max(14, Math.round(wheelRadius * (isSUV ? 0.52 : 0.48)));
 
-  // Boot sill load lip (distance from ground to cargo floor):
-  // Real automotive boot sill is car overall height minus interior boot height minus roof structure (~6 cm)
-  const sillY = Math.max(58, Math.round(roofTopY - car.roof_height - 6));
-  const cabinFloorY = rockerY + 7;
-
   // Beltline (shoulder line / bottom of side glass):
   // Standard modern automotive golden ratio: beltline sits at ~60-63% of overall car height.
   // This provides substantial, athletic door metal (~70-80 cm) and sleek, aerodynamic greenhouse glass (~50-58 cm).
@@ -1979,9 +1974,17 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const noseTopY = beltY - (isSUV ? 7 : 11);
   const cowlY = beltY + 3;
 
+  // Boot sill load lip (distance from ground to cargo floor):
+  // For Saloons, the trunk deck/shelf sits at beltY (not roofTopY), so sillY is beltY minus trunk aperture height
+  // For Hatchback/Estate/SUV: car overall height minus interior boot height minus roof structure (~6 cm)
+  const sillY = isSaloon
+    ? Math.round(beltY - car.aperture_height - 2)
+    : Math.max(58, Math.round(roofTopY - car.roof_height - 6));
+  const cabinFloorY = rockerY + 7;
+
   // FIXED VEHICLE DATUM: Rear bumper is at +X, front nose is at -X
   const rearBumperX = 70;
-  const rearSillX = rearBumperX - (isEstate ? 18 : (isSaloon ? 24 : 22));
+  const rearSillX = rearBumperX - (isEstate ? 18 : (isSaloon ? 8 : 22));
   const carFrontX = rearBumperX - totalLength;
 
   // AUTHENTIC AUTOMOTIVE ARCHITECTURE: Realistic front overhangs & wheelbases
@@ -2370,16 +2373,19 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   if (isSaloon) {
     flankShape.lineTo(deckFrontX, beltY);
-    flankShape.lineTo(rearBumperX - 4, beltY - 2);
+    flankShape.lineTo(rearSillX, beltY);
+    flankShape.lineTo(rearSillX + 2, sillY + 4);
+    flankShape.lineTo(rearBumperX, sillY + 4);
   } else if (isEstate) {
     flankShape.lineTo(rearSillX + 4, beltY);
+    flankShape.lineTo(rearBumperX, sillY + 4);
   } else if (isSUV) {
     flankShape.lineTo(rearSillX + 2, beltY + 2);
+    flankShape.lineTo(rearBumperX, sillY + 4);
   } else {
     flankShape.lineTo(rearSillX + 4, beltY);
+    flankShape.lineTo(rearBumperX, sillY + 4);
   }
-
-  flankShape.lineTo(rearBumperX, sillY + 4);
   flankShape.lineTo(rearBumperX, rockerY + 2);
 
   // Underside with circular Wheel Arch Cutouts
@@ -2657,7 +2663,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
     tailgatePivot.position.set(deckFrontX, beltY, 0);
 
-    const trunkLen = Math.abs(rearBumperX - deckFrontX) - 4;
+    const trunkLen = Math.abs(rearSillX - deckFrontX);
     const trunkLidGeo = new THREE.BoxGeometry(trunkLen, 2.5, totalCarWidth - 14);
     const trunkLid = new THREE.Mesh(trunkLidGeo, bodyPaintMat);
     trunkLid.position.set(trunkLen / 2, 0, 0);
@@ -2918,7 +2924,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const hatchSpanY = Math.max(1, roofTopY - (sillY + 4));
     const slopeRatio = Math.max(0, Math.min(1, rot.h / hatchSpanY));
     const innerTailgateXAtTop = isSaloon
-      ? (deckFrontX + Math.abs(rearBumperX - deckFrontX) - 4)
+      ? (rearSillX - 2)
       : (rearSillX - ((rearSillX - roofRearX) * slopeRatio));
 
     // Safe longitudinal boundaries:

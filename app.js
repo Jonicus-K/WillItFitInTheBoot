@@ -1466,73 +1466,96 @@ function createWheel3D(radius = 30, width = 22, isSUV = false) {
     metalness: 0.3
   });
 
-  // 1. TYRE: Hollow Tread Cylinder (Open-ended so rim & spokes are visible!)
-  const treadGeo = new THREE.CylinderGeometry(radius, radius, width - 2, 36, 1, true);
+  // 1. TYRE: Continuous smooth vulcanized rubber tread & sidewalls (no floating torus ring!)
+  const treadGeo = new THREE.CylinderGeometry(radius, radius, width, 40, 1, true);
   const tread = new THREE.Mesh(treadGeo, tireMat);
   tread.rotation.x = Math.PI / 2;
   wheelGroup.add(tread);
 
-  // Rounded Tyre Shoulders (Radial tread curves seamlessly into sidewalls)
-  [-halfW + 1.0, halfW - 1.0].forEach(zPos => {
-    const shoulderGeo = new THREE.TorusGeometry(radius - 1.0, 1.2, 12, 36);
-    const shoulder = new THREE.Mesh(shoulderGeo, tireMat);
-    shoulder.position.z = zPos;
-    wheelGroup.add(shoulder);
-  });
-
-  // Outer Tyre Sidewall Face Ring (leaving center completely open for the alloy rim!)
-  const sidewallGeo = new THREE.RingGeometry(rimRadius, radius - 1.0, 36);
+  // Outer Tyre Sidewall Face Ring (flush with tread at radius, leaves center open for alloy rim)
+  const sidewallGeo = new THREE.RingGeometry(rimRadius, radius, 40);
   const sidewall = new THREE.Mesh(sidewallGeo, tireMat);
-  sidewall.position.z = halfW - 0.2;
+  sidewall.position.z = halfW;
   wheelGroup.add(sidewall);
 
   // Inner Tyre Sidewall Face Ring (back of wheel)
   const innerSidewall = new THREE.Mesh(sidewallGeo, tireMat);
-  innerSidewall.position.z = -halfW + 0.2;
+  innerSidewall.position.z = -halfW;
   innerSidewall.rotation.y = Math.PI;
   wheelGroup.add(innerSidewall);
 
   // 2. MACHINED ALLOY WHEEL RIM LIP / FLANGE
-  const rimFlangeGeo = new THREE.TorusGeometry(rimRadius, 1.3, 14, 36);
+  const rimFlangeGeo = new THREE.TorusGeometry(rimRadius, 1.1, 14, 40);
   const rimFlange = new THREE.Mesh(rimFlangeGeo, alloyMachinedMat);
-  rimFlange.position.z = halfW - 0.3;
+  rimFlange.position.z = halfW - 0.2;
   wheelGroup.add(rimFlange);
 
   // Inner Rim Lip
   const innerRimFlange = new THREE.Mesh(rimFlangeGeo, barrelMat);
-  innerRimFlange.position.z = -halfW + 0.3;
+  innerRimFlange.position.z = -halfW + 0.2;
   wheelGroup.add(innerRimFlange);
 
   // 3. DEEP CONCAVE WHEEL BARREL
-  const barrelGeo = new THREE.CylinderGeometry(rimRadius - 0.6, rimRadius - 1.0, width - 1.6, 32, 1, true);
+  const barrelGeo = new THREE.CylinderGeometry(rimRadius - 0.5, rimRadius - 0.8, width - 1.2, 36, 1, true);
   const barrel = new THREE.Mesh(barrelGeo, barrelMat);
   barrel.rotation.x = Math.PI / 2;
   barrel.position.z = 0;
   wheelGroup.add(barrel);
 
-  // 4. VENTILATED CROSS-DRILLED BRAKE ROTOR DISC (Visible through open spokes!)
-  const rotorRadius = rimRadius * 0.78;
-  const rotorGeo = new THREE.CylinderGeometry(rotorRadius, rotorRadius, 1.8, 28);
+  // 4. VENTILATED CROSS-DRILLED BRAKE ROTOR DISC (Visible through open spokes)
+  const rotorRadius = rimRadius * 0.76;
+  const rotorGeo = new THREE.CylinderGeometry(rotorRadius, rotorRadius, 1.6, 32);
   const rotor = new THREE.Mesh(rotorGeo, rotorMat);
   rotor.rotation.x = Math.PI / 2;
-  rotor.position.z = halfW - 5.5;
+  rotor.position.z = halfW - 5.0;
   wheelGroup.add(rotor);
 
   // Rotor Center Hat (Iron bell hub)
-  const hatGeo = new THREE.CylinderGeometry(rotorRadius * 0.42, rotorRadius * 0.42, 2.8, 24);
+  const hatGeo = new THREE.CylinderGeometry(rotorRadius * 0.44, rotorRadius * 0.44, 2.6, 24);
   const hatMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6, metalness: 0.6 });
   const hat = new THREE.Mesh(hatGeo, hatMat);
   hat.rotation.x = Math.PI / 2;
-  hat.position.z = halfW - 5.0;
+  hat.position.z = halfW - 4.5;
   wheelGroup.add(hat);
 
-  // Sport Red Caliper clamped over rotor (at 10 o'clock position)
-  const caliperGeo = new THREE.BoxGeometry(6.5, 12, 4.2);
-  const caliper = new THREE.Mesh(caliperGeo, caliperMat);
-  const calAngle = Math.PI * 0.62;
-  caliper.position.set(Math.cos(calAngle) * (rotorRadius * 0.88), Math.sin(calAngle) * (rotorRadius * 0.88), halfW - 4.6);
-  caliper.rotation.z = calAngle + Math.PI / 2;
-  wheelGroup.add(caliper);
+  // Sport Red Caliper: Curving naturally around the top-front perimeter of the rotor (~115° position)
+  const caliperGroup = new THREE.Group();
+  const calCenterAngle = Math.PI * 0.64;
+  const calArcSpan = 0.38; // ~22° curvature hugging rotor outer rim
+
+  // Curved caliper arch segments following rotor contour
+  for (let s = 0; s < 4; s++) {
+    const segT = (s / 3) - 0.5;
+    const segAngle = calCenterAngle + (segT * calArcSpan);
+    const segR = rotorRadius * 0.96;
+    const segGeo = new THREE.BoxGeometry(3.2, 4.2, 3.6);
+    const segMesh = new THREE.Mesh(segGeo, caliperMat);
+    segMesh.position.set(Math.cos(segAngle) * segR, Math.sin(segAngle) * segR, halfW - 4.2);
+    segMesh.rotation.z = segAngle + (Math.PI / 2);
+    caliperGroup.add(segMesh);
+  }
+
+  // Dual Twin Hydraulic Piston Bosses on outer caliper face
+  [-0.10, 0.10].forEach(pOffset => {
+    const pAngle = calCenterAngle + pOffset;
+    const pR = rotorRadius * 0.94;
+    const pGeo = new THREE.CylinderGeometry(1.5, 1.5, 1.0, 16);
+    const pMesh = new THREE.Mesh(pGeo, caliperMat);
+    pMesh.rotation.x = Math.PI / 2;
+    pMesh.position.set(Math.cos(pAngle) * pR, Math.sin(pAngle) * pR, halfW - 2.1);
+    caliperGroup.add(pMesh);
+  });
+
+  // Dark Brake Pad Bridge / Retention Clip in the center recess
+  const clipGeo = new THREE.BoxGeometry(1.2, 3.8, 2.0);
+  const clipMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.3 });
+  const clipMesh = new THREE.Mesh(clipGeo, clipMat);
+  const clipR = rotorRadius * 0.96;
+  clipMesh.position.set(Math.cos(calCenterAngle) * clipR, Math.sin(calCenterAngle) * clipR, halfW - 3.6);
+  clipMesh.rotation.z = calCenterAngle + (Math.PI / 2);
+  caliperGroup.add(clipMesh);
+
+  wheelGroup.add(caliperGroup);
 
   // 5. DIAMOND-CUT BI-TONE ALLOY SPOKES (Sculpted 5-Twin Spoke Sport Design)
   const spokeGroup = new THREE.Group();
@@ -1690,10 +1713,10 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
     roughness: 0.1
   });
 
-  // 1. Sculpted Instrument Panel Main Housing (Sleek 22 cm depth, eliminating the massive banquet table!)
-  const dashFaceX = frontSeatsX - 22;
-  const ipDepth = 22;
-  const ipHeight = 11;
+  // 1. Sculpted Instrument Panel Main Housing (Sleek 18 cm depth)
+  const dashFaceX = frontSeatsX - 24;
+  const ipDepth = 18;
+  const ipHeight = 12;
   const ipWidth = cabinWidth - 8;
   const ipCenterX = dashFaceX - (ipDepth / 2);
   const ipCenterY = cowlY - 6;
@@ -1704,13 +1727,13 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   addCadEdges(ipMesh, 0x38bdf8);
   cockpitGroup.add(ipMesh);
 
-  // 2. Slim Defroster Scuttle Shelf (thin 1.6 cm plate bridging to cowl base, keeping driver footwells completely open!)
-  const scuttleFrontX = cowlX + 2;
+  // 2. Slim Defroster Scuttle Shelf (compact plate bridging directly to cowl base, keeping footwells completely open!)
+  const scuttleFrontX = cowlX + 1;
   const scuttleRearX = dashFaceX - ipDepth;
   const scuttleLen = Math.max(4, Math.abs(scuttleRearX - scuttleFrontX));
-  const scuttleGeo = new THREE.BoxGeometry(scuttleLen, 1.6, cabinWidth - 8);
+  const scuttleGeo = new THREE.BoxGeometry(scuttleLen, 1.8, cabinWidth - 8);
   const scuttleMesh = new THREE.Mesh(scuttleGeo, trimMat);
-  scuttleMesh.position.set((scuttleFrontX + scuttleRearX) / 2, cowlY - 2.5, 0);
+  scuttleMesh.position.set((scuttleFrontX + scuttleRearX) / 2, cowlY - 2.0, 0);
   cockpitGroup.add(scuttleMesh);
 
   // 3. UK Right Hand Drive (RHD): Driver on RIGHT side (-Z)
@@ -1719,7 +1742,7 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   // Sculpted Instrument Cluster Binnacle
   const binnacleGeo = new THREE.BoxGeometry(14, 6.5, 22);
   const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
-  binnacle.position.set(dashFaceX - 5, ipCenterY + 7.5, driverZ);
+  binnacle.position.set(dashFaceX - 4, ipCenterY + 7.5, driverZ);
   cockpitGroup.add(binnacle);
 
   // Glowing Digital Virtual Cockpit Display
@@ -1737,7 +1760,7 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   cockpitGroup.add(centerScreen);
 
   // Center Console Tunnel (running from dashboard center stack back between front seats)
-  const tunnelLen = Math.max(20, Math.abs(frontSeatsX + 10 - dashFaceX));
+  const tunnelLen = Math.max(16, Math.abs(frontSeatsX + 8 - dashFaceX));
   const tunnelGeo = new THREE.BoxGeometry(tunnelLen, 9, 15);
   const tunnel = new THREE.Mesh(tunnelGeo, trimMat);
   tunnel.position.set(dashFaceX + (tunnelLen / 2), cabinFloorY + 4.5, 0);
@@ -1750,7 +1773,7 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   cockpitGroup.add(armrest);
 
   // Sport 3-Spoke Steering Wheel positioned in front of driver
-  const wheelX = frontSeatsX - 16;
+  const wheelX = frontSeatsX - 14;
   const wheelY = ipCenterY + 4.5;
   const columnGeo = new THREE.CylinderGeometry(2.2, 2.5, 12, 16);
   const column = new THREE.Mesh(columnGeo, dashMat);
@@ -1877,18 +1900,21 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const beltY = sillY + 22;
   const roofTopY = car.overall_height;
 
-  // Cowl point (base of windscreen): sits behind the front axle line
-  const cowlX = frontWheelX + (isSaloon ? 34 : (isEstate ? 28 : (isSUV ? 26 : 24)));
+  // Real-world cabin architecture:
+  // Cargo floor ends at back of front seats
+  const cargoBedFrontX = rearSillX - currentFloorLen;
+  // Front bucket seats cushion center (back of seat is against cargo floor)
+  const frontSeatsX = cargoBedFrontX - 22;
+  const dashFaceX = frontSeatsX - 24;
+
+  // Authentic modern dashboard depth (from instrument fascia forward to windshield base): ~38 to 44 cm
+  const dashDepth = isSUV ? 38 : (isSaloon ? 44 : (isEstate ? 40 : 38));
+  const cowlX = dashFaceX - dashDepth;
   const cowlY = beltY + 4;
 
-  // Aerodynamic windscreen rake (~36°-42° from horizontal)
-  const windshieldRun = isSaloon ? 70 : (isEstate ? 64 : (isSUV ? 62 : 62));
+  // Aerodynamic windscreen rake (~38°-42° from horizontal):
+  const windshieldRun = isSaloon ? 44 : (isEstate ? 40 : (isSUV ? 38 : 38));
   const roofFrontX = cowlX + windshieldRun;
-
-  const cargoBedFrontX = rearSillX - car.floor_length_seats_folded;
-  // Natural ergonomic driver seating position aligned at the B-pillar directly behind cockpit controls
-  const frontSeatsX = cargoBedFrontX - 21;
-  const dashX = frontSeatsX - 26;
 
   let roofRearX, deckFrontX;
   if (isSaloon) {
@@ -1909,7 +1935,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
     deckFrontX = rearSillX;
   }
 
-  const bPillarX = (roofFrontX + (isSaloon ? deckFrontX : (isEstate ? rearWheelX + 10 : roofRearX))) / 2;
+  // B-pillar is aligned directly beside the driver's seat
+  const bPillarX = frontSeatsX + 6;
   const cPillarX = isEstate ? (bPillarX + (roofRearX - bPillarX) * 0.58) : (isSaloon ? deckFrontX : roofRearX);
   const dPillarX = isEstate ? roofRearX : null;
 
@@ -1977,7 +2004,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
   });
 
   // 1. FOUR WHEELS & WHEEL WELL LINERS
-  const wheelZOffset = (totalCarWidth / 2) - 2;
+  const wheelWidth = 20;
+  const wheelZOffset = (totalCarWidth / 2) - 12.5;
   const wheelPositions = [
     [frontWheelX, wheelY, wheelZOffset],
     [frontWheelX, wheelY, -wheelZOffset],
@@ -1986,13 +2014,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
   ];
 
   wheelPositions.forEach(([wx, wy, wz]) => {
-    const wheel = createWheel3D(wheelRadius, 22, isSUV);
+    const wheel = createWheel3D(wheelRadius, wheelWidth, isSUV);
     wheel.position.set(wx, wy, wz);
     if (wz < 0) wheel.rotation.y = Math.PI;
     car3DGroup.add(wheel);
 
-    // Dark Wheel Arch Well Liner (eliminates see-through hollow void!)
-    const linerGeo = new THREE.CylinderGeometry(wheelArchR + 0.6, wheelArchR + 0.6, 16, 24, 1, true, 0, Math.PI);
+    // Dark Wheel Arch Well Liner (recessed inside wheel well)
+    const linerGeo = new THREE.CylinderGeometry(wheelArchR + 0.2, wheelArchR + 0.2, 14, 24, 1, true, 0, Math.PI);
     const linerMat = new THREE.MeshStandardMaterial({
       color: 0x05080f,
       roughness: 0.96,
@@ -2002,7 +2030,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const liner = new THREE.Mesh(linerGeo, linerMat);
     liner.rotation.z = Math.PI / 2;
     liner.rotation.y = Math.PI / 2;
-    liner.position.set(wx, wy, wz > 0 ? wz - 5 : wz + 5);
+    liner.position.set(wx, wy, wz > 0 ? wz - 3 : wz + 3);
     car3DGroup.add(liner);
   });
 
@@ -2279,17 +2307,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
   addCadEdges(rightFlank, 0x38bdf8);
   car3DGroup.add(rightFlank);
 
-  // Molded Wheel Arch Lips (Flared & flush, replacing floating donut toruses!)
+  // Sculpted Rocker Panel Sill between wheels (flush with flank)
   [-wheelZOffset, wheelZOffset - 3].forEach(zPos => {
-    [frontWheelX, rearWheelX].forEach(wx => {
-      const archFlareGeo = new THREE.TorusGeometry(wheelArchR + 0.4, isSUV ? 2.4 : 1.6, 12, 32, Math.PI);
-      const archFlare = new THREE.Mesh(archFlareGeo, isSUV ? claddingMat : bodyPaintMat);
-      archFlare.position.set(wx, wheelY, zPos + 1.5);
-      archFlare.rotation.z = Math.PI;
-      car3DGroup.add(archFlare);
-    });
-
-    // Sculpted Rocker Panel Sill between wheels
     const rockerLen = Math.abs((rearWheelX - wheelArchR) - (frontWheelX + wheelArchR)) + 2;
     const rockerGeo = new THREE.BoxGeometry(rockerLen, isSUV ? 6.5 : 4.5, 3.0);
     const rocker = new THREE.Mesh(rockerGeo, isSUV ? claddingMat : bodyPaintMat);

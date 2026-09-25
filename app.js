@@ -144,7 +144,7 @@ let manualAngleSliderValue = null; // null: use solver recommended angle, number
 let isIngressSimulating = false; // Animated loading in progress
 let ingressSimProgress = 0; // 0 to 1
 let cargoSimulationBaseGroup = null; // Container for animated simulation mesh
-let xRayMode = 0.70; // 0.70 (Sleek CAD Cutaway) or 1.0 (Solid Showroom Paint)
+let xRayMode = 1.0; // 1.0 (Solid Showroom Paint) or 0.70 (Sleek Cutaway)
 let isTailgateOpen = true;
 let currentTailgateAngle = 1.08;
 let targetTailgateAngle = 1.08;
@@ -402,7 +402,8 @@ function attachEvents() {
   if (btnXRayToggle) {
     btnXRayToggle.addEventListener('click', () => {
       xRayMode = xRayMode < 0.85 ? 1.0 : 0.70;
-      btnXRayToggle.textContent = xRayMode < 0.85 ? '👁️ See Inside' : '🚗 Solid Paint';
+      btnXRayToggle.textContent = xRayMode < 0.85 ? '🚗 Solid Paint' : '👁️ See Inside';
+      btnXRayToggle.classList.toggle('active', xRayMode < 0.85);
       if (selectedCar && lastFitResult) {
         update3DStudio(selectedCar, foldSeatsCheckbox.checked, lastFitResult);
       }
@@ -775,7 +776,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       margin: bestFlat.margin,
       ingress: bestFlat.ingress,
       heading: 'Fits Straight & Flat (Comfortable)',
-      instruction: `Clears all cargo boundaries with a generous ${Math.round(bestFlat.margin)} cm buffer (orientation: ${bestFlat.rot.l} × ${bestFlat.rot.w} × ${bestFlat.rot.h} cm).`
+      instruction: `Fits easily with plenty of room to spare (about ${Math.round(bestFlat.margin)} cm extra length).`
     };
   } else if (bestFlat && !bestFlat.ingress.direct) {
     overallOptimal = {
@@ -785,8 +786,8 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       status: 'angled',
       margin: bestFlat.margin,
       ingress: bestFlat.ingress,
-      heading: `Tilted Ingress Required (~${bestFlat.ingress.rollAngle}° Roll)`,
-      instruction: `Too wide for standard flat entry, but slips through the tailgate opening when tilted at a ~${bestFlat.ingress.rollAngle}° roll angle, then lays flat on the boot floor!`
+      heading: `Needs Angle To Load (~${bestFlat.ingress.rollAngle}° Roll)`,
+      instruction: `A bit wide for the boot opening, but slides right in when tilted slightly (~${bestFlat.ingress.rollAngle}° roll), then sits flat on the floor.`
     };
   } else if (bestFlat) {
     overallOptimal = {
@@ -796,8 +797,8 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       status: 'tight',
       margin: bestFlat.margin,
       ingress: bestFlat.ingress,
-      heading: 'Fits Flat (Tight Margin)',
-      instruction: `Fits flat with a tight clearance margin of ${Math.round(bestFlat.margin * 10) / 10} cm. Close tailgate gently.`
+      heading: 'Fits Flat (Snug Fit)',
+      instruction: `It will fit, but it's a close fit with about ${Math.round(bestFlat.margin * 10) / 10} cm clearance. Take care closing the tailgate.`
     };
   } else if (bestPitch) {
     overallOptimal = {
@@ -808,7 +809,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       margin: bestPitch.margin,
       ingress: bestPitch.ingress,
       heading: `Seatback Tilt Fit (~${bestPitch.angle}° Tilt)`,
-      instruction: `Hits the rear window glass if laid flat, but fits cleanly by propping the front edge up onto the seatback (~${bestPitch.angle}° tilt), pulling the rear face clear of the glass.`
+      instruction: `Hits the rear window glass if laid completely flat, but fits nicely propped against the seatback (~${bestPitch.angle}° tilt).`
     };
   } else if (bestYaw) {
     overallOptimal = {
@@ -819,7 +820,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       margin: bestYaw.margin,
       ingress: bestYaw.ingress,
       heading: `Diagonal Floor Fit (~${bestYaw.angle}° Angle)`,
-      instruction: `Too long to fit straight, but clears comfortably when positioned diagonally corner-to-corner across the cargo bay.`
+      instruction: `Too long to fit straight, but fits easily when angled diagonally across the cargo bay.`
     };
   } else if (bestRoll) {
     overallOptimal = {
@@ -830,7 +831,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       margin: bestRoll.margin,
       ingress: bestRoll.ingress,
       heading: `Banked Sidewall Fit (~${bestRoll.angle}° Roll)`,
-      instruction: `Exceeds wheel arch width when flat, but fits safely banked against the sidewall/wheel arch at ~${bestRoll.angle}°.`
+      instruction: `Wider than the wheel arches when flat, but fits safely banked against the side wall at ~${bestRoll.angle}°.`
     };
   } else if (bestThrough) {
     overallOptimal = {
@@ -840,8 +841,8 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       status: bestThrough.margin >= 4 ? 'comfortable' : 'tight',
       margin: bestThrough.margin,
       ingress: bestThrough.ingress,
-      heading: 'Fits Between Front Seats (Center Through-Load)',
-      instruction: `Extends through the center between the front seats over the armrest console (width: ${bestThrough.rot.w} cm clears 34 cm gap). Clears to dashboard with ${Math.round(bestThrough.margin)} cm buffer.`
+      heading: 'Fits Between Front Seats',
+      instruction: `Slides forward between the two front seats over the armrest console with ${Math.round(bestThrough.margin)} cm room.`
     };
   } else {
     const canFitFolded = !seatsFolded && (
@@ -855,8 +856,10 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       status: 'colliding',
       margin: -1,
       ingress: checkApertureIngress({ l: rawL, w: rawW, h: rawH }, apWidth, apHeight),
-      heading: canFitFolded ? "Won't Fit (Seats Up) – Fold Seats Flat" : "Will Not Fit",
-      instruction: failureReasons[0] || 'Object dimensions exceed maximum interior vehicle limits.'
+      heading: canFitFolded ? "Won't Fit (Seats Up) – Fold Seats Flat" : "Too Large For This Boot",
+      instruction: canFitFolded 
+        ? "This item won't fit with the rear seats up, but should fit easily once you fold the rear seats flat!"
+        : "This item is too large for the interior space of this car."
     };
   }
 
@@ -1216,7 +1219,7 @@ function evaluateFitment() {
     resultBanner.textContent = '🎉 Yes, It Fits Comfortably!';
   } else if (activeResult.status === 'tight') {
     resultBanner.className = 'result-banner fits-tight';
-    resultBanner.textContent = '⚠️ Tight Fit – But It Fits!';
+    resultBanner.textContent = '⚠️ Tight Squeeze – But It Fits!';
   } else if (activeResult.status === 'angled') {
     resultBanner.className = 'result-banner fits-angled';
     resultBanner.textContent = `📐 Fits With A Tilt (~${Math.round(activeResult.angle)}°)`;
@@ -1227,13 +1230,13 @@ function evaluateFitment() {
     resultBanner.className = 'result-banner will-not-fit';
     resultBanner.textContent = canFitFolded 
       ? "❌ Won't Fit (Seats Up) – Fold Seats Flat To Fit!" 
-      : "❌ Won't Fit In This Car";
+      : "❌ Too Large For This Boot";
   }
 
   resultExplanation.textContent = activeResult.instruction;
 
   if (strategyBadge) {
-    strategyBadge.textContent = activeAngleMode === 'auto' ? '💡 BEST FIT' : `⚙️ ${activeAngleMode.toUpperCase()}`;
+    strategyBadge.textContent = activeAngleMode === 'auto' ? 'BEST FIT' : activeAngleMode.toUpperCase();
   }
   if (strategyHeading) {
     strategyHeading.textContent = activeResult.heading;
@@ -1244,26 +1247,26 @@ function evaluateFitment() {
     if (activeResult.ingress.canEnter) {
       chipIngress.className = 'strategy-chip clears';
       chipIngress.textContent = activeResult.ingress.direct
-        ? '🚪 Boot Entrance: Clears easily'
-        : `🚪 Boot Entrance: Clears (Tilted ~${Math.round(activeResult.ingress.rollAngle)}°)`;
+        ? '✓ Boot Opening: Clears easily'
+        : `✓ Boot Opening: Clears tilted (~${Math.round(activeResult.ingress.rollAngle)}°)`;
     } else {
       chipIngress.className = 'strategy-chip colliding';
-      chipIngress.textContent = '🚪 Boot Entrance: Too large to enter';
+      chipIngress.textContent = '✕ Boot Opening: Too big to enter';
     }
   }
 
   if (chipStowed) {
     if (activeResult.status === 'comfortable' || activeResult.status === 'tight') {
       chipStowed.className = 'strategy-chip clears';
-      chipStowed.textContent = `📦 Inside Boot: Fits Flat (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
+      chipStowed.textContent = `✓ Boot Space: Fits flat (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
     } else if (activeResult.status === 'angled') {
       chipStowed.className = 'strategy-chip angled';
-      chipStowed.textContent = `📦 Inside Boot: Tilted ~${Math.round(activeResult.angle)}° (+${Math.max(0, Math.round(activeResult.margin))} cm)`;
+      chipStowed.textContent = `✓ Boot Space: Fits tilted ~${Math.round(activeResult.angle)}°`;
     } else {
       chipStowed.className = 'strategy-chip colliding';
       chipStowed.textContent = (!seatsFolded && (parseFloat(cargoLengthInput.value) || 0) <= selectedCar.floor_length_seats_folded)
-        ? '📦 Inside Boot: Exceeds seats-up boot (fold seats)'
-        : '📦 Inside Boot: Exceeds boot space';
+        ? '✕ Boot Space: Needs seats folded flat'
+        : '✕ Boot Space: Exceeds boot capacity';
     }
   }
 
@@ -1278,9 +1281,9 @@ let fallbackOrbit = {
   isDragging: false,
   prevX: 0,
   prevY: 0,
-  radius: 270,
-  theta: 0.85,
-  phi: 1.18
+  radius: 410,
+  theta: 0.78,
+  phi: 1.25
 };
 
 function getOpenTailgateAngle(bodyType) {
@@ -1298,10 +1301,11 @@ function initThreeStudio() {
   const height = canvas.parentElement.clientHeight || 480;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x060a14);
+  scene.background = new THREE.Color(0x0e1726);
 
   camera = new THREE.PerspectiveCamera(36, width / height, 1, 5000);
-  camera.position.set(165, 130, 145);
+  // Zoomed out to comfortably frame the complete car & open boot on initial load
+  camera.position.set(245, 160, 245);
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
   renderer.setSize(width, height);
@@ -1312,34 +1316,45 @@ function initThreeStudio() {
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.maxPolarAngle = (Math.PI / 2) + 0.04;
-    controls.minDistance = 70;
-    controls.maxDistance = 600;
-    controls.target.set(-50, 68, 0);
+    controls.minDistance = 80;
+    controls.maxDistance = 800;
+    controls.target.set(-75, 55, 0);
   } else {
     initFallbackControls(canvas);
   }
 
-  // Studio Lighting (Automotive Stage Setup)
-  const ambientLight = new THREE.AmbientLight(0x384a6b, 1.8);
+  // Friendly Showroom Studio Lighting
+  const ambientLight = new THREE.AmbientLight(0x566b8b, 1.8);
   scene.add(ambientLight);
 
-  const keySun = new THREE.DirectionalLight(0xffffff, 2.0);
-  keySun.position.set(220, 360, 220);
+  const keySun = new THREE.DirectionalLight(0xfffaf0, 2.2);
+  keySun.position.set(240, 360, 200);
   scene.add(keySun);
 
-  const fillCyan = new THREE.DirectionalLight(0x38bdf8, 1.2);
-  fillCyan.position.set(-220, 180, -220);
-  scene.add(fillCyan);
+  const fillLight = new THREE.DirectionalLight(0x94a3b8, 1.1);
+  fillLight.position.set(-240, 180, -200);
+  scene.add(fillLight);
 
-  const rearHighlight = new THREE.DirectionalLight(0x60a5fa, 1.0);
+  const rearHighlight = new THREE.DirectionalLight(0x93c5fd, 1.0);
   rearHighlight.position.set(260, 120, 0);
   scene.add(rearHighlight);
 
-  const bootInteriorLight = new THREE.PointLight(0xbae6fd, 1.2, 240);
+  const bootInteriorLight = new THREE.PointLight(0xffedd5, 1.8, 300);
   bootInteriorLight.position.set(20, 95, 0);
   scene.add(bootInteriorLight);
 
-  const grid = new THREE.GridHelper(800, 40, 0x1e3a5f, 0x0c1729);
+  // Soft Turntable Showroom Plinth
+  const plinthGeo = new THREE.CylinderGeometry(280, 280, 2, 64);
+  const plinthMat = new THREE.MeshStandardMaterial({
+    color: 0x141f33,
+    roughness: 0.85,
+    metalness: 0.08
+  });
+  const plinth = new THREE.Mesh(plinthGeo, plinthMat);
+  plinth.position.set(-80, -1, 0);
+  scene.add(plinth);
+
+  const grid = new THREE.GridHelper(800, 32, 0x22324e, 0x141f33);
   grid.position.y = -0.5;
   scene.add(grid);
 
@@ -1390,8 +1405,8 @@ function updateCameraFromSpherical() {
   const sinTheta = Math.sin(fallbackOrbit.theta);
   const cosTheta = Math.cos(fallbackOrbit.theta);
 
-  const targetX = -50;
-  const targetY = 68;
+  const targetX = -75;
+  const targetY = 55;
   const targetZ = 0;
   camera.position.x = targetX + (fallbackOrbit.radius * sinPhi * cosTheta);
   camera.position.y = targetY + (fallbackOrbit.radius * cosPhi);
@@ -1439,33 +1454,47 @@ function onWindowResize() {
 function snapCamera(view) {
   if (!camera) return;
 
-  const targetCenter = new THREE.Vector3(-50, 68, 0);
+  const targetCenter = new THREE.Vector3(-75, 55, 0);
 
   if (view === 'side') {
     fallbackOrbit.theta = Math.PI / 2;
     fallbackOrbit.phi = 1.48;
+    fallbackOrbit.radius = 450;
   } else if (view === 'rear') {
     fallbackOrbit.theta = 0;
     fallbackOrbit.phi = 1.48;
+    fallbackOrbit.radius = 300;
   } else if (view === 'top') {
     fallbackOrbit.theta = 0;
     fallbackOrbit.phi = 0.05;
+    fallbackOrbit.radius = 520;
   } else if (view === 'ingress') {
     fallbackOrbit.theta = 0;
     fallbackOrbit.phi = 1.48;
+    fallbackOrbit.radius = 160;
   } else {
-    fallbackOrbit.theta = 0.85;
-    fallbackOrbit.phi = 1.18;
+    fallbackOrbit.theta = 0.78;
+    fallbackOrbit.phi = 1.25;
+    fallbackOrbit.radius = 410;
   }
 
   if (controls) {
-    if (view === 'side') camera.position.set(-50, 68, 310);
-    else if (view === 'rear') camera.position.set(230, 72, 0);
-    else if (view === 'top') camera.position.set(-50, 380, 0);
-    else if (view === 'ingress') {
-      camera.position.set(135, 85, 0);
-      targetCenter.set(25, 68, 0);
-    } else camera.position.set(165, 130, 145);
+    if (view === 'side') {
+      camera.position.set(-85, 60, 450);
+      targetCenter.set(-85, 60, 0);
+    } else if (view === 'rear') {
+      camera.position.set(250, 75, 0);
+      targetCenter.set(-50, 65, 0);
+    } else if (view === 'top') {
+      camera.position.set(-85, 520, 0);
+      targetCenter.set(-85, 50, 0);
+    } else if (view === 'ingress') {
+      camera.position.set(150, 90, 0);
+      targetCenter.set(10, 65, 0);
+    } else {
+      camera.position.set(245, 160, 245);
+      targetCenter.set(-75, 55, 0);
+    }
     controls.target.copy(targetCenter);
     controls.update();
   } else {
@@ -1983,13 +2012,13 @@ function createRoundedWheelArchTub(radius = 22, depth = 16, isGhost = false) {
 /**
  * Helper to add precision CAD edge highlight lines to a mesh
  */
-function addCadEdges(mesh, color = 0x38bdf8, thresholdAngle = 26) {
+function addCadEdges(mesh, color = 0x3b82f6, thresholdAngle = 30) {
   if (!mesh || !mesh.geometry) return;
   const edges = new THREE.EdgesGeometry(mesh.geometry, thresholdAngle);
   const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
     color: color,
     transparent: true,
-    opacity: 0.45
+    opacity: 0.18
   }));
   mesh.add(line);
 }
@@ -2130,9 +2159,9 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const isGhost = xRayMode < 0.85;
 
   const bodyPaintMat = new THREE.MeshPhysicalMaterial({
-    color: 0x142848, // Deep Automotive Royal Navy
-    metalness: 0.88,
-    roughness: 0.22,
+    color: 0x1b3252, // Handsome Metallic Slate Navy
+    metalness: 0.86,
+    roughness: 0.24,
     clearcoat: 1.0,
     clearcoatRoughness: 0.08,
     transparent: isGhost,
@@ -3297,31 +3326,33 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const rot = fitResult.rot;
     const boxGeo = new THREE.BoxGeometry(rot.l, rot.h, rot.w);
 
-    let boxColor = 0x10b981; // Emerald green
-    let edgeColor = 0x34d399;
+    let boxColor = 0x10b981; // Friendly emerald green
+    let edgeColor = 0x059669;
     if (fitResult.status === 'tight') {
-      boxColor = 0xf59e0b; // Amber
-      edgeColor = 0xfbbf24;
+      boxColor = 0xf59e0b; // Friendly warm amber
+      edgeColor = 0xd97706;
     } else if (fitResult.status === 'angled') {
-      boxColor = 0x0284c7; // Cyan
-      edgeColor = 0x38bdf8;
+      boxColor = 0x3b82f6; // Friendly royal sapphire
+      edgeColor = 0x2563eb;
     } else if (fitResult.status === 'colliding') {
-      boxColor = 0xef4444; // Crimson
-      edgeColor = 0xf87171;
+      boxColor = 0xef4444; // Friendly coral red
+      edgeColor = 0xdc2626;
     }
 
     const boxMat = new THREE.MeshPhysicalMaterial({
       color: boxColor,
-      roughness: 0.2,
-      metalness: 0.15,
+      roughness: 0.32,
+      metalness: 0.1,
+      clearcoat: 0.6,
+      clearcoatRoughness: 0.15,
       transparent: true,
-      opacity: 0.82
+      opacity: 0.88
     });
 
     cargo3DMesh = new THREE.Mesh(boxGeo, boxMat);
     cargo3DMesh.add(new THREE.LineSegments(
       new THREE.EdgesGeometry(boxGeo),
-      new THREE.LineBasicMaterial({ color: edgeColor, linewidth: 2 })
+      new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.6, linewidth: 2 })
     ));
 
     // Stowed positions and pivots

@@ -328,6 +328,27 @@ async function init() {
     .join('');
 
   selectedCar = vehicles[0];
+
+  // Optional URL parameter support for direct deep-linking & testing
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramCar = urlParams.get('car');
+  if (paramCar) {
+    const foundIdx = vehicles.findIndex(v => v.id === paramCar || v.name.toLowerCase().includes(paramCar.toLowerCase()));
+    if (foundIdx >= 0) {
+      carSelect.value = String(foundIdx);
+      selectedCar = vehicles[foundIdx];
+    }
+  }
+  if (urlParams.has('seatsFolded')) {
+    foldSeatsCheckbox.checked = urlParams.get('seatsFolded') === '1' || urlParams.get('seatsFolded') === 'true';
+  }
+  if (urlParams.has('l')) cargoLengthInput.value = urlParams.get('l');
+  if (urlParams.has('w')) cargoWidthInput.value = urlParams.get('w');
+  if (urlParams.has('h')) cargoHeightInput.value = urlParams.get('h');
+  if (urlParams.has('boot')) {
+    isTailgateOpen = urlParams.get('boot') === 'open' || urlParams.get('boot') === '1';
+  }
+
   initThreeStudio();
   attachEvents();
   evaluateFitment();
@@ -612,13 +633,25 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       }
     } else {
       if (rot.l > maxFloorSpan) {
-        if (rot.w > 34) {
-          failureReasons.push(`Too long for boot floor (${rot.l} cm vs ${maxFloorSpan} cm max with seats folded) and too wide (${rot.w} cm) to slide between front seats (34 cm gap limit).`);
+        if (!seatsFolded) {
+          if (rot.l <= car.floor_length_seats_folded) {
+            failureReasons.push(`Too long for boot floor with seats up (${rot.l} cm vs ${floorLength} cm limit). Tip: Fold the rear seats flat to fit easily (up to ${car.floor_length_seats_folded} cm room)!`);
+          } else {
+            failureReasons.push(`Too long for boot floor with seats up (${rot.l} cm vs ${floorLength} cm limit, max ${car.floor_length_seats_folded} cm with seats folded).`);
+          }
         } else {
-          failureReasons.push(`Too long for boot floor (${rot.l} cm vs ${maxFloorSpan} cm max with seats folded).`);
+          if (rot.w > 34) {
+            failureReasons.push(`Too long for boot floor (${rot.l} cm vs ${maxFloorSpan} cm max with seats folded) and too wide (${rot.w} cm) to slide between front seats (34 cm gap limit).`);
+          } else {
+            failureReasons.push(`Too long for boot floor (${rot.l} cm vs ${maxFloorSpan} cm max with seats folded).`);
+          }
         }
       } else if (rot.l > usableLengthAtH && passesArch && passesRoof) {
-        failureReasons.push(`Hits sloping rear window at ${rot.h} cm height (max length at this height is ~${Math.round(usableLengthAtH)} cm).`);
+        if (!seatsFolded && rot.l <= calculateUsableLength(car.floor_length_seats_folded, rot.h, tanRake, true, roofHeight)) {
+          failureReasons.push(`Hits sloping rear window with seats up (max length at ${rot.h} cm height is ~${Math.round(usableLengthAtH)} cm). Tip: Fold the rear seats flat to slide further forward!`);
+        } else {
+          failureReasons.push(`Hits sloping rear window at ${rot.h} cm height (max length at this height is ~${Math.round(usableLengthAtH)} cm).`);
+        }
       } else if (!passesArch) {
         failureReasons.push(`Exceeds wheel arch width (${rot.w} cm vs ${archWidth} cm limit).`);
       } else if (!passesRoof) {
@@ -811,6 +844,10 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       instruction: `Extends through the center between the front seats over the armrest console (width: ${bestThrough.rot.w} cm clears 34 cm gap). Clears to dashboard with ${Math.round(bestThrough.margin)} cm buffer.`
     };
   } else {
+    const canFitFolded = !seatsFolded && (
+      (rawL <= car.floor_length_seats_folded && rawW <= archWidth && rawH <= roofHeight) ||
+      (rawW <= car.floor_length_seats_folded && rawL <= archWidth && rawH <= roofHeight)
+    );
     overallOptimal = {
       mode: 'colliding',
       rot: { l: rawL, w: rawW, h: rawH },
@@ -818,7 +855,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       status: 'colliding',
       margin: -1,
       ingress: checkApertureIngress({ l: rawL, w: rawW, h: rawH }, apWidth, apHeight),
-      heading: 'Will Not Fit',
+      heading: canFitFolded ? "Won't Fit (Seats Up) – Fold Seats Flat" : "Will Not Fit",
       instruction: failureReasons[0] || 'Object dimensions exceed maximum interior vehicle limits.'
     };
   }
@@ -1184,8 +1221,13 @@ function evaluateFitment() {
     resultBanner.className = 'result-banner fits-angled';
     resultBanner.textContent = `📐 Fits With A Tilt (~${Math.round(activeResult.angle)}°)`;
   } else {
+    const canFitFolded = !seatsFolded && (
+      (parseFloat(cargoLengthInput.value) || 0) <= selectedCar.floor_length_seats_folded
+    );
     resultBanner.className = 'result-banner will-not-fit';
-    resultBanner.textContent = '❌ Won\'t Fit In This Car';
+    resultBanner.textContent = canFitFolded 
+      ? "❌ Won't Fit (Seats Up) – Fold Seats Flat To Fit!" 
+      : "❌ Won't Fit In This Car";
   }
 
   resultExplanation.textContent = activeResult.instruction;
@@ -1219,7 +1261,9 @@ function evaluateFitment() {
       chipStowed.textContent = `📦 Inside Boot: Tilted ~${Math.round(activeResult.angle)}° (+${Math.max(0, Math.round(activeResult.margin))} cm)`;
     } else {
       chipStowed.className = 'strategy-chip colliding';
-      chipStowed.textContent = '📦 Inside Boot: Exceeds boot space';
+      chipStowed.textContent = (!seatsFolded && (parseFloat(cargoLengthInput.value) || 0) <= selectedCar.floor_length_seats_folded)
+        ? '📦 Inside Boot: Exceeds seats-up boot (fold seats)'
+        : '📦 Inside Boot: Exceeds boot space';
     }
   }
 
@@ -2048,13 +2092,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
   // Driver sits right at steering wheel (within natural ergonomic 34 cm reach)
   const frontSeatsX = dashFaceX + 34;
 
-  // Seating couple distance: authentic ~80-92 cm distance between front & rear seats
-  const coupleDist = Math.max(80, Math.min(92, Math.round(car.wheelbase * 0.32)));
-  const rearHingeX = frontSeatsX + coupleDist;
+  // SPECIFICATION-ANCHORED REAR SEATS & CARGO BED ARCHITECTURE:
+  // With seats upright, cargo floor length is strictly car.floor_length_seats_up from rear sill:
+  const rearHingeX = rearSillX - car.floor_length_seats_up;
 
-  // Cargo bed boundary: front seat backrest is at frontSeatsX + 18.
-  // Items in boot CAN NEVER penetrate into front seats!
-  const frontSeatBackX = frontSeatsX + 18;
+  // With rear seats folded flat, cargo floor length extends to car.floor_length_seats_folded from rear sill:
+  const foldedFloorFrontX = rearSillX - car.floor_length_seats_folded;
+  const frontSeatBackX = Math.min(rearHingeX - 42, foldedFloorFrontX);
   const cargoBedFrontX = seatsFolded ? frontSeatBackX : rearHingeX;
   currentFloorLen = Math.abs(rearSillX - cargoBedFrontX);
 
@@ -3300,8 +3344,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const minSafePosX = cargoBedFrontX + (rot.l / 2) + (seatsFolded ? 4 : 2);
 
     let defaultPosX;
-    if (fitResult.status === 'colliding' && rot.l > currentFloorLen) {
-      // Stopped by the front seatbacks, so it visibly sticks out the back of the car!
+    if (fitResult.status === 'colliding' && (rot.l > currentFloorLen || (cargoBedFrontX + rot.l) > (innerTailgateXAtTop - 4))) {
+      // Stopped by the upright rear seats or front seatbacks, so it visibly sticks out past the rear sill!
       defaultPosX = cargoBedFrontX + (rot.l / 2) + 2;
     } else if (minSafePosX <= maxSafePosX) {
       // Comfortably fits: center stably within the safe clearance zone

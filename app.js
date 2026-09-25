@@ -1299,6 +1299,13 @@ function initThreeStudio() {
   grid.position.y = -0.5;
   scene.add(grid);
 
+  if (window.ResizeObserver && canvas.parentElement) {
+    const ro = new ResizeObserver(() => {
+      onWindowResize();
+    });
+    ro.observe(canvas.parentElement);
+  }
+
   animateThree();
 }
 

@@ -12,91 +12,93 @@
   <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
   <link rel="shortcut icon" href="favicon.ico">
 
-  <link rel="stylesheet" href="style.css?v=26">
+  <link rel="stylesheet" href="style.css?v=27">
   <!-- Three.js & OrbitControls via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
   <div class="app-container">
-    <header class="header-section">
-      <h1 class="brand-title">
-        <img src="assets/logo.svg" alt="Will It Fit In The Boot?" class="header-logo" onerror="this.onerror=null; this.src='assets/logo.png';">
-      </h1>
-      <p class="subtitle">Quickly check if TVs, furniture, appliances, or boxes will fit in your car boot.</p>
-    </header>
-
     <main class="calculator-grid">
-      <!-- Input Sidebar -->
-      <section class="card sidebar-card">
-        <div class="form-group">
-          <h2 class="card-title">1. Item Dimensions (cm)</h2>
-          
-          <div class="presets-container">
-            <span class="presets-label">Popular Items:</span>
-            <div class="presets-grid">
-              <button type="button" class="preset-btn" data-length="160" data-width="98" data-height="18">📺 65" TV Box</button>
-              <button type="button" class="preset-btn active" data-length="140" data-width="85" data-height="16">📺 55" TV Box</button>
-              <button type="button" class="preset-btn" data-length="60" data-width="60" data-height="85">🧺 Washing Machine</button>
-              <button type="button" class="preset-btn" data-length="205" data-width="30" data-height="13">📚 IKEA Bookcase</button>
-              <button type="button" class="preset-btn" data-length="76" data-width="50" data-height="30">🧳 Large Suitcase</button>
-              <button type="button" class="preset-btn" data-length="175" data-width="65" data-height="105">🚲 Adult Bicycle</button>
+      <!-- Left Column (Brand Header + Input Card) -->
+      <div class="sidebar-column">
+        <header class="sidebar-header">
+          <h1 class="brand-title">
+            <img src="assets/logo.png" alt="Will It Fit In The Boot?" class="header-logo">
+          </h1>
+          <p class="subtitle">Quickly check if items will fit in your car boot.</p>
+        </header>
+
+        <section class="card sidebar-card">
+          <div class="form-group">
+            <h2 class="card-title">1. Item Dimensions (cm)</h2>
+            
+            <div class="presets-container">
+              <span class="presets-label">Popular Items:</span>
+              <div class="presets-grid">
+                <button type="button" class="preset-btn" data-length="160" data-width="98" data-height="18">📺 65" TV Box</button>
+                <button type="button" class="preset-btn active" data-length="140" data-width="85" data-height="16">📺 55" TV Box</button>
+                <button type="button" class="preset-btn" data-length="60" data-width="60" data-height="85">🧺 Washing Machine</button>
+                <button type="button" class="preset-btn" data-length="205" data-width="30" data-height="13">📚 IKEA Bookcase</button>
+                <button type="button" class="preset-btn" data-length="76" data-width="50" data-height="30">🧳 Large Suitcase</button>
+                <button type="button" class="preset-btn" data-length="175" data-width="65" data-height="105">🚲 Adult Bicycle</button>
+              </div>
+            </div>
+
+            <div class="dimensions-row">
+              <div class="input-field">
+                <label for="cargo-length">Length (cm)</label>
+                <input type="number" id="cargo-length" value="140" min="1" step="1">
+              </div>
+              <div class="input-field">
+                <label for="cargo-width">Width (cm)</label>
+                <input type="number" id="cargo-width" value="85" min="1" step="1">
+              </div>
+              <div class="input-field">
+                <label for="cargo-height">Height (cm)</label>
+                <input type="number" id="cargo-height" value="16" min="1" step="1">
+              </div>
             </div>
           </div>
 
-          <div class="dimensions-row">
-            <div class="input-field">
-              <label for="cargo-length">Length (cm)</label>
-              <input type="number" id="cargo-length" value="140" min="1" step="1">
+          <div class="form-group">
+            <h2 class="card-title">2. Choose Your Car</h2>
+            <label for="car-select">Car Model</label>
+            <select id="car-select" class="select-car"></select>
+
+            <label class="checkbox-control">
+              <input type="checkbox" id="fold-seats" checked>
+              <span>💺 Fold rear seats flat</span>
+            </label>
+          </div>
+
+          <!-- Integrated Cargo Space Specs Panel -->
+          <div class="specs-panel" id="specs-panel">
+            <div class="specs-panel-header">
+              <span class="specs-panel-title">Car Boot Dimensions</span>
+              <span class="specs-panel-car" id="specs-car-name">BMW 3 Series</span>
             </div>
-            <div class="input-field">
-              <label for="cargo-width">Width (cm)</label>
-              <input type="number" id="cargo-width" value="85" min="1" step="1">
-            </div>
-            <div class="input-field">
-              <label for="cargo-height">Height (cm)</label>
-              <input type="number" id="cargo-height" value="16" min="1" step="1">
+            <div class="specs-grid">
+              <div class="spec-item">
+                <span class="spec-label">Boot Length</span>
+                <strong class="spec-value" id="spec-floor">140 cm (seats folded)</strong>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">Width (Arches)</span>
+                <strong class="spec-value" id="spec-arches">100 cm</strong>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">Interior Height</span>
+                <strong class="spec-value" id="spec-roof">71 cm</strong>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">Boot Entrance</span>
+                <strong class="spec-value" id="spec-aperture">102 × 67 cm</strong>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div class="form-group">
-          <h2 class="card-title">2. Choose Your Car</h2>
-          <label for="car-select">Car Model</label>
-          <select id="car-select" class="select-car"></select>
-
-          <label class="checkbox-control">
-            <input type="checkbox" id="fold-seats" checked>
-            <span>💺 Fold rear seats flat</span>
-          </label>
-        </div>
-
-        <!-- Integrated Cargo Space Specs Panel -->
-        <div class="specs-panel" id="specs-panel">
-          <div class="specs-panel-header">
-            <span class="specs-panel-title">Car Boot Dimensions</span>
-            <span class="specs-panel-car" id="specs-car-name">BMW 3 Series</span>
-          </div>
-          <div class="specs-grid">
-            <div class="spec-item">
-              <span class="spec-label">Boot Length</span>
-              <strong class="spec-value" id="spec-floor">140 cm (seats folded)</strong>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Width (Arches)</span>
-              <strong class="spec-value" id="spec-arches">100 cm</strong>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Interior Height</span>
-              <strong class="spec-value" id="spec-roof">71 cm</strong>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Boot Entrance</span>
-              <strong class="spec-value" id="spec-aperture">102 × 67 cm</strong>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <!-- Results & Visualizer Column -->
       <section class="results-column">
@@ -198,6 +200,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=34"></script>
+  <script src="app.js?v=35"></script>
 </body>
 </html>

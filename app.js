@@ -1803,9 +1803,9 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
     roughness: 0.1
   });
 
-  // 1. Sculpted Instrument Panel Main Housing (compact 24 cm depth directly under windshield)
-  const ipDepth = 24;
-  const dashFaceX = cowlX + ipDepth;
+  // 1. Ergonomic Instrument Panel: sweeps smoothly from cowlX (windshield base) to dashFaceX
+  const dashFaceX = frontSeatsX - 26;
+  const ipDepth = Math.max(26, Math.abs(dashFaceX - cowlX));
   const ipHeight = 12;
   const ipWidth = cabinWidth - 8;
   const ipCenterX = (cowlX + dashFaceX) / 2;
@@ -1829,7 +1829,7 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   // Sculpted Instrument Cluster Binnacle
   const binnacleGeo = new THREE.BoxGeometry(12, 6.5, 20);
   const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
-  binnacle.position.set(dashFaceX - 6, ipCenterY + 7.5, driverZ);
+  binnacle.position.set(dashFaceX - 5, ipCenterY + 7.5, driverZ);
   cockpitGroup.add(binnacle);
 
   // Glowing Digital Virtual Cockpit Display
@@ -1867,12 +1867,12 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   cockpitGroup.add(armrest);
 
   // Sport 3-Spoke Steering Wheel positioned in front of driver
-  const wheelX = dashFaceX + 8;
+  const wheelX = frontSeatsX - 20;
   const wheelY = ipCenterY + 4.5;
-  const columnGeo = new THREE.CylinderGeometry(2.2, 2.5, 12, 16);
+  const columnGeo = new THREE.CylinderGeometry(2.2, 2.5, 9, 16);
   const column = new THREE.Mesh(columnGeo, dashMat);
   column.rotation.z = -Math.PI / 4;
-  column.position.set(wheelX - 4.5, wheelY - 3.5, driverZ);
+  column.position.set(wheelX - 4.0, wheelY - 3.0, driverZ);
   cockpitGroup.add(column);
 
   const steerGroup = new THREE.Group();
@@ -2025,12 +2025,14 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const windshieldRun = isSaloon ? 44 : (isSUV ? 38 : (isEstate ? 40 : 38));
   const roofFrontX = cowlX + windshieldRun;
 
-  // The dashboard sits directly at the base of the windshield (cowlX) and extends ~24 cm into the cabin
-  const ipDepth = 24;
-  const dashFaceX = cowlX + ipDepth;
-
-  // Front seats sit in the front cabin with natural ergonomic reach to the steering wheel (~34 cm behind dash)
-  const frontSeatsX = dashFaceX + 34;
+  // AUTHENTIC AUTOMOTIVE CABIN SEATING PACKAGING:
+  // Rear seat backrest sits right at the cargo partition: rearHingeX = rearSillX - car.floor_length_seats_up
+  // Front seats are positioned with realistic couple distance (~31% of wheelbase, ~80-90 cm)
+  // This eliminates the unrealistic 1+ meter chasm between front and rear seats,
+  // providing realistic 26-34 cm rear legroom and allowing the folded cargo deck to meet the front seatbacks flush!
+  const rearHingeX = rearSillX - car.floor_length_seats_up;
+  const coupleDist = Math.max(78, Math.min(94, Math.round(car.wheelbase * 0.31)));
+  const frontSeatsX = rearHingeX - coupleDist;
   const cargoBedFrontX = rearSillX - currentFloorLen;
 
   let roofRearX, deckFrontX;
@@ -2851,7 +2853,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const rearBolsterMat = new THREE.MeshStandardMaterial({ color: 0x0c1320, roughness: 0.85 });
   const carpetBackMat = new THREE.MeshStandardMaterial({ color: 0x162234, roughness: 0.90 });
   const chromeMatLocal = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.92, roughness: 0.14 });
-  const rearHingeX = rearSillX - car.floor_length_seats_up;
   const rearSeatWidth = cabinWidth - 6;
 
   if (seatsFolded) {

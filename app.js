@@ -1959,6 +1959,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const cabinWidth = totalCarWidth * 0.84;
   const archW = car.wheel_arch_width;
   const roofH = car.roof_height;
+  const apWidth = car.aperture_width;
+  const apHeight = car.aperture_height;
   const bodyType = car.body_type;
   let currentFloorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
 
@@ -2121,10 +2123,10 @@ function update3DStudio(car, seatsFolded, fitResult) {
   });
 
   const taillampMat = new THREE.MeshStandardMaterial({
-    color: 0xd91e2e, // Deep automotive ruby red
-    emissive: 0x991b1b,
-    emissiveIntensity: 0.75,
-    roughness: 0.22,
+    color: 0x991b1b, // Deep automotive ruby red
+    emissive: 0x7f1d1d,
+    emissiveIntensity: 0.40,
+    roughness: 0.35,
     metalness: 0.1
   });
 
@@ -2179,6 +2181,29 @@ function update3DStudio(car, seatsFolded, fitResult) {
   noseDrop.rotation.z = noseDropSlope;
   addCadEdges(noseDrop, 0x38bdf8);
   car3DGroup.add(noseDrop);
+
+  // Front Wings / Fender Top Shelves & Brow Panels (Eliminates bonnet shutline gaps to outer flanks)
+  [-1, 1].forEach(side => {
+    // 1. Main Fender Top Shelf (cowlX to noseBreakX along main bonnet slope)
+    const wingWidth = Math.max(2, (totalCarWidth / 2) - (mainHoodAvgWidth / 2));
+    const wingCenterZ = side * ((mainHoodAvgWidth / 2) + (wingWidth / 2));
+    const wingTopGeo = new THREE.BoxGeometry(mainHoodLen, 2.2, wingWidth);
+    const wingTop = new THREE.Mesh(wingTopGeo, bodyPaintMat);
+    wingTop.position.set((cowlX + noseBreakX) / 2, ((cowlY - 1) + noseTopY) / 2, wingCenterZ);
+    wingTop.rotation.z = mainHoodSlope;
+    addCadEdges(wingTop, 0x38bdf8);
+    car3DGroup.add(wingTop);
+
+    // 2. Front Fender Brow / Cap above Headlights (noseBreakX to carFrontX + 2)
+    const browWidth = Math.max(2, (totalCarWidth / 2) - (mainHoodWidthFront / 2));
+    const browCenterZ = side * ((mainHoodWidthFront / 2) + (browWidth / 2));
+    const browGeo = new THREE.BoxGeometry(noseDropLen, 2.2, browWidth);
+    const brow = new THREE.Mesh(browGeo, bodyPaintMat);
+    brow.position.set((noseBreakX + carFrontX + 2) / 2, (noseTopY + (noseTopY - 9)) / 2, browCenterZ);
+    brow.rotation.z = noseDropSlope;
+    addCadEdges(brow, 0x38bdf8);
+    car3DGroup.add(brow);
+  });
 
   // Recessed Cowl Plenum Tray & Wiper Arms at base of windshield
   const cowlPlenumGeo = new THREE.BoxGeometry(7, 2.2, cabinWidth - 4);
@@ -2281,16 +2306,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
   [-1, 1].forEach(side => {
     const headGroup = new THREE.Group();
     const headZ = side * ((totalCarWidth / 2) - 15);
-    headGroup.position.set(carFrontX + 6, noseTopY - 2, headZ);
+    headGroup.position.set(carFrontX + 6, noseTopY - 5.5, headZ);
     headGroup.rotation.y = side * -0.24; // Swept back along fender curve
 
     // Outer Aerodynamic Clear Polycarbonate Lens
-    const lensGeo = new THREE.BoxGeometry(14, 7, 22);
+    const lensGeo = new THREE.BoxGeometry(14, 5.0, 22);
     const lens = new THREE.Mesh(lensGeo, glassMat);
     headGroup.add(lens);
 
     // Dark Inner Projector Housing
-    const housingGeo = new THREE.BoxGeometry(11, 6, 20);
+    const housingGeo = new THREE.BoxGeometry(11, 4.2, 20);
     const housing = new THREE.Mesh(housingGeo, trimMat);
     housing.position.set(-1, 0, 0);
     headGroup.add(housing);
@@ -2423,6 +2448,27 @@ function update3DStudio(car, seatsFolded, fitResult) {
   rightFlank.position.z = -(totalCarWidth / 2);
   addCadEdges(rightFlank, 0x38bdf8);
   car3DGroup.add(rightFlank);
+
+  // Continuous Beltline Shoulders & Rear Haunches (Connecting side glass line to outer flanks)
+  [-1, 1].forEach(side => {
+    // 1. Door Beltline Shoulder (from cowlX to rearWheelX)
+    const doorShoulderLen = Math.abs(rearWheelX - cowlX);
+    const shoulderWidth = Math.max(2, (totalCarWidth / 2) - (cabinWidth / 2 - 2));
+    const shoulderCenterZ = side * ((cabinWidth / 2 - 2) + (shoulderWidth / 2));
+    const doorShoulderGeo = new THREE.BoxGeometry(doorShoulderLen, 2.2, shoulderWidth);
+    const doorShoulder = new THREE.Mesh(doorShoulderGeo, bodyPaintMat);
+    doorShoulder.position.set((cowlX + rearWheelX) / 2, beltY - 1.1, shoulderCenterZ);
+    addCadEdges(doorShoulder, 0x38bdf8);
+    car3DGroup.add(doorShoulder);
+
+    // 2. Rear Quarter Haunch Shoulder (from rearWheelX to rearSillX)
+    const haunchLen = Math.abs(rearSillX - rearWheelX);
+    const haunchGeo = new THREE.BoxGeometry(haunchLen, 2.2, shoulderWidth);
+    const haunch = new THREE.Mesh(haunchGeo, bodyPaintMat);
+    haunch.position.set((rearWheelX + rearSillX) / 2, beltY - 1.1, shoulderCenterZ);
+    addCadEdges(haunch, 0x38bdf8);
+    car3DGroup.add(haunch);
+  });
 
   // Sculpted Rocker Panel Sill between wheels (flush with flank)
   [-wheelZOffset, wheelZOffset - 3].forEach(zPos => {
@@ -2762,6 +2808,32 @@ function update3DStudio(car, seatsFolded, fitResult) {
   addCadEdges(rearBumperMesh, 0x38bdf8);
   car3DGroup.add(rearBumperMesh);
 
+  // Rear Quarter Corner Panels & Body-Mounted Outer Taillights (Framing tailgate aperture and closing rear voids)
+  const halfTailgateW = (isSaloon ? (totalCarWidth - 14) : (cabinWidth - 6)) / 2;
+  const cornerSpanX = Math.max(4, rearBumperX - rearSillX);
+  const cornerSpanY = Math.max(4, beltY - (sillY + 4));
+  const cornerDiag = Math.hypot(cornerSpanX, cornerSpanY);
+  const cornerAngle = Math.atan2(cornerSpanY, cornerSpanX);
+
+  [-1, 1].forEach(side => {
+    const cornerWidth = Math.max(2, (totalCarWidth / 2) - halfTailgateW);
+    const cornerCenterZ = side * (halfTailgateW + (cornerWidth / 2));
+
+    const cornerGeo = new THREE.BoxGeometry(cornerDiag, 2.8, cornerWidth);
+    const cornerMesh = new THREE.Mesh(cornerGeo, bodyPaintMat);
+    cornerMesh.position.set((rearSillX + rearBumperX) / 2, ((sillY + 4) + beltY) / 2, cornerCenterZ);
+    cornerMesh.rotation.z = -cornerAngle;
+    addCadEdges(cornerMesh, 0x38bdf8);
+    car3DGroup.add(cornerMesh);
+
+    // Body-Mounted Outer Taillight Clusters (Stay on body when tailgate opens)
+    const lampGeo = new THREE.BoxGeometry(cornerDiag * 0.42, 2.0, Math.max(3, cornerWidth - 3));
+    const lampMesh = new THREE.Mesh(lampGeo, taillampMat);
+    lampMesh.position.set((rearSillX + rearBumperX) / 2 + 1.2, ((sillY + 4) + beltY) / 2 + 0.6, cornerCenterZ);
+    lampMesh.rotation.z = -cornerAngle;
+    car3DGroup.add(lampMesh);
+  });
+
   // Lower Rear Diffuser / Valance with twin chrome exhaust tips
   const diffuserGeo = new THREE.BoxGeometry(10, 5, totalCarWidth * 0.65);
   const diffuserMesh = new THREE.Mesh(diffuserGeo, isSUV ? claddingMat : trimMat);
@@ -2778,8 +2850,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   // 11. APERTURE CAD BOUNDARY GATE (Intelligent Ingress Indicator)
   // Shows the loading clearance portal when actively inspecting entrance or when colliding!
-  const apWidth = car.aperture_width;
-  const apHeight = car.aperture_height;
   const isApertureColliding = fitResult && fitResult.ingress && !fitResult.ingress.canEnter;
   const isIngressMode = activeAngleMode === 'ingress';
 
@@ -2868,6 +2938,35 @@ function update3DStudio(car, seatsFolded, fitResult) {
   rightTub.position.set(rearWheelX, sillY + 1.2, -tubZ);
   car3DGroup.add(leftTub);
   car3DGroup.add(rightTub);
+
+  // Interior Boot Trim Carpet Side Liners & Floor Trays (Seamlessly seals cargo compartment)
+  const sideLinerMat = new THREE.MeshStandardMaterial({
+    color: 0x121b2b,
+    roughness: 0.90,
+    transparent: isGhost,
+    opacity: isGhost ? 0.65 : 1.0
+  });
+
+  [-1, 1].forEach(side => {
+    // 1. Boot Floor Side Tray (behind wheel arches from rearWheelX + tubRadius to rearSillX)
+    const trayLen = Math.max(4, rearSillX - (rearWheelX + tubRadius));
+    const trayWidth = Math.max(2, halfTailgateW - (archW / 2));
+    const trayCenterZ = side * ((archW / 2) + (trayWidth / 2));
+    const trayGeo = new THREE.BoxGeometry(trayLen, 2.5, trayWidth);
+    const trayMesh = new THREE.Mesh(trayGeo, bootFloorMat);
+    trayMesh.position.set(rearSillX - (trayLen / 2), sillY + 1.25, trayCenterZ);
+    car3DGroup.add(trayMesh);
+
+    // 2. Vertical Boot Interior Carpet Side Wall (from cargo bed front to rearSillX, sillY to beltY)
+    const wallHeight = Math.max(10, beltY - (sillY + 1.25));
+    const wallLen = currentFloorLen;
+    const wallZ = side * halfTailgateW;
+    const wallGeo = new THREE.BoxGeometry(wallLen, wallHeight, 2.0);
+    const wallMesh = new THREE.Mesh(wallGeo, sideLinerMat);
+    wallMesh.position.set(rearSillX - (wallLen / 2), sillY + 1.25 + (wallHeight / 2), wallZ);
+    // Note: Rendered with clean carpet material and NO wireframe lines to blend seamlessly into interior
+    car3DGroup.add(wallMesh);
+  });
 
 
 

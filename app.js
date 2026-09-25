@@ -2643,21 +2643,9 @@ function update3DStudio(car, seatsFolded, fitResult) {
     });
   }
 
-  // 10. TOGGLEABLE REAR BOOT / TAILGATE ASSEMBLY & SOLID REAR BODYWORK
+  // 10. TOGGLEABLE REAR BOOT / TAILGATE ASSEMBLY
   tailgatePivot = new THREE.Group();
   const openAngle = getOpenTailgateAngle(bodyType);
-
-  const apWidth = car.aperture_width;
-  const apHeight = car.aperture_height;
-
-  // Realistic automotive tailgate door width:
-  // Covers the aperture opening plus a realistic 4 cm overlap on each side for shut lines & weatherseals.
-  // In a real car, the tailgate NEVER stretches across the entire outer car width!
-  const hatchDoorW = isSaloon 
-    ? Math.min(cabinWidth - 6, apWidth + 10)
-    : Math.min(cabinWidth - 6, apWidth + 8);
-
-  const tailLampY = beltY - 2.5;
 
   if (isSaloon) {
     // SALOON NOTCHBACK SPECIFICS:
@@ -2683,57 +2671,29 @@ function update3DStudio(car, seatsFolded, fitResult) {
     tailgatePivot.position.set(deckFrontX, beltY, 0);
 
     const trunkLen = Math.abs(rearSillX - deckFrontX);
-    const trunkLidGeo = new THREE.BoxGeometry(trunkLen, 2.5, hatchDoorW);
+    const trunkLidGeo = new THREE.BoxGeometry(trunkLen, 2.5, totalCarWidth - 14);
     const trunkLid = new THREE.Mesh(trunkLidGeo, bodyPaintMat);
     trunkLid.position.set(trunkLen / 2, 0, 0);
     addCadEdges(trunkLid, 0x38bdf8);
     tailgatePivot.add(trunkLid);
 
     const rearFaceHeight = Math.abs(beltY - (sillY + 4));
-    const rearFaceGeo = new THREE.BoxGeometry(3, rearFaceHeight, hatchDoorW - 2);
+    const rearFaceGeo = new THREE.BoxGeometry(3, rearFaceHeight, totalCarWidth - 18);
     const rearFace = new THREE.Mesh(rearFaceGeo, bodyPaintMat);
     rearFace.position.set(trunkLen, -(rearFaceHeight / 2), 0);
     tailgatePivot.add(rearFace);
 
-    const tailBarGeo = new THREE.BoxGeometry(4, 5, hatchDoorW - 4);
+    const tailBarGeo = new THREE.BoxGeometry(4, 5, totalCarWidth - 22);
     const tailBar = new THREE.Mesh(tailBarGeo, taillampMat);
-    tailBar.position.set(trunkLen + 1, -2.5, 0);
+    tailBar.position.set(trunkLen + 1, -2, 0);
     tailgatePivot.add(tailBar);
 
     [-1, 1].forEach(side => {
       const hingeGeo = new THREE.CylinderGeometry(1.2, 1.2, 18, 12);
       const hinge = new THREE.Mesh(hingeGeo, chromeMat);
-      hinge.position.set(6, -6, side * ((hatchDoorW / 2) - 4));
+      hinge.position.set(6, -6, side * ((archW / 2) + 2));
       hinge.rotation.z = 0.5;
       tailgatePivot.add(hinge);
-    });
-
-    // Saloon Fixed Rear Fenders & Outer Taillights flanking the trunk lid:
-    [-1, 1].forEach(side => {
-      const qInnerZ = side * (hatchDoorW / 2);
-      const qOuterZ = side * ((totalCarWidth / 2) - 2);
-      const qWidth = Math.abs(qOuterZ - qInnerZ);
-      const qCenterZ = (qInnerZ + qOuterZ) / 2;
-
-      // Rear Fender Deck Top
-      const qDeckGeo = new THREE.BoxGeometry(trunkLen, 2.5, qWidth - 0.5);
-      const qDeck = new THREE.Mesh(qDeckGeo, bodyPaintMat);
-      qDeck.position.set((deckFrontX + rearSillX) / 2, beltY - 1.25, qCenterZ);
-      addCadEdges(qDeck, 0x38bdf8);
-      car3DGroup.add(qDeck);
-
-      // Rear Fender Rear Face
-      const qFaceGeo = new THREE.BoxGeometry(3, rearFaceHeight, qWidth - 0.5);
-      const qFace = new THREE.Mesh(qFaceGeo, bodyPaintMat);
-      qFace.position.set(rearSillX, beltY - (rearFaceHeight / 2), qCenterZ);
-      addCadEdges(qFace, 0x38bdf8);
-      car3DGroup.add(qFace);
-
-      // Outer Taillight Assembly (Seamlessly meets trunk lid lamp when closed)
-      const outerTailGeo = new THREE.BoxGeometry(4.5, 5.0, Math.max(8, qWidth - 3));
-      const outerTail = new THREE.Mesh(outerTailGeo, taillampMat);
-      outerTail.position.set(rearSillX + 1, beltY - 2.5, qCenterZ);
-      car3DGroup.add(outerTail);
     });
 
   } else {
@@ -2745,96 +2705,47 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const hatchDiagonal = Math.hypot(hatchSpanX, hatchSpanY);
     const hatchAngle = Math.atan2(hatchSpanY, hatchSpanX);
 
-    // Roof Spoiler Lip (matching upper cabin profile)
-    const spoilerGeo = new THREE.BoxGeometry(isHatch ? 14 : 10, 3.5, hatchDoorW + 4);
+    // Roof Spoiler Lip
+    const spoilerGeo = new THREE.BoxGeometry(isHatch ? 14 : 10, 3.5, cabinWidth - 4);
     const spoiler = new THREE.Mesh(spoilerGeo, bodyPaintMat);
     spoiler.position.set(4, 1.5, 0);
     tailgatePivot.add(spoiler);
 
     // High 3rd Brake Light
-    const thirdBrakeGeo = new THREE.BoxGeometry(2, 2, Math.min(26, hatchDoorW - 16));
+    const thirdBrakeGeo = new THREE.BoxGeometry(2, 2, 28);
     const thirdBrake = new THREE.Mesh(thirdBrakeGeo, taillampMat);
     thirdBrake.position.set(8, 2.5, 0);
     tailgatePivot.add(thirdBrake);
 
-    // Hatch Upper / Lower Split Fractions (split at beltline crease)
-    const glassFraction = (roofTopY - beltY) / hatchSpanY;
-    const sheetFraction = 1 - glassFraction;
-
     // Rear Hatch Window (Glass)
-    const glassLen = hatchDiagonal * glassFraction;
-    const rearHatchGlassGeo = new THREE.BoxGeometry(glassLen, 1.8, hatchDoorW - 2);
+    const glassLen = hatchDiagonal * (isEstate ? 0.58 : 0.52);
+    const rearHatchGlassGeo = new THREE.BoxGeometry(glassLen, 1.8, cabinWidth - 8);
     const rearHatchGlass = new THREE.Mesh(rearHatchGlassGeo, glassMat);
-    rearHatchGlass.position.set(
-      (hatchSpanX * glassFraction) / 2,
-      -(hatchSpanY * glassFraction) / 2,
-      0
-    );
+    rearHatchGlass.position.set(hatchSpanX * 0.28, -hatchSpanY * 0.28, 0);
     rearHatchGlass.rotation.z = -hatchAngle;
     tailgatePivot.add(rearHatchGlass);
 
-    // Lower Tailgate Sheet Metal (fits tight to the aperture shutlines!)
-    const sheetLen = hatchDiagonal * sheetFraction;
-    const sheetGeo = new THREE.BoxGeometry(sheetLen, 3.0, hatchDoorW);
+    // Lower Tailgate Sheet Metal (sleek, authentic full-width hatch)
+    const sheetLen = hatchDiagonal * (isEstate ? 0.42 : 0.48);
+    const sheetGeo = new THREE.BoxGeometry(sheetLen, 3.0, cabinWidth - 6);
     const sheet = new THREE.Mesh(sheetGeo, bodyPaintMat);
-    sheet.position.set(
-      hatchSpanX * (glassFraction + sheetFraction / 2),
-      -hatchSpanY * (glassFraction + sheetFraction / 2),
-      0
-    );
+    sheet.position.set(hatchSpanX * 0.74, -hatchSpanY * 0.74, 0);
     sheet.rotation.z = -hatchAngle;
     addCadEdges(sheet, 0x38bdf8);
     tailgatePivot.add(sheet);
 
-    // Ruby Taillight Lightbar on Tailgate:
-    // Positioned precisely at the beltline crease (glassFraction along hatch) so it lines up with outer taillights!
-    const tailBarGeo = new THREE.BoxGeometry(4.5, 5.0, hatchDoorW - 4);
+    // Ruby Taillight Lightbar
+    const tailBarGeo = new THREE.BoxGeometry(4, 5, cabinWidth - 10);
     const tailBar = new THREE.Mesh(tailBarGeo, taillampMat);
-    tailBar.position.set(
-      hatchSpanX * glassFraction + 1.5,
-      -(roofTopY - tailLampY),
-      0
-    );
+    tailBar.position.set(hatchSpanX - 2, -hatchSpanY + 4, 0);
     tailgatePivot.add(tailBar);
 
     // Tailgate Hinge Mounting Brackets
     [-1, 1].forEach(side => {
       const hingeGeo = new THREE.BoxGeometry(8, 3.5, 3.2);
       const hinge = new THREE.Mesh(hingeGeo, trimMat);
-      hinge.position.set(0, -1, side * ((hatchDoorW / 2) - 4));
+      hinge.position.set(0, -1, side * ((cabinWidth / 2) - 4));
       tailgatePivot.add(hinge);
-    });
-
-    // SOLID REAR CORNER FENDERS & OUTER TAILLIGHTS (Fixed on car body!)
-    // These enclose the car's rear shoulders and house the outer rear lamps, exactly like a real car!
-    [-1, 1].forEach(side => {
-      const qInnerZ = side * (hatchDoorW / 2);
-      const qOuterZ = side * ((totalCarWidth / 2) - 2);
-      const qWidth = Math.abs(qOuterZ - qInnerZ);
-      const qCenterZ = (qInnerZ + qOuterZ) / 2;
-      const qDepth = Math.max(10, rearBumperX - rearSillX + 2);
-      const lowerQHeight = Math.abs(beltY - (sillY + 2));
-
-      // 1. Lower Rear Corner Fender (haunch below beltline)
-      const lowerQGeo = new THREE.BoxGeometry(qDepth, lowerQHeight, qWidth - 0.5);
-      const lowerQMesh = new THREE.Mesh(lowerQGeo, bodyPaintMat);
-      lowerQMesh.position.set((rearSillX + rearBumperX) / 2, (sillY + 2) + (lowerQHeight / 2), qCenterZ);
-      addCadEdges(lowerQMesh, 0x38bdf8);
-      car3DGroup.add(lowerQMesh);
-
-      // 2. Upper D/C Pillar Rear Return (framing the rear window)
-      const upperQHeight = Math.abs(roofTopY - beltY - 2);
-      const upperQGeo = new THREE.BoxGeometry(Math.max(8, Math.abs(rearSillX - roofRearX) * 0.75), upperQHeight, qWidth * 0.75);
-      const upperQMesh = new THREE.Mesh(upperQGeo, bodyPaintMat);
-      upperQMesh.position.set((roofRearX + rearSillX) / 2, beltY + (upperQHeight / 2), qCenterZ);
-      addCadEdges(upperQMesh, 0x38bdf8);
-      car3DGroup.add(upperQMesh);
-
-      // 3. Sculpted Outer Taillight Assembly (Fixed on body, aligns seamlessly with tailgate lightbar when shut)
-      const outerTailGeo = new THREE.BoxGeometry(4.5, 5.0, Math.max(8, qWidth - 3));
-      const outerTail = new THREE.Mesh(outerTailGeo, taillampMat);
-      outerTail.position.set(rearBumperX - 1, tailLampY, qCenterZ);
-      car3DGroup.add(outerTail);
     });
   }
 
@@ -2865,9 +2776,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
     car3DGroup.add(exhaust);
   });
 
-  // 11. APERTURE CAD BOUNDARY PORTAL & SURROUND
-  // Tailgate door opening aperture jamb & weatherseal surround
+  // 11. APERTURE CAD BOUNDARY GATE (Intelligent Ingress Indicator)
+  // Shows the loading clearance portal when actively inspecting entrance or when colliding!
+  const apWidth = car.aperture_width;
+  const apHeight = car.aperture_height;
   const isApertureColliding = fitResult && fitResult.ingress && !fitResult.ingress.canEnter;
+  const isIngressMode = activeAngleMode === 'ingress';
 
   const apSpanX = Math.abs(rearSillX - roofRearX);
   const apSpanY = Math.max(1, roofTopY - (sillY + 2.0));
@@ -2877,69 +2791,42 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const apCenterX = rearSillX - apCenterDist * Math.sin(apTilt);
   const apCenterY = (sillY + 2.0) + apCenterDist * Math.cos(apTilt);
 
-  // Finished Tailgate Jamb / Weatherstripping (surrounds the aperture)
-  [-1, 1].forEach(side => {
-    const jambPostGeo = new THREE.BoxGeometry(2.5, apHeight + 2, 2.5);
-    const jambPost = new THREE.Mesh(jambPostGeo, trimMat);
-    jambPost.position.set(apCenterX, apCenterY, side * ((apWidth / 2) + 1.25));
-    jambPost.rotation.z = apTilt;
-    car3DGroup.add(jambPost);
-  });
-
-  const headerJambGeo = new THREE.BoxGeometry(2.5, 2.5, apWidth + 4);
-  const headerJamb = new THREE.Mesh(headerJambGeo, trimMat);
-  headerJamb.position.set(rearSillX - apHeight * Math.sin(apTilt), (sillY + 2.0) + apHeight * Math.cos(apTilt), 0);
-  car3DGroup.add(headerJamb);
-
-  // Aperture CAD Loading Clearance Portal:
-  // Sleek laser boundary frame that directly highlights the loading gateway!
-  const apFrameMat = new THREE.LineBasicMaterial({
-    color: isApertureColliding ? 0xef4444 : 0x38bdf8,
-    linewidth: 2.5
-  });
-  
-  // 4-Point Raked Perimeter Line of the opening portal
-  const apPoints = [
-    new THREE.Vector3(0, -apHeight / 2, -apWidth / 2),
-    new THREE.Vector3(0, -apHeight / 2, apWidth / 2),
-    new THREE.Vector3(0, apHeight / 2, apWidth / 2),
-    new THREE.Vector3(0, apHeight / 2, -apWidth / 2)
-  ];
-  const apGeo = new THREE.BufferGeometry().setFromPoints(apPoints);
-  const apLine = new THREE.LineLoop(apGeo, apFrameMat);
-  apLine.position.set(apCenterX, apCenterY, 0);
-  apLine.rotation.z = apTilt;
-  car3DGroup.add(apLine);
-
-  // Corner CAD Target Reticles for loading precision
-  [-1, 1].forEach(sy => {
-    [-1, 1].forEach(sz => {
-      const cornerGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, sy * (apHeight / 2), sz * ((apWidth / 2) - 6)),
-        new THREE.Vector3(0, sy * (apHeight / 2), sz * (apWidth / 2)),
-        new THREE.Vector3(0, sy * ((apHeight / 2) - 6), sz * (apWidth / 2))
-      ]);
-      const cornerLine = new THREE.Line(cornerGeo, apFrameMat);
-      cornerLine.position.set(apCenterX, apCenterY, 0);
-      cornerLine.rotation.z = apTilt;
-      car3DGroup.add(cornerLine);
+  // Display the aperture frame only when colliding or in Boot View:
+  // This completely eliminates the awkward 'huge bezels' wireframe box when an item fits easily!
+  if (isApertureColliding || isIngressMode) {
+    const apFrameMat = new THREE.LineBasicMaterial({
+      color: isApertureColliding ? 0xef4444 : 0x38bdf8,
+      linewidth: 2.5
     });
-  });
+    
+    // 4-Point raked perimeter line flush at entrance
+    const apPoints = [
+      new THREE.Vector3(0, -apHeight / 2, -apWidth / 2),
+      new THREE.Vector3(0, -apHeight / 2, apWidth / 2),
+      new THREE.Vector3(0, apHeight / 2, apWidth / 2),
+      new THREE.Vector3(0, apHeight / 2, -apWidth / 2)
+    ];
+    const apGeo = new THREE.BufferGeometry().setFromPoints(apPoints);
+    const apLine = new THREE.LineLoop(apGeo, apFrameMat);
+    apLine.position.set(apCenterX, apCenterY, 0);
+    apLine.rotation.z = apTilt;
+    car3DGroup.add(apLine);
 
-  if (isApertureColliding) {
-    // Holographic warning barrier if cargo exceeds aperture
-    const barrierGeo = new THREE.PlaneGeometry(apWidth, apHeight);
-    const barrierMat = new THREE.MeshBasicMaterial({
-      color: 0xef4444,
-      transparent: true,
-      opacity: 0.22,
-      side: THREE.DoubleSide
-    });
-    const barrierMesh = new THREE.Mesh(barrierGeo, barrierMat);
-    barrierMesh.position.set(apCenterX, apCenterY, 0);
-    barrierMesh.rotation.y = Math.PI / 2;
-    barrierMesh.rotation.x = apTilt;
-    car3DGroup.add(barrierMesh);
+    if (isApertureColliding) {
+      // Semi-transparent red laser collision barrier
+      const barrierGeo = new THREE.PlaneGeometry(apWidth, apHeight);
+      const barrierMat = new THREE.MeshBasicMaterial({
+        color: 0xef4444,
+        transparent: true,
+        opacity: 0.22,
+        side: THREE.DoubleSide
+      });
+      const barrierMesh = new THREE.Mesh(barrierGeo, barrierMat);
+      barrierMesh.position.set(apCenterX, apCenterY, 0);
+      barrierMesh.rotation.y = Math.PI / 2;
+      barrierMesh.rotation.x = apTilt;
+      car3DGroup.add(barrierMesh);
+    }
   }
 
   // 12. INTERIOR CARGO BAY, COCKPIT & SEATING ARCHITECTURE
@@ -2982,16 +2869,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(leftTub);
   car3DGroup.add(rightTub);
 
-  // Carpeted Boot Side Enclosure Trim (lining the boot between wheel arch tubs and tailgate opening)
-  [-1, 1].forEach(side => {
-    const wallStart = rearWheelX + tubRadius;
-    const wallLen = Math.max(8, Math.abs(rearSillX - 2 - wallStart));
-    const wallHeight = Math.abs(beltY - (sillY + 1.25));
-    const bootSideWallGeo = new THREE.BoxGeometry(wallLen, wallHeight, 1.8);
-    const bootSideWall = new THREE.Mesh(bootSideWallGeo, bootFloorMat);
-    bootSideWall.position.set(wallStart + (wallLen / 2), (sillY + 1.25) + (wallHeight / 2), side * (innerArchZ + 0.9));
-    car3DGroup.add(bootSideWall);
-  });
+
 
   // Front Bucket Seats (UK Right Hand Drive: Driver at -Z, Passenger at +Z)
   const seatZOffset = (totalCarWidth / 4) - 6;

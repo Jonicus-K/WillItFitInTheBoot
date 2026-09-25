@@ -2431,6 +2431,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
     // B-Pillar (Piano Black vertical post)
     const bHeight = roofTopY - beltY - 3;
+    const winHeight = roofTopY - beltY - 5;
     const bPillarGeo = new THREE.BoxGeometry(5.5, bHeight, 3.2);
     const bPillar = new THREE.Mesh(bPillarGeo, pillarMat);
     bPillar.position.set(bPillarX, beltY + (bHeight / 2), zPos + 1.5);

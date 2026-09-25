@@ -1647,26 +1647,85 @@ function createWheel3D(radius = 30, width = 22, isSUV = false) {
 }
 
 /**
- * Creates front bucket seats with realistic contours, bolsters and headrests.
+ * Creates authentic front bucket seats with ergonomic contouring, lateral bolsters,
+ * elevated seat base pedestal, and adjustable headrest on chrome support posts.
  */
-function createSeat3D(width = 44, backHeight = 42) {
+function createSeat3D(width = 44) {
   const seatGroup = new THREE.Group();
-  const seatMat = new THREE.MeshStandardMaterial({ color: 0x121b2b, roughness: 0.8 });
+  const seatMat = new THREE.MeshStandardMaterial({ color: 0x121b2b, roughness: 0.75 });
+  const bolsterMat = new THREE.MeshStandardMaterial({ color: 0x0c1320, roughness: 0.85 });
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.12 });
 
-  const cushionGeo = new THREE.BoxGeometry(38, 8, width);
+  // 1. Lower Seat Mounting Pedestal & Slider Rails (raising seat from bare floor pan)
+  const riserHeight = 16;
+  const riserGeo = new THREE.BoxGeometry(34, riserHeight, width - 6);
+  const riser = new THREE.Mesh(riserGeo, bolsterMat);
+  riser.position.set(0, riserHeight / 2, 0);
+  seatGroup.add(riser);
+
+  // Twin Chrome Seat Slider Runner Rails
+  [-1, 1].forEach(side => {
+    const railGeo = new THREE.BoxGeometry(38, 2.5, 2.5);
+    const rail = new THREE.Mesh(railGeo, chromeMat);
+    rail.position.set(0, 1.25, side * ((width / 2) - 4));
+    seatGroup.add(rail);
+  });
+
+  // 2. Sculpted Ergonomic Seat Cushion (thigh support + lateral thigh bolsters)
+  const cushionThick = 9;
+  const cushionY = riserHeight + (cushionThick / 2);
+  const cushionGeo = new THREE.BoxGeometry(40, cushionThick, width - 4);
   const cushion = new THREE.Mesh(cushionGeo, seatMat);
-  cushion.position.y = 4;
+  cushion.position.set(1, cushionY, 0);
   seatGroup.add(cushion);
 
-  const backGeo = new THREE.BoxGeometry(10, backHeight, width - 4);
+  // Lateral Thigh Bolsters on Cushion
+  [-1, 1].forEach(side => {
+    const bolsterGeo = new THREE.BoxGeometry(38, 5, 4.5);
+    const bolster = new THREE.Mesh(bolsterGeo, bolsterMat);
+    bolster.position.set(1, cushionY + 3.5, side * ((width / 2) - 3.5));
+    seatGroup.add(bolster);
+  });
+
+  // 3. Ergonomic Sport Seat Back (tall 58 cm backrest with natural 11° recline)
+  const backHeight = 58;
+  const backThick = 10;
+  const backY = riserHeight + cushionThick + (backHeight / 2) - 2;
+  const backX = 14;
+
+  const backGeo = new THREE.BoxGeometry(backThick, backHeight, width - 6);
   const back = new THREE.Mesh(backGeo, seatMat);
-  back.position.set(13, (backHeight / 2) + 4, 0);
-  back.rotation.z = 0.1;
+  back.position.set(backX, backY, 0);
+  back.rotation.z = 0.12; // Natural 11° automotive driving recline
   seatGroup.add(back);
 
-  const headrestGeo = new THREE.BoxGeometry(8, 11, 18);
+  // Lateral Torso / Kidney Bolsters on Backrest
+  [-1, 1].forEach(side => {
+    const torsoBolsterGeo = new THREE.BoxGeometry(backThick + 2, backHeight * 0.75, 4.5);
+    const torsoBolster = new THREE.Mesh(torsoBolsterGeo, bolsterMat);
+    torsoBolster.position.set(backX - 1.5, backY - 4, side * ((width / 2) - 4.5));
+    torsoBolster.rotation.z = 0.12;
+    seatGroup.add(torsoBolster);
+  });
+
+  // 4. Adjustable Ergonomic Headrest on Dual Chrome Steel Posts
+  const headrestBaseY = riserHeight + cushionThick + backHeight - 2;
+  const headrestBaseX = backX + (backHeight * 0.12);
+
+  // Dual Chrome Steel Posts
+  [-6, 6].forEach(offsetZ => {
+    const postGeo = new THREE.CylinderGeometry(0.7, 0.7, 8, 12);
+    const post = new THREE.Mesh(postGeo, chromeMat);
+    post.position.set(headrestBaseX + 0.5, headrestBaseY + 3, offsetZ);
+    post.rotation.z = 0.12;
+    seatGroup.add(post);
+  });
+
+  // Contoured Headrest Pillow
+  const headrestGeo = new THREE.BoxGeometry(9, 14, 22);
   const headrest = new THREE.Mesh(headrestGeo, seatMat);
-  headrest.position.set(17, backHeight + 11, 0);
+  headrest.position.set(headrestBaseX + 1.2, headrestBaseY + 8, 0);
+  headrest.rotation.z = 0.12;
   seatGroup.add(headrest);
 
   return seatGroup;
@@ -1777,15 +1836,22 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
 
   // Center Console Tunnel (running from dashboard center stack back between front seats)
   const tunnelLen = Math.max(16, Math.abs(frontSeatsX + 8 - dashFaceX));
-  const tunnelGeo = new THREE.BoxGeometry(tunnelLen, 9, 15);
+  const tunnelHeight = 20;
+  const tunnelGeo = new THREE.BoxGeometry(tunnelLen, tunnelHeight, 15);
   const tunnel = new THREE.Mesh(tunnelGeo, trimMat);
-  tunnel.position.set(dashFaceX + (tunnelLen / 2), cabinFloorY + 4.5, 0);
+  tunnel.position.set(dashFaceX + (tunnelLen / 2), cabinFloorY + (tunnelHeight / 2), 0);
   cockpitGroup.add(tunnel);
 
-  // Center Armrest between front seats
-  const armrestGeo = new THREE.BoxGeometry(16, 4, 14);
+  // Modern Electronic Drive Selector on Console Tunnel
+  const shifterGeo = new THREE.BoxGeometry(4.5, 4.0, 3.5);
+  const shifter = new THREE.Mesh(shifterGeo, dashMat);
+  shifter.position.set(dashFaceX + (tunnelLen * 0.45), cabinFloorY + tunnelHeight + 2, 0);
+  cockpitGroup.add(shifter);
+
+  // Center Armrest between front seats (cushioned, matching seat cushion level)
+  const armrestGeo = new THREE.BoxGeometry(18, 6, 14);
   const armrest = new THREE.Mesh(armrestGeo, dashMat);
-  armrest.position.set(frontSeatsX + 4, cabinFloorY + 10.5, 0);
+  armrest.position.set(frontSeatsX + 2, cabinFloorY + 24, 0);
   cockpitGroup.add(armrest);
 
   // Sport 3-Spoke Steering Wheel positioned in front of driver
@@ -2391,15 +2457,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
       rWin.position.set((bPillarX + cPillarX) / 2, beltY + (winHeight / 2) + 0.5, zPos + 1.5);
       car3DGroup.add(rWin);
 
-      // D-Pillar at rear tailgate corner
-      const dLen = Math.hypot(rearSillX - roofRearX, roofTopY - beltY);
-      const dAngle = Math.atan2(roofTopY - beltY, roofRearX - rearSillX);
-      const dPillarGeo = new THREE.BoxGeometry(dLen, 5.5, 3.5);
-      const dPillar = new THREE.Mesh(dPillarGeo, bodyPaintMat);
-      dPillar.position.set((roofRearX + rearSillX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
-      dPillar.rotation.z = -dAngle;
-      car3DGroup.add(dPillar);
-
       // Panoramic Rear Cargo Quarter Window
       const cargoWinWidth = Math.abs(roofRearX - cPillarX) - 6;
       const cargoWinGeo = new THREE.BoxGeometry(cargoWinWidth, winHeight - 2, 1.2);
@@ -2407,37 +2464,77 @@ function update3DStudio(car, seatsFolded, fitResult) {
       cargoWin.position.set((cPillarX + roofRearX) / 2, beltY + (winHeight / 2), zPos + 1.5);
       car3DGroup.add(cargoWin);
 
+      // D-Pillar at rear tailgate corner (slopes from rear sill up to roof cantrail)
+      const dSpanX = roofRearX - (rearSillX - 2);
+      const dSpanY = roofTopY - beltY;
+      const dLen = Math.hypot(dSpanX, dSpanY);
+      const dAngle = Math.atan2(dSpanY, dSpanX);
+      const dPillarGeo = new THREE.BoxGeometry(dLen, 6.0, 3.5);
+      const dPillar = new THREE.Mesh(dPillarGeo, bodyPaintMat);
+      dPillar.position.set((roofRearX + rearSillX - 2) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
+      dPillar.rotation.z = dAngle;
+      addCadEdges(dPillar, 0x38bdf8);
+      car3DGroup.add(dPillar);
+
     } else if (isSaloon) {
-      // Saloon: Sloping C-pillar down to trunk deck
-      const cLen = Math.hypot(deckFrontX - roofRearX, roofTopY - beltY);
-      const cAngle = Math.atan2(roofTopY - beltY, roofRearX - deckFrontX);
-      const cPillarGeo = new THREE.BoxGeometry(cLen, 5.5, 3.5);
+      // Saloon: Rear Door Window, Quarter Glass, and Fastback C-Pillar flowing down to trunk deck
+      const rWinWidth = Math.abs(rearWheelX - 4 - bPillarX) - 4;
+      const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
+      const rWin = new THREE.Mesh(rWinGeo, glassMat);
+      rWin.position.set((bPillarX + rearWheelX - 4) / 2, beltY + (winHeight / 2) + 0.5, zPos + 1.5);
+      car3DGroup.add(rWin);
+
+      // Rear Quarter Window (Hofmeister Kink)
+      const qWinWidth = Math.abs(deckFrontX - 3 - (rearWheelX - 4));
+      const qWinGeo = new THREE.BoxGeometry(qWinWidth, winHeight - 4, 1.2);
+      const qWin = new THREE.Mesh(qWinGeo, glassMat);
+      qWin.position.set((rearWheelX - 4 + deckFrontX - 3) / 2, beltY + (winHeight / 2) - 1, zPos + 1.5);
+      car3DGroup.add(qWin);
+
+      // C-Pillar: Flows gracefully from trunk deck base up to swept roofline
+      const cSpanX = roofRearX - deckFrontX;
+      const cSpanY = roofTopY - beltY;
+      const cLen = Math.hypot(cSpanX, cSpanY);
+      const cAngle = Math.atan2(cSpanY, cSpanX);
+      const cPillarGeo = new THREE.BoxGeometry(cLen, 6.0, 3.5);
       const cPillar = new THREE.Mesh(cPillarGeo, bodyPaintMat);
       cPillar.position.set((roofRearX + deckFrontX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
-      cPillar.rotation.z = -cAngle;
+      cPillar.rotation.z = cAngle;
+      addCadEdges(cPillar, 0x38bdf8);
       car3DGroup.add(cPillar);
-
-      const rWinWidth = Math.abs(deckFrontX - bPillarX) - 6;
-      const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
-      const rWin = new THREE.Mesh(rWinGeo, glassMat);
-      rWin.position.set((bPillarX + deckFrontX) / 2, beltY + (winHeight / 2) + 0.5, zPos + 1.5);
-      car3DGroup.add(rWin);
 
     } else {
-      // Hatchback / SUV
-      const cLen = Math.hypot(rearSillX - roofRearX, roofTopY - beltY);
-      const cAngle = Math.atan2(roofTopY - beltY, roofRearX - rearSillX);
-      const cPillarGeo = new THREE.BoxGeometry(cLen, 5.5, 3.5);
-      const cPillar = new THREE.Mesh(cPillarGeo, bodyPaintMat);
-      cPillar.position.set((roofRearX + rearSillX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
-      cPillar.rotation.z = -cAngle;
-      car3DGroup.add(cPillar);
-
-      const rWinWidth = Math.abs(roofRearX - bPillarX) - 6;
+      // Hatchback & SUV:
+      // Rear Passenger Door Window
+      const rearDoorEnd = isSUV ? (rearWheelX + 2) : (rearWheelX - 2);
+      const rWinWidth = Math.abs(rearDoorEnd - bPillarX) - 4;
       const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
       const rWin = new THREE.Mesh(rWinGeo, glassMat);
-      rWin.position.set((bPillarX + roofRearX) / 2, beltY + (winHeight / 2) + 0.5, zPos + 1.5);
+      rWin.position.set((bPillarX + rearDoorEnd) / 2, beltY + (winHeight / 2) + 0.5, zPos + 1.5);
       car3DGroup.add(rWin);
+
+      if (isSUV) {
+        // SUV Rear Quarter Window
+        const qWinWidth = Math.abs(roofRearX - 3 - rearDoorEnd);
+        const qWinGeo = new THREE.BoxGeometry(qWinWidth, winHeight - 3, 1.2);
+        const qWin = new THREE.Mesh(qWinGeo, glassMat);
+        qWin.position.set((rearDoorEnd + roofRearX - 3) / 2, beltY + (winHeight / 2) - 0.5, zPos + 1.5);
+        car3DGroup.add(qWin);
+      }
+
+      // Authentic C-Pillar (Signature solid broad C-pillar framing the greenhouse)
+      // Connects beltline above rear wheel arch up to the roof cantrail corner
+      const cBaseX = isSUV ? (roofRearX + 6) : (rearWheelX + 6);
+      const cSpanX = roofRearX - cBaseX;
+      const cSpanY = roofTopY - beltY;
+      const cLen = Math.hypot(cSpanX, cSpanY);
+      const cAngle = Math.atan2(cSpanY, cSpanX);
+      const cPillarGeo = new THREE.BoxGeometry(cLen, isHatch ? 10.5 : 6.5, 3.5);
+      const cPillar = new THREE.Mesh(cPillarGeo, bodyPaintMat);
+      cPillar.position.set((roofRearX + cBaseX) / 2, (beltY + roofTopY) / 2, zPos + 1.5);
+      cPillar.rotation.z = cAngle;
+      addCadEdges(cPillar, 0x38bdf8);
+      car3DGroup.add(cPillar);
     }
   });
 
@@ -2582,22 +2679,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
     tailBar.position.set(hatchSpanX - 2, -hatchSpanY + 4, 0);
     tailgatePivot.add(tailBar);
 
-    // Hydraulic Gas Struts
+    // Tailgate Hinge Mounting Brackets
     [-1, 1].forEach(side => {
-      const strutGroup = new THREE.Group();
-      const strutGeo = new THREE.CylinderGeometry(1.2, 1.2, 26, 12);
-      const strutMesh = new THREE.Mesh(strutGeo, trimMat);
-      strutMesh.position.set(hatchSpanX * 0.4, -hatchSpanY * 0.4, side * ((cabinWidth / 2) - 4));
-      strutMesh.rotation.z = -hatchAngle;
-      strutGroup.add(strutMesh);
-
-      const rodGeo = new THREE.CylinderGeometry(0.7, 0.7, 18, 12);
-      const rodMesh = new THREE.Mesh(rodGeo, chromeMat);
-      rodMesh.position.set(hatchSpanX * 0.4 - 4, -hatchSpanY * 0.4 + 4, side * ((cabinWidth / 2) - 4));
-      rodMesh.rotation.z = -hatchAngle;
-      strutGroup.add(rodMesh);
-
-      tailgatePivot.add(strutGroup);
+      const hingeGeo = new THREE.BoxGeometry(8, 3.5, 3.2);
+      const hinge = new THREE.Mesh(hingeGeo, trimMat);
+      hinge.position.set(0, -1, side * ((cabinWidth / 2) - 4));
+      tailgatePivot.add(hinge);
     });
   }
 

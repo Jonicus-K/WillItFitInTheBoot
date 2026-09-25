@@ -1687,46 +1687,58 @@ function createSeat3D(width = 44) {
     seatGroup.add(bolster);
   });
 
-  // 3. Ergonomic Sport Seat Back (tall 58 cm backrest with natural 11° recline)
-  const backHeight = 58;
-  const backThick = 10;
-  const backY = riserHeight + cushionThick + (backHeight / 2) - 2;
-  const backX = 14;
+  // 3. Ergonomic Sport Seat Back (tall 56 cm backrest with natural recline)
+  const backHeight = 56;
+  const backThick = 9.5;
+  const reclineAngle = -0.12; // Natural recline towards rear (+X)
+  const backBaseX = 8;
+  const backBaseY = riserHeight + cushionThick;
+
+  const backX = backBaseX + (backHeight / 2) * Math.sin(-reclineAngle);
+  const backY = backBaseY + (backHeight / 2) * Math.cos(-reclineAngle) - 1;
 
   const backGeo = new THREE.BoxGeometry(backThick, backHeight, width - 6);
   const back = new THREE.Mesh(backGeo, seatMat);
   back.position.set(backX, backY, 0);
-  back.rotation.z = 0.12; // Natural 11° automotive driving recline
+  back.rotation.z = reclineAngle;
   seatGroup.add(back);
 
   // Lateral Torso / Kidney Bolsters on Backrest
   [-1, 1].forEach(side => {
-    const torsoBolsterGeo = new THREE.BoxGeometry(backThick + 2, backHeight * 0.75, 4.5);
+    const torsoBolsterGeo = new THREE.BoxGeometry(backThick + 2, backHeight * 0.72, 4.5);
     const torsoBolster = new THREE.Mesh(torsoBolsterGeo, bolsterMat);
-    torsoBolster.position.set(backX - 1.5, backY - 4, side * ((width / 2) - 4.5));
-    torsoBolster.rotation.z = 0.12;
+    torsoBolster.position.set(backX - 1.0, backY - 3, side * ((width / 2) - 4.5));
+    torsoBolster.rotation.z = reclineAngle;
     seatGroup.add(torsoBolster);
   });
 
   // 4. Adjustable Ergonomic Headrest on Dual Chrome Steel Posts
-  const headrestBaseY = riserHeight + cushionThick + backHeight - 2;
-  const headrestBaseX = backX + (backHeight * 0.12);
+  // Positioned forward & flush with upper spine contour (not set back behind the backrest)
+  const backTopX = backBaseX + backHeight * Math.sin(-reclineAngle);
+  const backTopY = backBaseY + backHeight * Math.cos(-reclineAngle);
 
-  // Dual Chrome Steel Posts
-  [-6, 6].forEach(offsetZ => {
-    const postGeo = new THREE.CylinderGeometry(0.7, 0.7, 8, 12);
+  // Dual Chrome Steel Posts extending out of backrest top angled naturally
+  [-5, 5].forEach(offsetZ => {
+    const postGeo = new THREE.CylinderGeometry(0.7, 0.7, 5.5, 12);
     const post = new THREE.Mesh(postGeo, chromeMat);
-    post.position.set(headrestBaseX + 0.5, headrestBaseY + 3, offsetZ);
-    post.rotation.z = 0.12;
+    post.position.set(backTopX - 3.2, backTopY + 2.0, offsetZ);
+    post.rotation.z = -0.04;
     seatGroup.add(post);
   });
 
-  // Contoured Headrest Pillow
-  const headrestGeo = new THREE.BoxGeometry(9, 14, 22);
+  // Ergonomic Headrest Pillow (moved forward by 5 cm to comfortably cradle the head)
+  const headrestGeo = new THREE.BoxGeometry(8.5, 12.5, 21);
   const headrest = new THREE.Mesh(headrestGeo, seatMat);
-  headrest.position.set(headrestBaseX + 1.2, headrestBaseY + 8, 0);
-  headrest.rotation.z = 0.12;
+  headrest.position.set(backTopX - 5.2, backTopY + 5.5, 0);
+  headrest.rotation.z = -0.02; // Upright / slight forward ergonomic angle
   seatGroup.add(headrest);
+
+  // Soft Front Padded Cushion Face
+  const headPadGeo = new THREE.BoxGeometry(2.0, 10.5, 18);
+  const headPad = new THREE.Mesh(headPadGeo, bolsterMat);
+  headPad.position.set(backTopX - 9.0, backTopY + 5.5, 0);
+  headPad.rotation.z = -0.02;
+  seatGroup.add(headPad);
 
   return seatGroup;
 }
@@ -1892,17 +1904,18 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
 /**
  * Creates a rounded semi-cylindrical wheel arch tub for the interior cargo bay.
  */
-function createRoundedWheelArchTub(radius = 28, depth = 16) {
+function createRoundedWheelArchTub(radius = 22, depth = 16) {
   const tubGeo = new THREE.CylinderGeometry(radius, radius, depth, 24, 1, false, 0, Math.PI);
   const tubMat = new THREE.MeshStandardMaterial({
-    color: 0x152238,
-    roughness: 0.75,
-    metalness: 0.2,
+    color: 0x111c2c, // Dark anthracite carpeted boot lining
+    roughness: 0.88,
+    metalness: 0.08,
     side: THREE.DoubleSide
   });
   const tubMesh = new THREE.Mesh(tubGeo, tubMat);
-  tubMesh.rotation.z = Math.PI / 2; // Curve points UP
-  tubMesh.rotation.y = Math.PI / 2; // Aligned with car length
+  tubMesh.rotation.x = -Math.PI / 2; // Arches UP in +Y over axle
+  // Subtle carpet trim contour (soft darker tone, no bright glow through exterior flank)
+  addCadEdges(tubMesh, 0x1e3a5f, 32);
   return tubMesh;
 }
 
@@ -2122,20 +2135,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
     wheel.position.set(wx, wy, wz);
     if (wz < 0) wheel.rotation.y = Math.PI;
     car3DGroup.add(wheel);
-
-    // Dark Wheel Arch Well Liner (recessed inside wheel well)
-    const linerGeo = new THREE.CylinderGeometry(wheelArchR + 0.2, wheelArchR + 0.2, 14, 24, 1, true, 0, Math.PI);
-    const linerMat = new THREE.MeshStandardMaterial({
-      color: 0x05080f,
-      roughness: 0.96,
-      metalness: 0.04,
-      side: THREE.DoubleSide
-    });
-    const liner = new THREE.Mesh(linerGeo, linerMat);
-    liner.rotation.z = Math.PI / 2;
-    liner.rotation.y = Math.PI / 2;
-    liner.position.set(wx, wy, wz > 0 ? wz - 3 : wz + 3);
-    car3DGroup.add(liner);
   });
 
   // 2. SCULPTED AERODYNAMIC HOOD & NOSE CONE
@@ -2816,13 +2815,20 @@ function update3DStudio(car, seatsFolded, fitResult) {
   scuffPlate.position.set(rearSillX - 3, sillY + 2.0, 0);
   car3DGroup.add(scuffPlate);
 
-  // Interior Rounded Wheel Arch Tubs
-  const archThick = (totalCarWidth - archW) / 2;
-  const tubRadius = Math.max(18, Math.round(wheelArchR * 0.70));
-  const leftTub = createRoundedWheelArchTub(tubRadius, archThick);
-  leftTub.position.set(rearWheelX, sillY + 4, (archW / 2) + (archThick / 2));
-  const rightTub = createRoundedWheelArchTub(tubRadius, archThick);
-  rightTub.position.set(rearWheelX, sillY + 4, -((archW / 2) + (archThick / 2)));
+  // Interior Rounded Wheel Arch Tubs (framing the cargo bay strictly inside the boot)
+  // Guaranteed clear boundary: bounded strictly between archW/2 and the inner cabin trim
+  // NEVER reaches or overlaps the outer wheel face or tyre!
+  const innerArchZ = archW / 2;
+  const innerTyreZ = wheelZOffset - (wheelWidth / 2);
+  const maxOuterArchZ = Math.min((cabinWidth / 2) - 4, innerTyreZ - 3.0);
+  const tubThickness = Math.max(6, maxOuterArchZ - innerArchZ);
+  const tubRadius = Math.max(16, Math.min(24, Math.round(wheelArchR * 0.62)));
+  const tubZ = innerArchZ + (tubThickness / 2);
+
+  const leftTub = createRoundedWheelArchTub(tubRadius, tubThickness);
+  leftTub.position.set(rearWheelX, sillY + 1.2, tubZ);
+  const rightTub = createRoundedWheelArchTub(tubRadius, tubThickness);
+  rightTub.position.set(rearWheelX, sillY + 1.2, -tubZ);
   car3DGroup.add(leftTub);
   car3DGroup.add(rightTub);
 
@@ -2839,28 +2845,235 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const cockpit = createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloorY, totalCarWidth);
   car3DGroup.add(cockpit);
 
-  // Rear Folding Seats
+  // 13. REAR PASSENGER SEATS / FOLDED CARGO FLAT ARCHITECTURE
   const rearSeatGroup = new THREE.Group();
-  const rearSeatMat = new THREE.MeshStandardMaterial({ color: 0x111b2b, roughness: 0.75 });
+  const rearSeatMat = new THREE.MeshStandardMaterial({ color: 0x121b2b, roughness: 0.72 });
+  const rearBolsterMat = new THREE.MeshStandardMaterial({ color: 0x0c1320, roughness: 0.85 });
+  const carpetBackMat = new THREE.MeshStandardMaterial({ color: 0x162234, roughness: 0.90 });
+  const chromeMatLocal = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.92, roughness: 0.14 });
   const rearHingeX = rearSillX - car.floor_length_seats_up;
+  const rearSeatWidth = cabinWidth - 6;
 
   if (seatsFolded) {
-    const foldedLen = Math.max(30, currentFloorLen - car.floor_length_seats_up);
-    const foldedGeo = new THREE.BoxGeometry(foldedLen, 5, archW + 10);
-    const foldedMesh = new THREE.Mesh(foldedGeo, rearSeatMat);
-    foldedMesh.position.set(rearHingeX - (foldedLen / 2), sillY + 3.5, 0);
-    rearSeatGroup.add(foldedMesh);
+    // FOLDED REAR SEATS FLAT (60/40 Split Heavy-Duty Cargo Deck with Luggage Skid Rails)
+    const foldedLen = Math.max(34, currentFloorLen - car.floor_length_seats_up);
+    const foldedY = sillY + 3.2;
+    const split60Width = rearSeatWidth * 0.60;
+    const split40Width = rearSeatWidth * 0.40;
+    const splitGap = 1.0;
+
+    // 60% Left Folded Backrest (Passenger side, +Z)
+    const left60Geo = new THREE.BoxGeometry(foldedLen, 5.5, split60Width - splitGap);
+    const left60 = new THREE.Mesh(left60Geo, carpetBackMat);
+    const leftZ = (rearSeatWidth / 2) - (split60Width / 2);
+    left60.position.set(rearHingeX - (foldedLen / 2), foldedY, leftZ);
+    addCadEdges(left60, 0x38bdf8);
+    rearSeatGroup.add(left60);
+
+    // 40% Right Folded Backrest (Driver side, -Z)
+    const right40Geo = new THREE.BoxGeometry(foldedLen, 5.5, split40Width - splitGap);
+    const right40 = new THREE.Mesh(right40Geo, carpetBackMat);
+    const rightZ = -(rearSeatWidth / 2) + (split40Width / 2);
+    right40.position.set(rearHingeX - (foldedLen / 2), foldedY, rightZ);
+    addCadEdges(right40, 0x38bdf8);
+    rearSeatGroup.add(right40);
+
+    // Longitudinal Luggage Skid Rails (anti-scratch cargo ribs along deck floor)
+    [
+      -(rearSeatWidth / 2) + (split40Width * 0.3),
+      -(rearSeatWidth / 2) + (split40Width * 0.7),
+      (rearSeatWidth / 2) - (split60Width * 0.25),
+      (rearSeatWidth / 2) - (split60Width * 0.55),
+      (rearSeatWidth / 2) - (split60Width * 0.85)
+    ].forEach(ribZ => {
+      const ribGeo = new THREE.BoxGeometry(foldedLen - 10, 0.8, 1.8);
+      const rib = new THREE.Mesh(ribGeo, chromeMatLocal);
+      rib.position.set(rearHingeX - (foldedLen / 2), foldedY + 2.8, ribZ);
+      rearSeatGroup.add(rib);
+    });
+
+    // Chrome Seatback Split Latch Releases on Shoulder
+    [-split40Width / 2, split60Width / 2].forEach(offsetZ => {
+      const latchGeo = new THREE.BoxGeometry(4.5, 1.2, 5.0);
+      const latch = new THREE.Mesh(latchGeo, chromeMatLocal);
+      latch.position.set(rearHingeX - 4, foldedY + 3.0, offsetZ);
+      rearSeatGroup.add(latch);
+
+      // Red unlatched indicator flag
+      const redFlagGeo = new THREE.BoxGeometry(1.2, 0.5, 2.0);
+      const redFlag = new THREE.Mesh(redFlagGeo, new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+      redFlag.position.set(rearHingeX - 4, foldedY + 3.5, offsetZ);
+      rearSeatGroup.add(redFlag);
+    });
+
+    // Folded Headrests nestled at the front edge into passenger footwell
+    [-1, 1].forEach(side => {
+      const headFoldGeo = new THREE.BoxGeometry(8, 12, 18);
+      const headFold = new THREE.Mesh(headFoldGeo, rearSeatMat);
+      headFold.position.set(rearHingeX - foldedLen + 4, foldedY - 2.5, side * (rearSeatWidth * 0.28));
+      rearSeatGroup.add(headFold);
+    });
+
+    // Twin Metallic Pivot Hinges at rear floor juncture
+    [-rearSeatWidth * 0.35, 0, rearSeatWidth * 0.35].forEach(hz => {
+      const hingeGeo = new THREE.CylinderGeometry(1.6, 1.6, 4.0, 12);
+      const hinge = new THREE.Mesh(hingeGeo, chromeMatLocal);
+      hinge.rotation.z = Math.PI / 2;
+      hinge.position.set(rearHingeX, foldedY - 0.5, hz);
+      rearSeatGroup.add(hinge);
+    });
+
   } else {
-    const benchBaseGeo = new THREE.BoxGeometry(38, 8, archW + 10);
-    const benchBase = new THREE.Mesh(benchBaseGeo, rearSeatMat);
-    benchBase.position.set(rearHingeX + 16, sillY + 4, 0);
+    // SEATS UPRIGHT: REAL AUTOMOTIVE BENCH (Forward-facing passenger seating with cargo partition backing)
+    const benchY = cabinFloorY + 11;
+    const benchLen = 42;
+    // Cushion extends FORWARD into the cabin from the backrest hinge (towards -X)
+    const cushionCenterX = rearHingeX - (benchLen / 2) - 1;
+
+    // 1. Lower Cushion Foundation Platform
+    const benchBaseGeo = new THREE.BoxGeometry(benchLen, 8, rearSeatWidth - 2);
+    const benchBase = new THREE.Mesh(benchBaseGeo, rearBolsterMat);
+    benchBase.position.set(cushionCenterX, benchY - 1, 0);
     rearSeatGroup.add(benchBase);
 
-    const benchBackGeo = new THREE.BoxGeometry(10, 42, archW + 8);
-    const benchBack = new THREE.Mesh(benchBackGeo, rearSeatMat);
-    benchBack.position.set(rearHingeX + 2, sillY + 21, 0);
-    benchBack.rotation.z = -0.12;
-    rearSeatGroup.add(benchBack);
+    // 2. Sculpted Passenger Bench Top with 3 Passenger Seating Wells
+    const benchCushionGeo = new THREE.BoxGeometry(benchLen + 2, 5, rearSeatWidth);
+    const benchCushion = new THREE.Mesh(benchCushionGeo, rearSeatMat);
+    benchCushion.position.set(cushionCenterX, benchY + 4, 0);
+    rearSeatGroup.add(benchCushion);
+
+    // Lateral Thigh Bolsters on outer edges
+    [-1, 1].forEach(side => {
+      const rBolsterGeo = new THREE.BoxGeometry(benchLen - 2, 4.5, 5);
+      const rBolster = new THREE.Mesh(rBolsterGeo, rearBolsterMat);
+      rBolster.position.set(cushionCenterX, benchY + 6.5, side * ((rearSeatWidth / 2) - 3.2));
+      rearSeatGroup.add(rBolster);
+    });
+
+    // Thigh support front waterfall curved lip
+    const waterfallGeo = new THREE.CylinderGeometry(3.5, 3.5, rearSeatWidth - 4, 16, 1, false, 0, Math.PI / 2);
+    const waterfall = new THREE.Mesh(waterfallGeo, rearSeatMat);
+    waterfall.rotation.z = Math.PI / 2;
+    waterfall.rotation.y = Math.PI / 2;
+    waterfall.position.set(cushionCenterX - (benchLen / 2), benchY + 3.0, 0);
+    rearSeatGroup.add(waterfall);
+
+    // 3. 60/40 Split Contoured Backrest with 12° natural recline
+    const rBackHeight = 52;
+    const rBackThick = 9;
+    const rBackRecline = -0.14; // Reclines towards rear (+X)
+    const rBackBaseX = rearHingeX - 2;
+    const rBackBaseY = benchY + 5;
+    const rBackX = rBackBaseX + (rBackHeight / 2) * Math.sin(-rBackRecline);
+    const rBackY = rBackBaseY + (rBackHeight / 2) * Math.cos(-rBackRecline);
+
+    const split60Width = rearSeatWidth * 0.59;
+    const split40Width = rearSeatWidth * 0.39;
+    const leftZ = (rearSeatWidth / 2) - (split60Width / 2);
+    const rightZ = -(rearSeatWidth / 2) + (split40Width / 2);
+
+    // 60% Left Section (Passenger side)
+    const leftBackGeo = new THREE.BoxGeometry(rBackThick, rBackHeight, split60Width);
+    const leftBack = new THREE.Mesh(leftBackGeo, rearSeatMat);
+    leftBack.position.set(rBackX, rBackY, leftZ);
+    leftBack.rotation.z = rBackRecline;
+    addCadEdges(leftBack, 0x38bdf8);
+    rearSeatGroup.add(leftBack);
+
+    // 40% Right Section (Driver side)
+    const rightBackGeo = new THREE.BoxGeometry(rBackThick, rBackHeight, split40Width);
+    const rightBack = new THREE.Mesh(rightBackGeo, rearSeatMat);
+    rightBack.position.set(rBackX, rBackY, rightZ);
+    rightBack.rotation.z = rBackRecline;
+    addCadEdges(rightBack, 0x38bdf8);
+    rearSeatGroup.add(rightBack);
+
+    // Carpeted Protective Boot-Facing Backing Panels (visible through open boot)
+    const leftCarpetGeo = new THREE.BoxGeometry(1.2, rBackHeight - 2, split60Width - 2);
+    const leftCarpet = new THREE.Mesh(leftCarpetGeo, carpetBackMat);
+    leftCarpet.position.set(rBackX + (rBackThick / 2) + 0.6, rBackY, leftZ);
+    leftCarpet.rotation.z = rBackRecline;
+    rearSeatGroup.add(leftCarpet);
+
+    const rightCarpetGeo = new THREE.BoxGeometry(1.2, rBackHeight - 2, split40Width - 2);
+    const rightCarpet = new THREE.Mesh(rightCarpetGeo, carpetBackMat);
+    rightCarpet.position.set(rBackX + (rBackThick / 2) + 0.6, rBackY, rightZ);
+    rightCarpet.rotation.z = rBackRecline;
+    rearSeatGroup.add(rightCarpet);
+
+    // Center Fold-Down Armrest with Dual Cupholders
+    const armrestGeo = new THREE.BoxGeometry(rBackThick + 1.2, rBackHeight * 0.62, 14.5);
+    const armrest = new THREE.Mesh(armrestGeo, rearBolsterMat);
+    armrest.position.set(rBackX - 0.6, rBackY - 3, 0);
+    armrest.rotation.z = rBackRecline;
+    rearSeatGroup.add(armrest);
+
+    // Cupholder recesses in armrest
+    [-3.2, 3.2].forEach(cz => {
+      const cupGeo = new THREE.CylinderGeometry(2.0, 1.8, 1.2, 16);
+      const cup = new THREE.Mesh(cupGeo, new THREE.MeshStandardMaterial({ color: 0x060910, roughness: 0.9 }));
+      cup.position.set(rBackX - 5.0, rBackY - 2, cz);
+      cup.rotation.z = rBackRecline;
+      rearSeatGroup.add(cup);
+    });
+
+    // 4. Three Ergonomic Headrests (Left, Center Low-Profile, Right) on Chrome Steel Posts
+    const rHeadTopY = rBackBaseY + rBackHeight * Math.cos(-rBackRecline);
+    const rHeadTopX = rBackBaseX + rBackHeight * Math.sin(-rBackRecline);
+
+    [
+      { z: -rearSeatWidth * 0.30, w: 20, h: 12, d: 8.5, center: false },
+      { z: 0,                     w: 16, h: 9.5, d: 7.0, center: true },
+      { z:  rearSeatWidth * 0.30, w: 20, h: 12, d: 8.5, center: false }
+    ].forEach(h => {
+      // Dual Chrome Steel Support Posts
+      [-3.5, 3.5].forEach(postOffset => {
+        const postGeo = new THREE.CylinderGeometry(0.65, 0.65, 5.0, 10);
+        const post = new THREE.Mesh(postGeo, chromeMatLocal);
+        post.position.set(rHeadTopX - 1.5, rHeadTopY + 1.8, h.z + postOffset);
+        post.rotation.z = -0.04;
+        rearSeatGroup.add(post);
+      });
+
+      // Sculpted Headrest Cushion (naturally upright & forward of seat top)
+      const headGeo = new THREE.BoxGeometry(h.d, h.h, h.w);
+      const head = new THREE.Mesh(headGeo, rearSeatMat);
+      head.position.set(rHeadTopX - 3.0, rHeadTopY + 4.8 + (h.center ? -1.2 : 0), h.z);
+      head.rotation.z = -0.02;
+      rearSeatGroup.add(head);
+
+      // Front Comfort Contact Pad
+      const padGeo = new THREE.BoxGeometry(1.6, h.h - 2, h.w - 2.5);
+      const pad = new THREE.Mesh(padGeo, rearBolsterMat);
+      pad.position.set(rHeadTopX - 6.0, rHeadTopY + 4.8 + (h.center ? -1.2 : 0), h.z);
+      pad.rotation.z = -0.02;
+      rearSeatGroup.add(pad);
+    });
+
+    // 5. Seatbelt Latch Buckles with Red Push Buttons nestled in seat crease
+    [-rearSeatWidth * 0.20, rearSeatWidth * 0.20].forEach(bz => {
+      const buckleGeo = new THREE.BoxGeometry(2.5, 4.5, 2.8);
+      const buckleMat = new THREE.MeshStandardMaterial({ color: 0x090e17, roughness: 0.8 });
+      const buckle = new THREE.Mesh(buckleGeo, buckleMat);
+      buckle.position.set(rearHingeX - 5, benchY + 5.5, bz);
+      buckle.rotation.z = 0.25;
+      rearSeatGroup.add(buckle);
+
+      const redBtnGeo = new THREE.BoxGeometry(2.6, 1.2, 2.0);
+      const redBtnMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
+      const redBtn = new THREE.Mesh(redBtnGeo, redBtnMat);
+      redBtn.position.set(redBtnGeo ? rearHingeX - 5.2 : 0, benchY + 7.5, bz);
+      redBtn.rotation.z = 0.25;
+      rearSeatGroup.add(redBtn);
+    });
+
+    // 6. Chrome Top-Shoulder Seat Fold Release Handles (outer top shoulders)
+    [-rearSeatWidth * 0.42, rearSeatWidth * 0.42].forEach(sz => {
+      const handleGeo = new THREE.BoxGeometry(4.0, 1.4, 5.0);
+      const handle = new THREE.Mesh(handleGeo, chromeMatLocal);
+      handle.position.set(rHeadTopX + 1.0, rHeadTopY - 1.0, sz);
+      rearSeatGroup.add(handle);
+    });
   }
   car3DGroup.add(rearSeatGroup);
 

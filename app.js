@@ -1903,18 +1903,34 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
 }
 
 /**
- * Creates a rounded semi-cylindrical wheel arch tub for the interior cargo bay.
+ * Creates an upright semi-cylindrical wheel arch tub for the interior cargo bay.
+ * Arches smoothly over the rear wheel in the XY plane with flat bottom on the cargo floor.
  */
-function createRoundedWheelArchTub(radius = 22, depth = 16) {
-  const tubGeo = new THREE.CylinderGeometry(radius, radius, depth, 24, 1, false, 0, Math.PI);
+function createRoundedWheelArchTub(radius = 22, depth = 16, isGhost = false) {
+  const tubShape = new THREE.Shape();
+  // Semicircular arch sitting on floor at Y=0, curving upwards in +Y to peak at (0, radius)
+  tubShape.moveTo(-radius, 0);
+  tubShape.absarc(0, 0, radius, Math.PI, 0, true);
+  tubShape.lineTo(radius, 0);
+  tubShape.closePath();
+
+  const tubGeo = new THREE.ExtrudeGeometry(tubShape, {
+    depth: depth,
+    bevelEnabled: true,
+    bevelSize: 0.6,
+    bevelThickness: 0.6,
+    bevelSegments: 2
+  });
+
   const tubMat = new THREE.MeshStandardMaterial({
-    color: 0x111c2c, // Dark anthracite carpeted boot lining
+    color: 0x141f30, // Dark anthracite carpeted boot lining
     roughness: 0.88,
     metalness: 0.08,
-    side: THREE.DoubleSide
+    transparent: isGhost,
+    opacity: isGhost ? 0.70 : 1.0
   });
+
   const tubMesh = new THREE.Mesh(tubGeo, tubMat);
-  tubMesh.rotation.x = -Math.PI / 2; // Arches UP in +Y over axle
   // Subtle carpet trim contour (soft darker tone, no bright glow through exterior flank)
   addCadEdges(tubMesh, 0x1e3a5f, 32);
   return tubMesh;
@@ -2926,16 +2942,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
   // Guaranteed clear boundary: bounded strictly between archW/2 and the inner cabin trim
   // NEVER reaches or overlaps the outer wheel face or tyre!
   const innerArchZ = archW / 2;
-  const innerTyreZ = wheelZOffset - (wheelWidth / 2);
-  const maxOuterArchZ = Math.min((cabinWidth / 2) - 4, innerTyreZ - 3.0);
-  const tubThickness = Math.max(6, maxOuterArchZ - innerArchZ);
-  const tubRadius = Math.max(16, Math.min(24, Math.round(wheelArchR * 0.62)));
-  const tubZ = innerArchZ + (tubThickness / 2);
+  const outerArchZ = halfTailgateW;
+  const tubThickness = Math.max(8, outerArchZ - innerArchZ);
+  const tubRadius = Math.max(16, Math.min(22, Math.round(wheelArchR * 0.60)));
 
-  const leftTub = createRoundedWheelArchTub(tubRadius, tubThickness);
-  leftTub.position.set(rearWheelX, sillY + 1.2, tubZ);
-  const rightTub = createRoundedWheelArchTub(tubRadius, tubThickness);
-  rightTub.position.set(rearWheelX, sillY + 1.2, -tubZ);
+  const leftTub = createRoundedWheelArchTub(tubRadius, tubThickness, isGhost);
+  leftTub.position.set(rearWheelX, sillY + 1.25, innerArchZ);
+
+  const rightTub = createRoundedWheelArchTub(tubRadius, tubThickness, isGhost);
+  rightTub.position.set(rearWheelX, sillY + 1.25, -outerArchZ);
+
   car3DGroup.add(leftTub);
   car3DGroup.add(rightTub);
 

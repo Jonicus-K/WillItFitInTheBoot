@@ -1804,8 +1804,9 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   });
 
   // 1. Sleek, Compact Automotive Dashboard (Instrument Panel under base of windshield)
-  // Strictly compact 24 cm depth directly under cowl - NEVER a giant conference table!
-  const ipDepth = 24;
+  // Strictly compact 26 cm depth directly under cowl - NEVER a giant conference table!
+  const ipDepth = 26;
+  const dashFaceX = cowlX + ipDepth;
   const ipHeight = 12;
   const ipWidth = cabinWidth - 8;
   const ipCenterX = cowlX + (ipDepth / 2);
@@ -1826,45 +1827,38 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   // 2. UK Right Hand Drive (RHD): Driver on RIGHT side (-Z)
   const driverZ = -((totalCarWidth / 4) - 6);
 
-  // Cockpit controls sit in natural ergonomic driving position in front of driver
-  const wheelX = frontSeatsX - 20;
-  const wheelY = ipCenterY + 4.5;
-  const fasciaX = frontSeatsX - 26;
-
-  // Sculpted Instrument Cluster Binnacle in front of driver
+  // Sculpted Instrument Cluster Binnacle integrated into dashboard directly facing driver
   const binnacleGeo = new THREE.BoxGeometry(10, 6.5, 20);
   const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
-  binnacle.position.set(fasciaX - 3, ipCenterY + 7.5, driverZ);
+  binnacle.position.set(dashFaceX - 4, ipCenterY + 7.5, driverZ);
   cockpitGroup.add(binnacle);
 
   // Glowing Digital Virtual Cockpit Display
   const gaugeGeo = new THREE.PlaneGeometry(15, 5.0);
   const gauge = new THREE.Mesh(gaugeGeo, screenMat);
-  gauge.position.set(fasciaX + 0.2, ipCenterY + 7.5, driverZ);
+  gauge.position.set(dashFaceX + 0.2, ipCenterY + 7.5, driverZ);
   gauge.rotation.y = Math.PI / 2;
   cockpitGroup.add(gauge);
 
   // Center Infotainment Floating Display (angled 12° toward UK driver)
   const centerScreenGeo = new THREE.BoxGeometry(2.5, 6.5, 18);
   const centerScreen = new THREE.Mesh(centerScreenGeo, screenMat);
-  centerScreen.position.set(fasciaX + 0.5, ipCenterY + 4, 0);
+  centerScreen.position.set(dashFaceX + 0.5, ipCenterY + 4, 0);
   centerScreen.rotation.y = -0.14;
   cockpitGroup.add(centerScreen);
 
   // Center Console Tunnel (running along floor from dashboard base back between front seats)
-  const tunnelStart = cowlX + ipDepth;
-  const tunnelEnd = frontSeatsX + 10;
-  const tunnelLen = Math.max(16, tunnelEnd - tunnelStart);
+  const tunnelLen = Math.max(16, Math.abs(frontSeatsX + 8 - dashFaceX));
   const tunnelHeight = 18;
   const tunnelGeo = new THREE.BoxGeometry(tunnelLen, tunnelHeight, 15);
   const tunnel = new THREE.Mesh(tunnelGeo, trimMat);
-  tunnel.position.set(tunnelStart + (tunnelLen / 2), cabinFloorY + (tunnelHeight / 2), 0);
+  tunnel.position.set(dashFaceX + (tunnelLen / 2), cabinFloorY + (tunnelHeight / 2), 0);
   cockpitGroup.add(tunnel);
 
   // Modern Electronic Drive Selector on Console Tunnel
   const shifterGeo = new THREE.BoxGeometry(4.5, 4.0, 3.5);
   const shifter = new THREE.Mesh(shifterGeo, dashMat);
-  shifter.position.set(frontSeatsX - 12, cabinFloorY + tunnelHeight + 2, 0);
+  shifter.position.set(dashFaceX + Math.min(18, tunnelLen * 0.45), cabinFloorY + tunnelHeight + 2, 0);
   cockpitGroup.add(shifter);
 
   // Center Armrest between front seats (cushioned, matching seat cushion level)
@@ -1873,11 +1867,13 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   armrest.position.set(frontSeatsX + 2, cabinFloorY + 24, 0);
   cockpitGroup.add(armrest);
 
-  // Sport 3-Spoke Steering Wheel positioned in front of driver
-  const columnGeo = new THREE.CylinderGeometry(2.2, 2.5, 9, 16);
+  // Sport 3-Spoke Steering Wheel firmly mounted to dashboard steering column
+  const wheelX = dashFaceX + 10;
+  const wheelY = ipCenterY + 4.5;
+  const columnGeo = new THREE.CylinderGeometry(2.2, 2.5, 12, 16);
   const column = new THREE.Mesh(columnGeo, dashMat);
   column.rotation.z = -Math.PI / 4;
-  column.position.set(wheelX - 4.0, wheelY - 3.0, driverZ);
+  column.position.set(wheelX - 4.5, wheelY - 3.2, driverZ);
   cockpitGroup.add(column);
 
   const steerGroup = new THREE.Group();
@@ -1964,7 +1960,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const archW = car.wheel_arch_width;
   const roofH = car.roof_height;
   const bodyType = car.body_type;
-  const currentFloorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
+  let currentFloorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
 
   const isSUV = bodyType === 'suv';
   const isSaloon = bodyType === 'saloon';
@@ -2019,26 +2015,30 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   // PROPER PRODUCTION AUTOMOTIVE PROPORTIONS:
   // In all production passenger cars, the cowl (base of windshield) sits just behind the front axle line:
-  // - Hatchback (FWD transverse): ~46 cm behind front axle line (realistic ~124-128 cm bonnet, ~30% of car length)
-  // - Estate: ~48 cm behind front axle (sleek ~130 cm bonnet, ~28% of car length)
-  // - SUV: ~48 cm behind front axle (upright ~132 cm bonnet, ~29% of car length)
-  // - Saloon: ~56 cm behind front axle (classic longitudinal prestige bonnet ~136 cm, ~29% of car length)
-  const cowlX = frontWheelX + (isSaloon ? 56 : (isSUV ? 48 : (isEstate ? 48 : 46)));
+  const cowlOffset = isSaloon ? 62 : (isSUV ? 54 : (isEstate ? 54 : 50));
+  const cowlX = frontWheelX + cowlOffset;
 
   // Modern windscreen rake (~36°-40° from horizontal):
   // Rakes back ~38 to 44 cm horizontally from cowl to roof header
   const windshieldRun = isSaloon ? 44 : (isSUV ? 38 : (isEstate ? 40 : 38));
   const roofFrontX = cowlX + windshieldRun;
 
-  // AUTHENTIC AUTOMOTIVE CABIN SEATING PACKAGING:
-  // Rear seat backrest sits right at the cargo partition: rearHingeX = rearSillX - car.floor_length_seats_up
-  // Front seats are positioned with realistic couple distance (~31% of wheelbase, ~80-90 cm)
-  // This eliminates the unrealistic 1+ meter chasm between front and rear seats,
-  // providing realistic 26-34 cm rear legroom and allowing the folded cargo deck to meet the front seatbacks flush!
-  const rearHingeX = rearSillX - car.floor_length_seats_up;
-  const coupleDist = Math.max(78, Math.min(94, Math.round(car.wheelbase * 0.31)));
-  const frontSeatsX = rearHingeX - coupleDist;
-  const cargoBedFrontX = rearSillX - currentFloorLen;
+  // Compact dashboard sits directly under windshield cowl (26 cm depth)
+  const ipDepth = 26;
+  const dashFaceX = cowlX + ipDepth;
+
+  // Driver sits right at steering wheel (within natural ergonomic 34 cm reach)
+  const frontSeatsX = dashFaceX + 34;
+
+  // Seating couple distance: authentic ~80-92 cm distance between front & rear seats
+  const coupleDist = Math.max(80, Math.min(92, Math.round(car.wheelbase * 0.32)));
+  const rearHingeX = frontSeatsX + coupleDist;
+
+  // Cargo bed boundary: front seat backrest is at frontSeatsX + 18.
+  // Items in boot CAN NEVER penetrate into front seats!
+  const frontSeatBackX = frontSeatsX + 18;
+  const cargoBedFrontX = seatsFolded ? frontSeatBackX : rearHingeX;
+  currentFloorLen = Math.abs(rearSillX - cargoBedFrontX);
 
   let roofRearX, deckFrontX;
   if (isSaloon) {
@@ -2060,7 +2060,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   }
 
   // B-pillar is aligned directly beside the driver's seat
-  const bPillarX = frontSeatsX + 16;
+  const bPillarX = frontSeatsX + 18;
   const cPillarX = isEstate ? (bPillarX + (roofRearX - bPillarX) * 0.58) : (isSaloon ? deckFrontX : roofRearX);
   const dPillarX = isEstate ? roofRearX : null;
 
@@ -2862,7 +2862,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   if (seatsFolded) {
     // FOLDED REAR SEATS FLAT (60/40 Split Heavy-Duty Cargo Deck with Luggage Skid Rails)
-    const foldedLen = Math.max(34, currentFloorLen - car.floor_length_seats_up);
+    const foldedLen = Math.max(38, Math.abs(rearHingeX - cargoBedFrontX));
     const foldedY = sillY + 3.2;
     const split60Width = rearSeatWidth * 0.60;
     const split40Width = rearSeatWidth * 0.40;

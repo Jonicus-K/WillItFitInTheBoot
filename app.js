@@ -1878,82 +1878,80 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
 
   const driverZ = -((totalCarWidth / 4) - 6);
 
-  // Ergonomic Anchor: Steering wheel sits directly ahead of driver at natural reach
-  const wheelX = frontSeatsX - 22;
-  const wheelY = seatCushionY + 26; // ~26 cm above seat cushion (clearing lap)
-
-  // 1. SOLID SCULPTED DASHBOARD / INSTRUMENT PANEL (Spans continuously from cowl to driver!)
-  // Length extends from base of windshield cowl all the way back to the driver fascia
+  // 1. AUTHENTIC DASHBOARD DECK & INSTRUMENT PANEL
+  // Modern automotive dashboard depth from base of windshield (cowl) to driver fascia is ~36 cm.
+  const ipDepth = 36;
   const dashFrontX = cowlX;
-  const dashRearX = wheelX - 4; // Dashboard fascia meets right behind steering wheel
-  const dashLen = Math.abs(dashRearX - dashFrontX);
-  const dashCenterX = (dashFrontX + dashRearX) / 2;
-  const ipHeight = Math.max(22, (cowlY - cabinFloorY) * 0.55); // Substantial 22-26 cm thick sculpted IP
-  const ipWidth = cabinWidth - 8;
-  const ipCenterY = cowlY - (ipHeight / 2) + 1;
+  const dashFaceX = cowlX + ipDepth; // Driver-facing dashboard edge / fascia
+  const dashCenterX = cowlX + (ipDepth / 2);
+  const ipHeight = 16; // Sleek 16 cm sculpted dashboard fascia
+  const ipWidth = cabinWidth - 6;
+  const ipCenterY = cowlY - (ipHeight / 2);
 
-  // Main Dashboard Deck & Fascia
-  const ipGeo = new THREE.BoxGeometry(dashLen, ipHeight, ipWidth);
+  // Main Dashboard Sculpted Body
+  const ipGeo = new THREE.BoxGeometry(ipDepth, ipHeight, ipWidth);
   const ipMesh = new THREE.Mesh(ipGeo, dashMat);
   ipMesh.position.set(dashCenterX, ipCenterY, 0);
   addCadEdges(ipMesh, 0x38bdf8);
   cockpitGroup.add(ipMesh);
 
-  // Slanted Lower Dashboard Underside / Knee Bolster Enclosure (seals footwell, no empty void!)
-  const lowerDashHeight = ipCenterY - (ipHeight / 2) - cabinFloorY;
-  if (lowerDashHeight > 4) {
-    const lowerDashGeo = new THREE.BoxGeometry(dashLen * 0.70, lowerDashHeight, ipWidth - 4);
-    const lowerDash = new THREE.Mesh(lowerDashGeo, dashMat);
-    lowerDash.position.set(dashCenterX - (dashLen * 0.15), cabinFloorY + (lowerDashHeight / 2), 0);
-    cockpitGroup.add(lowerDash);
+  // Forward Firewall / Slanted Toe-board (seals front engine bulkhead to floor)
+  const firewallHeight = ipCenterY - (ipHeight / 2) - cabinFloorY;
+  if (firewallHeight > 2) {
+    const firewallGeo = new THREE.BoxGeometry(10, firewallHeight, ipWidth - 4);
+    const firewall = new THREE.Mesh(firewallGeo, dashMat);
+    firewall.position.set(cowlX + 5, cabinFloorY + (firewallHeight / 2), 0);
+    cockpitGroup.add(firewall);
   }
 
   // Slim Defroster Vent Strip at windshield base
-  const defrosterGeo = new THREE.BoxGeometry(5, 1.5, cabinWidth - 10);
+  const defrosterGeo = new THREE.BoxGeometry(4.5, 1.2, ipWidth - 8);
   const defroster = new THREE.Mesh(defrosterGeo, dashTrimMat);
-  defroster.position.set(cowlX + 2.5, cowlY + 0.8, 0);
+  defroster.position.set(cowlX + 3.0, cowlY + 0.6, 0);
   cockpitGroup.add(defroster);
 
-  // 2. INTEGRATED DRIVER'S INSTRUMENT CLUSTER BINNACLE (Solidly rises out of dashboard!)
-  const binnacleLen = 18;
-  const binnacleHeight = 9.5;
-  const binnacleWidth = 22;
-  const binnacleGeo = new THREE.BoxGeometry(binnacleLen, binnacleHeight, binnacleWidth);
-  const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
-  binnacle.position.set(wheelX - 9, ipCenterY + (ipHeight / 2) + 2.5, driverZ);
-  addCadEdges(binnacle, 0x38bdf8);
-  cockpitGroup.add(binnacle);
+  // Air Vent Horizon Strip along dashboard fascia
+  const ventStripGeo = new THREE.BoxGeometry(1.2, 2.5, ipWidth - 10);
+  const ventStrip = new THREE.Mesh(ventStripGeo, dashTrimMat);
+  ventStrip.position.set(dashFaceX + 0.6, ipCenterY + 1.0, 0);
+  cockpitGroup.add(ventStrip);
 
-  // Glowing Virtual Cockpit Digital Instrument Display
-  const gaugeGeo = new THREE.PlaneGeometry(16, 6.5);
-  const gauge = new THREE.Mesh(gaugeGeo, screenMat);
-  gauge.position.set(wheelX - 2.0, ipCenterY + (ipHeight / 2) + 2.5, driverZ);
-  gauge.rotation.y = Math.PI / 2;
-  cockpitGroup.add(gauge);
+  // 2. ERGONOMIC STEERING WHEEL & SHROUD
+  // Driver sits on cushion at frontSeatsX; hands reach forward to steering wheel
+  const wheelX = frontSeatsX - 32;
+  const wheelY = seatCushionY + 22; // Comfortable driving height clearing knees
 
-  // 3. STEERING COLUMN SHROUD (Firmly anchors steering wheel directly into dashboard!)
-  const colLen = 14;
-  const colGeo = new THREE.BoxGeometry(colLen, 7.0, 7.5);
+  // Steering Column Shroud: connects dashboard lower fascia directly to steering wheel hub
+  const colOriginX = dashFaceX - 2;
+  const colOriginY = ipCenterY - 4;
+  const colSpanX = wheelX - colOriginX;
+  const colSpanY = wheelY - colOriginY;
+  const colLen = Math.hypot(colSpanX, colSpanY);
+  const colAngle = Math.atan2(colSpanY, colSpanX);
+
+  const colGeo = new THREE.BoxGeometry(colLen, 7.0, 8.5);
   const colMesh = new THREE.Mesh(colGeo, dashTrimMat);
-  colMesh.position.set(wheelX - (colLen / 2), wheelY - 1.5, driverZ);
+  colMesh.position.set(colOriginX + (colSpanX / 2), colOriginY + (colSpanY / 2), driverZ);
+  colMesh.rotation.z = colAngle;
+  addCadEdges(colMesh, 0x38bdf8);
   cockpitGroup.add(colMesh);
 
   // Dual Turn Signal & Wiper Stalks on steering column
-  [-4.5, 4.5].forEach(sz => {
+  [-4.8, 4.8].forEach(sz => {
     const stalkGeo = new THREE.CylinderGeometry(0.5, 0.5, 7.0, 8);
     const stalk = new THREE.Mesh(stalkGeo, chromeMatLocal);
     stalk.rotation.x = Math.PI / 2;
-    stalk.position.set(wheelX - 4, wheelY - 0.5, driverZ + sz);
+    stalk.position.set(wheelX - 4, wheelY + 0.5, driverZ + sz);
     cockpitGroup.add(stalk);
   });
 
-  // 4. SPORT 3-SPOKE STEERING WHEEL
+  // Sport 3-Spoke Steering Wheel
   const steerGroup = new THREE.Group();
   steerGroup.position.set(wheelX, wheelY, driverZ);
   steerGroup.rotation.y = Math.PI / 2;
   steerGroup.rotation.x = -0.32; // ~18° natural driver rake
 
-  const rimGeo = new THREE.TorusGeometry(12.0, 1.4, 14, 32);
+  const rimGeo = new THREE.TorusGeometry(12.0, 1.35, 14, 32);
   const rim = new THREE.Mesh(rimGeo, dashMat);
   steerGroup.add(rim);
 
@@ -1969,7 +1967,7 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   steerGroup.add(emblem);
 
   [-Math.PI / 6, Math.PI / 6, -Math.PI / 2].forEach(angle => {
-    const spokeGeo = new THREE.BoxGeometry(2.2, 10.5, 1.6);
+    const spokeGeo = new THREE.BoxGeometry(2.2, 10.5, 1.5);
     const spoke = new THREE.Mesh(spokeGeo, dashTrimMat);
     spoke.position.set(Math.sin(angle) * 5.2, Math.cos(angle) * 5.2, 0);
     spoke.rotation.z = -angle;
@@ -1977,26 +1975,42 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   });
   cockpitGroup.add(steerGroup);
 
-  // 5. CENTER WATERFALL STACK & FLOATING INFOTAINMENT TOUCHSCREEN
-  // Waterfall center stack sweeps down from dashboard into center console tunnel
+  // 3. INTEGRATED DRIVER'S INSTRUMENT CLUSTER BINNACLE (on top of dashboard ahead of driver)
+  const binnacleLen = 16;
+  const binnacleHeight = 8.5;
+  const binnacleWidth = 22;
+  const binnacleGeo = new THREE.BoxGeometry(binnacleLen, binnacleHeight, binnacleWidth);
+  const binnacle = new THREE.Mesh(binnacleGeo, dashMat);
+  binnacle.position.set(dashFaceX - (binnacleLen / 2), cowlY + (binnacleHeight / 2) - 1, driverZ);
+  addCadEdges(binnacle, 0x38bdf8);
+  cockpitGroup.add(binnacle);
+
+  // Glowing Virtual Cockpit Digital Instrument Display
+  const gaugeGeo = new THREE.PlaneGeometry(16, 6.5);
+  const gauge = new THREE.Mesh(gaugeGeo, screenMat);
+  gauge.position.set(dashFaceX + 0.2, cowlY + (binnacleHeight / 2) - 1, driverZ);
+  gauge.rotation.y = Math.PI / 2;
+  cockpitGroup.add(gauge);
+
+  // 4. CENTER WATERFALL STACK & FLOATING INFOTAINMENT TOUCHSCREEN
   const stackWidth = 18;
-  const stackGeo = new THREE.BoxGeometry(16, ipHeight + 8, stackWidth);
+  const stackGeo = new THREE.BoxGeometry(10, ipHeight + 6, stackWidth);
   const stack = new THREE.Mesh(stackGeo, dashTrimMat);
-  stack.position.set(dashRearX - 6, ipCenterY - 4, 0);
+  stack.position.set(dashFaceX - 3, ipCenterY - 3, 0);
   cockpitGroup.add(stack);
 
-  // Floating Widescreen Center Touchscreen (angled 10° towards UK driver)
-  const centerScreenGeo = new THREE.BoxGeometry(2.5, 8.5, 20);
+  // Floating Widescreen Center Touchscreen (angled slightly towards UK driver)
+  const centerScreenGeo = new THREE.BoxGeometry(2.2, 8.5, 19);
   const centerScreen = new THREE.Mesh(centerScreenGeo, screenMat);
-  centerScreen.position.set(dashRearX - 3.5, ipCenterY + 4.5, 0);
-  centerScreen.rotation.y = -0.16;
+  centerScreen.position.set(dashFaceX + 2.0, ipCenterY + 4.5, 0);
+  centerScreen.rotation.y = -0.15;
   cockpitGroup.add(centerScreen);
 
-  // 6. CONTINUOUS CENTER CONSOLE TUNNEL (Bridges dashboard seamlessly to front seats!)
-  const tunnelFrontX = dashRearX - 10;
+  // 5. CONTINUOUS CENTER CONSOLE TUNNEL
+  const tunnelFrontX = dashFaceX - 4;
   const tunnelRearX = frontSeatsX + 16;
   const tunnelLen = Math.abs(tunnelRearX - tunnelFrontX);
-  const tunnelHeight = Math.max(16, seatCushionY - cabinFloorY - 2); // Tops out right at seat cushion level!
+  const tunnelHeight = Math.max(14, seatCushionY - cabinFloorY - 2);
   const tunnelGeo = new THREE.BoxGeometry(tunnelLen, tunnelHeight, 16);
   const tunnel = new THREE.Mesh(tunnelGeo, dashTrimMat);
   tunnel.position.set((tunnelFrontX + tunnelRearX) / 2, cabinFloorY + (tunnelHeight / 2), 0);
@@ -2026,6 +2040,15 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   const armrest = new THREE.Mesh(armrestGeo, dashMat);
   armrest.position.set(frontSeatsX + 4, cabinFloorY + tunnelHeight + (armrestHeight / 2) + 0.5, 0);
   cockpitGroup.add(armrest);
+
+  // 6. DRIVER FOOTWELL PEDALS (Accelerator & Brake in driver's footwell)
+  [-3.2, 3.2].forEach((pz, idx) => {
+    const pedalGeo = new THREE.BoxGeometry(1.2, idx === 0 ? 5.5 : 4.0, 3.0);
+    const pedal = new THREE.Mesh(pedalGeo, chromeMatLocal);
+    pedal.position.set(cowlX + 16, cabinFloorY + 4.5, driverZ + pz);
+    pedal.rotation.z = -0.35;
+    cockpitGroup.add(pedal);
+  });
 
   return cockpitGroup;
 }
@@ -3327,18 +3350,19 @@ function update3DStudio(car, seatsFolded, fitResult) {
     });
 
     // 5. Seatbelt Latch Buckles with Red Push Buttons nestled in seat crease
+    const benchY = rearCushionY;
     [-rearSeatWidth * 0.20, rearSeatWidth * 0.20].forEach(bz => {
       const buckleGeo = new THREE.BoxGeometry(2.5, 4.5, 2.8);
       const buckleMat = new THREE.MeshStandardMaterial({ color: 0x090e17, roughness: 0.8 });
       const buckle = new THREE.Mesh(buckleGeo, buckleMat);
-      buckle.position.set(rearHingeX - 5, benchY + 5.5, bz);
+      buckle.position.set(rearHingeX - 5, benchY + 2.5, bz);
       buckle.rotation.z = 0.25;
       rearSeatGroup.add(buckle);
 
       const redBtnGeo = new THREE.BoxGeometry(2.6, 1.2, 2.0);
       const redBtnMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 });
       const redBtn = new THREE.Mesh(redBtnGeo, redBtnMat);
-      redBtn.position.set(redBtnGeo ? rearHingeX - 5.2 : 0, benchY + 7.5, bz);
+      redBtn.position.set(rearHingeX - 5.2, benchY + 4.5, bz);
       redBtn.rotation.z = 0.25;
       rearSeatGroup.add(redBtn);
     });

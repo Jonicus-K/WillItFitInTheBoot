@@ -3158,10 +3158,10 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(rearBumperMesh);
 
   // Upper Bumper Step / Scuff Loading Protection Sill
-  const scuffPlateGeo = new THREE.BoxGeometry(6, 1.4, cabinWidth - 8);
-  const scuffPlate = new THREE.Mesh(scuffPlateGeo, trimMat);
-  scuffPlate.position.set(rearBumperX - 3, sillY + 4.2, 0);
-  car3DGroup.add(scuffPlate);
+  const bumperStepGeo = new THREE.BoxGeometry(6, 1.4, cabinWidth - 8);
+  const bumperStep = new THREE.Mesh(bumperStepGeo, trimMat);
+  bumperStep.position.set(rearBumperX - 3, sillY + 4.2, 0);
+  car3DGroup.add(bumperStep);
 
   // Rear Quarter Haunch Transition Panels & Outer Taillights (Mounted on body)
   const halfTailgateW = (isSaloon ? (totalCarWidth - 14) : (cabinWidth - 6)) / 2;

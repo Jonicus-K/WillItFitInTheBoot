@@ -1730,14 +1730,14 @@ function createSeat3D(width = 44, riserHeight = 22) {
   const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.12 });
 
   // 1. Lower Seat Mounting Pedestal & Slider Rails (raising seat from bare floor pan)
-  const riserGeo = new THREE.BoxGeometry(34, riserHeight, width - 6);
+  const riserGeo = new THREE.BoxGeometry(38, riserHeight, width - 6);
   const riser = new THREE.Mesh(riserGeo, bolsterMat);
   riser.position.set(0, riserHeight / 2, 0);
   seatGroup.add(riser);
 
   // Twin Chrome Seat Slider Runner Rails
   [-1, 1].forEach(side => {
-    const railGeo = new THREE.BoxGeometry(38, 2.5, 2.5);
+    const railGeo = new THREE.BoxGeometry(42, 2.5, 2.5);
     const rail = new THREE.Mesh(railGeo, chromeMat);
     rail.position.set(0, 1.25, side * ((width / 2) - 4));
     seatGroup.add(rail);
@@ -1746,24 +1746,26 @@ function createSeat3D(width = 44, riserHeight = 22) {
   // 2. Sculpted Ergonomic Seat Cushion (thigh support + lateral thigh bolsters)
   const cushionThick = 9;
   const cushionY = riserHeight + (cushionThick / 2);
-  const cushionGeo = new THREE.BoxGeometry(42, cushionThick, width - 4);
+  const cushionLen = 42;
+  const cushionGeo = new THREE.BoxGeometry(cushionLen, cushionThick, width - 4);
   const cushion = new THREE.Mesh(cushionGeo, seatMat);
-  cushion.position.set(1, cushionY, 0);
+  cushion.position.set(0, cushionY, 0);
   seatGroup.add(cushion);
 
   // Lateral Thigh Bolsters on Cushion
   [-1, 1].forEach(side => {
-    const bolsterGeo = new THREE.BoxGeometry(40, 5, 4.5);
+    const bolsterGeo = new THREE.BoxGeometry(cushionLen - 2, 5, 4.5);
     const bolster = new THREE.Mesh(bolsterGeo, bolsterMat);
-    bolster.position.set(1, cushionY + 3.5, side * ((width / 2) - 3.5));
+    bolster.position.set(0, cushionY + 3.5, side * ((width / 2) - 3.5));
     seatGroup.add(bolster);
   });
 
-  // 3. Ergonomic Sport Seat Back (tall 58 cm backrest with natural recline)
+  // 3. Ergonomic Sport Seat Back (tall 58 cm backrest seamlessly aligned with base)
   const backHeight = 58;
-  const backThick = 9.5;
+  const backThick = 9.0;
   const reclineAngle = -0.12; // Natural recline towards rear (+X)
-  const backBaseX = 8;
+  // Backrest base rear face is perfectly flush with the rear edge of cushion (+21)
+  const backBaseX = (cushionLen / 2) - (backThick / 2);
   const backBaseY = riserHeight + cushionThick;
 
   const backX = backBaseX + (backHeight / 2) * Math.sin(-reclineAngle);
@@ -1780,7 +1782,7 @@ function createSeat3D(width = 44, riserHeight = 22) {
   [-1, 1].forEach(side => {
     const torsoBolsterGeo = new THREE.BoxGeometry(backThick + 2, backHeight * 0.72, 4.5);
     const torsoBolster = new THREE.Mesh(torsoBolsterGeo, bolsterMat);
-    torsoBolster.position.set(backX - 1.0, backY - 3, side * ((width / 2) - 4.5));
+    torsoBolster.position.set(backX - 0.5, backY - 3, side * ((width / 2) - 4.5));
     torsoBolster.rotation.z = reclineAngle;
     seatGroup.add(torsoBolster);
   });
@@ -1793,7 +1795,7 @@ function createSeat3D(width = 44, riserHeight = 22) {
   [-5, 5].forEach(offsetZ => {
     const postGeo = new THREE.CylinderGeometry(0.7, 0.7, 5.5, 12);
     const post = new THREE.Mesh(postGeo, chromeMat);
-    post.position.set(backTopX - 3.2, backTopY + 2.0, offsetZ);
+    post.position.set(backTopX - 1.5, backTopY + 2.0, offsetZ);
     post.rotation.z = -0.04;
     seatGroup.add(post);
   });
@@ -1801,14 +1803,14 @@ function createSeat3D(width = 44, riserHeight = 22) {
   // Ergonomic Headrest Pillow
   const headrestGeo = new THREE.BoxGeometry(8.5, 13.0, 21);
   const headrest = new THREE.Mesh(headrestGeo, seatMat);
-  headrest.position.set(backTopX - 5.2, backTopY + 6.0, 0);
+  headrest.position.set(backTopX - 2.5, backTopY + 6.0, 0);
   headrest.rotation.z = -0.02; // Upright / slight forward ergonomic angle
   seatGroup.add(headrest);
 
   // Soft Front Padded Cushion Face
   const headPadGeo = new THREE.BoxGeometry(2.0, 11.0, 18);
   const headPad = new THREE.Mesh(headPadGeo, bolsterMat);
-  headPad.position.set(backTopX - 9.0, backTopY + 6.0, 0);
+  headPad.position.set(backTopX - 6.5, backTopY + 6.0, 0);
   headPad.rotation.z = -0.02;
   seatGroup.add(headPad);
 
@@ -1879,8 +1881,8 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
   const driverZ = -((totalCarWidth / 4) - 6);
 
   // 1. AUTHENTIC DASHBOARD DECK & INSTRUMENT PANEL
-  // Modern automotive dashboard depth from base of windshield (cowl) to driver fascia is ~32 cm.
-  const ipDepth = 32;
+  // Modern automotive dashboard depth from base of windshield (cowl) to driver fascia is ~30 cm.
+  const ipDepth = 30;
   const dashFrontX = cowlX;
   const dashFaceX = cowlX + ipDepth; // Driver-facing dashboard edge / fascia
   const dashCenterX = cowlX + (ipDepth / 2);
@@ -2184,32 +2186,27 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const rearWheelX = frontWheelX + car.wheelbase;
 
   // PROPER PRODUCTION AUTOMOTIVE PROPORTIONS:
-  // In passenger cars, the cowl (base of windshield) sits behind the front engine bay:
-  const cowlRatio = isSaloon ? 0.34 : (isSUV ? 0.29 : 0.31);
-  const cowlOffset = Math.round(car.wheelbase * cowlRatio);
+  // Distance from front axle to cowl (windshield base):
+  // Transverse engines (Hatchback/Estate/SUV) have athletic, compact bonnets (~48-54cm from axle).
+  // Longitudinal engines (Saloon) have longer executive bonnets (~66-70cm from axle).
+  const cowlOffset = isSaloon ? 68 : (isSUV ? 52 : (isEstate ? 54 : 50));
   const cowlX = frontWheelX + cowlOffset;
 
   // Modern windscreen rake (~36°-40° from horizontal):
-  // Rakes back ~36 to 42 cm horizontally from cowl to roof header
-  const windshieldRun = isSaloon ? 42 : (isSUV ? 36 : (isEstate ? 38 : 36));
+  // Rakes back ~34 to 38 cm horizontally from cowl to roof header
+  const windshieldRun = isSaloon ? 38 : (isSUV ? 34 : (isEstate ? 36 : 34));
   const roofFrontX = cowlX + windshieldRun;
 
-  // SPECIFICATION-ANCHORED REAR SEATS & CARGO BED ARCHITECTURE:
-  // With seats upright, cargo floor length is strictly car.floor_length_seats_up from rear sill:
-  const rearHingeX = rearSillX - car.floor_length_seats_up;
+  // Ergonomic driving position: dashboard is 30cm deep, steering column extends 14cm,
+  // and driver sits 30cm behind steering wheel (total ~74cm from windshield cowl):
+  const frontSeatsX = Math.round(cowlX + 74);
+  const frontSeatBackX = frontSeatsX + 21; // Backrest rear face aligns with cushion rear at +21
 
-  // With rear seats folded flat, cargo floor length extends to car.floor_length_seats_folded from rear sill:
-  const foldedFloorFrontX = rearSillX - car.floor_length_seats_folded;
-  const frontSeatBackX = Math.min(rearHingeX - 42, foldedFloorFrontX);
+  // SPECIFICATION-ANCHORED REAR SEATS & CARGO BED ARCHITECTURE:
+  // Tandem passenger spacing: rear seats sit ~84cm behind front seats, providing ~24-26cm of realistic knee room:
+  const rearHingeX = frontSeatsX + 84;
   const cargoBedFrontX = seatsFolded ? frontSeatBackX : rearHingeX;
   currentFloorLen = Math.abs(rearSillX - cargoBedFrontX);
-
-  // Front bucket seats anchored directly to authentic vehicle interior specification:
-  // The rear face of the front seat backrest is defined by frontSeatBackX (car.floor_length_seats_folded).
-  // In createSeat3D, the backrest extends +16 cm rearward from the seat position origin.
-  // Setting frontSeatsX = frontSeatBackX - 16 aligns the back of the front seat backrest precisely with
-  // the folded cargo floor boundary, eliminating empty gaps and providing realistic passenger legroom (~27 cm).
-  const frontSeatsX = frontSeatBackX - 16;
 
   let roofRearX, deckFrontX;
   if (isSaloon) {
@@ -2231,7 +2228,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   }
 
   // B-pillar is aligned directly beside the driver's seat
-  const bPillarX = frontSeatsX + 14;
+  const bPillarX = frontSeatsX + 15;
   const cPillarX = isEstate ? (bPillarX + (roofRearX - bPillarX) * 0.58) : (isSaloon ? deckFrontX : roofRearX);
   const dPillarX = isEstate ? roofRearX : null;
 

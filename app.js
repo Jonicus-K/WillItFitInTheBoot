@@ -2338,6 +2338,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
   spine.rotation.z = mainHoodSlope;
   car3DGroup.add(spine);
 
+  // Dynamic Aerodynamic Swage Character Creases on Bonnet
+  [-mainHoodAvgWidth * 0.28, mainHoodAvgWidth * 0.28].forEach(sz => {
+    const creaseGeo = new THREE.BoxGeometry(mainHoodLen - 4, 1.2, 1.6);
+    const crease = new THREE.Mesh(creaseGeo, bodyPaintMat);
+    crease.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + noseTopY) / 2) + 0.6, sz);
+    crease.rotation.z = mainHoodSlope;
+    addCadEdges(crease, 0x38bdf8);
+    car3DGroup.add(crease);
+  });
+
   // Curved Nose Drop into Front Grille / Bumper
   const noseDropLen = Math.abs(noseBreakX - (carFrontX + 2));
   const noseDropSlope = Math.atan2(noseTopY - (noseTopY - 9), noseDropLen);
@@ -2391,19 +2401,19 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const bumperCenterWidth = totalCarWidth * 0.70;
 
   // Center Bumper Bar
-  const frontBumperGeo = new THREE.BoxGeometry(6, bumperHeight, bumperCenterWidth);
+  const frontBumperGeo = new THREE.BoxGeometry(7, bumperHeight, bumperCenterWidth);
   const frontBumper = new THREE.Mesh(frontBumperGeo, bodyPaintMat);
-  frontBumper.position.set(carFrontX + 3, bumperCenterY, 0);
+  frontBumper.position.set(carFrontX + 3.5, bumperCenterY, 0);
   addCadEdges(frontBumper, 0x38bdf8);
   car3DGroup.add(frontBumper);
 
-  // Swept Aerodynamic Bumper Corner Wings (curving back 40° towards front wheel arches)
+  // Swept Aerodynamic Bumper Corner Wings (curving back smoothly towards front wheel arches)
   [-1, 1].forEach(side => {
     const cornerSpan = (totalCarWidth - bumperCenterWidth) / 2;
-    const cornerGeo = new THREE.BoxGeometry(14, bumperHeight, cornerSpan);
+    const cornerGeo = new THREE.BoxGeometry(16, bumperHeight, cornerSpan);
     const corner = new THREE.Mesh(cornerGeo, bodyPaintMat);
-    corner.position.set(carFrontX + 8, bumperCenterY, side * ((bumperCenterWidth / 2) + (cornerSpan / 2)));
-    corner.rotation.y = side * -0.32;
+    corner.position.set(carFrontX + 9, bumperCenterY, side * ((bumperCenterWidth / 2) + (cornerSpan / 2)));
+    corner.rotation.y = side * -0.36;
     addCadEdges(corner, 0x38bdf8);
     car3DGroup.add(corner);
   });
@@ -2555,29 +2565,32 @@ function update3DStudio(car, seatsFolded, fitResult) {
   // Beltline at ~61-63% height provides substantial athletic door metal (70-80cm)
   // Rocker line at ~15-18cm ensures full underside closure and authentic wheel wells
   const flankShape = new THREE.Shape();
-  flankShape.moveTo(carFrontX + 4, rockerY + 2);
-  flankShape.lineTo(carFrontX, rockerY + 8);
-  flankShape.lineTo(carFrontX, noseTopY - 6);
-  flankShape.lineTo(carFrontX + 16, noseTopY);
-  flankShape.lineTo(cowlX, beltY + 2);
+  // Start at lower front chin with aerodynamic curve
+  flankShape.moveTo(carFrontX + 8, rockerY + 1);
+  flankShape.quadraticCurveTo(carFrontX, rockerY + 2, carFrontX, rockerY + 10);
+  // Curve up the front bumper fascia
+  flankShape.quadraticCurveTo(carFrontX - 0.5, noseTopY - 5, carFrontX + 10, noseTopY);
+  // Flow aerodynamically from nose cone into bonnet and cowl
+  flankShape.quadraticCurveTo(carFrontX + (Math.abs(cowlX - carFrontX) * 0.45), noseTopY + (beltY - noseTopY) * 0.35, cowlX, beltY + 2);
   flankShape.lineTo(cowlX + 4, beltY);
 
   if (isSaloon) {
     flankShape.lineTo(deckFrontX, beltY);
     flankShape.lineTo(rearSillX, beltY);
-    flankShape.lineTo(rearSillX + 2, sillY + 4);
-    flankShape.lineTo(rearBumperX, sillY + 4);
+    flankShape.quadraticCurveTo(rearBumperX - 2, beltY - 2, rearBumperX, sillY + 4);
   } else if (isEstate) {
     flankShape.lineTo(rearSillX + 4, beltY);
-    flankShape.lineTo(rearBumperX, sillY + 4);
+    flankShape.quadraticCurveTo(rearBumperX - 2, beltY - 1, rearBumperX, sillY + 4);
   } else if (isSUV) {
     flankShape.lineTo(rearSillX + 2, beltY + 2);
-    flankShape.lineTo(rearBumperX, sillY + 4);
+    flankShape.quadraticCurveTo(rearBumperX - 2, beltY, rearBumperX, sillY + 4);
   } else {
+    // Hatchback: graceful curve over rear quarter into rounded rear bumper
     flankShape.lineTo(rearSillX + 4, beltY);
-    flankShape.lineTo(rearBumperX, sillY + 4);
+    flankShape.quadraticCurveTo(rearBumperX - 2, beltY - 1, rearBumperX, sillY + 4);
   }
-  flankShape.lineTo(rearBumperX, rockerY + 2);
+  // Rounded lower rear valance
+  flankShape.quadraticCurveTo(rearBumperX + 0.5, rockerY + 4, rearBumperX - 8, rockerY + 1.5);
 
   // Underside with circular Wheel Arch Cutouts
   flankShape.lineTo(rearWheelX + wheelArchR, rockerY);
@@ -2591,11 +2604,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
   flankShape.absarc(frontWheelX, wheelY, wheelArchR, 0, Math.PI, false);
   flankShape.lineTo(frontWheelX - wheelArchR, rockerY);
 
-  // Front chin
-  flankShape.lineTo(carFrontX + 8, rockerY);
-  flankShape.lineTo(carFrontX + 4, rockerY + 2);
+  // Smooth front lower chin transition
+  flankShape.quadraticCurveTo(carFrontX + 14, rockerY, carFrontX + 8, rockerY + 1);
 
-  const flankExtrude = { depth: 4.5, bevelEnabled: true, bevelSize: 0.8, bevelThickness: 0.8, bevelSegments: 2 };
+  const flankExtrude = {
+    depth: 4.5,
+    bevelEnabled: true,
+    bevelSize: 1.4,
+    bevelThickness: 1.2,
+    bevelSegments: 4
+  };
   const flankGeo = new THREE.ExtrudeGeometry(flankShape, flankExtrude);
 
   const leftFlank = new THREE.Mesh(flankGeo, bodyPaintMat);
@@ -2607,6 +2625,26 @@ function update3DStudio(car, seatsFolded, fitResult) {
   rightFlank.position.z = -(totalCarWidth / 2);
   addCadEdges(rightFlank, 0x38bdf8);
   car3DGroup.add(rightFlank);
+
+  // Sculpted 3D Wheel Arch Eyebrow Blister Flares (adds authentic muscular fender curvature)
+  [-1, 1].forEach(side => {
+    const archZ = side * ((totalCarWidth / 2) - 1.8);
+    // Front wheel arch flare
+    const fFlareGeo = new THREE.TorusGeometry(wheelArchR + 0.6, 2.0, 8, 28, Math.PI);
+    const fFlare = new THREE.Mesh(fFlareGeo, isSUV ? claddingMat : bodyPaintMat);
+    fFlare.rotation.y = side > 0 ? 0 : Math.PI;
+    fFlare.position.set(frontWheelX, wheelY, archZ);
+    addCadEdges(fFlare, 0x38bdf8);
+    car3DGroup.add(fFlare);
+
+    // Rear wheel arch flare
+    const rFlareGeo = new THREE.TorusGeometry(wheelArchR + 0.6, 2.2, 8, 28, Math.PI);
+    const rFlare = new THREE.Mesh(rFlareGeo, isSUV ? claddingMat : bodyPaintMat);
+    rFlare.rotation.y = side > 0 ? 0 : Math.PI;
+    rFlare.position.set(rearWheelX, wheelY, archZ);
+    addCadEdges(rFlare, 0x38bdf8);
+    car3DGroup.add(rFlare);
+  });
 
   // Continuous Beltline Shoulders & Rear Haunches (Connecting side glass line to outer flanks)
   [-1, 1].forEach(side => {
@@ -2781,21 +2819,20 @@ function update3DStudio(car, seatsFolded, fitResult) {
       rWin.position.set((bPillarX + rearDoorEnd) / 2, beltY + (winHeight / 2) + 0.5, zPos + 1.5);
       car3DGroup.add(rWin);
 
-      // Signature Solid Hatchback Rear Quarter Panel / Broad C-Pillar
-      // Completely encloses the side cargo area from rear door shutline to tailgate opening
+      // Signature Solid Hatchback Rear Quarter Panel / Broad Sculpted C-Pillar
       const hatchQShape = new THREE.Shape();
       hatchQShape.moveTo(rearDoorEnd - 1, beltY);
-      hatchQShape.lineTo(rearSillX, beltY);
-      hatchQShape.lineTo(roofRearX, roofTopY - 2.0);
+      hatchQShape.quadraticCurveTo(rearSillX - 6, beltY + 1, rearSillX + 2, beltY);
+      hatchQShape.quadraticCurveTo(rearSillX - 2, (beltY + roofTopY) / 2, roofRearX, roofTopY - 2.0);
       hatchQShape.lineTo(rearDoorEnd - 1, roofTopY - 2.0);
       hatchQShape.closePath();
 
       const hatchQGeo = new THREE.ExtrudeGeometry(hatchQShape, {
         depth: 3.5,
         bevelEnabled: true,
-        bevelSize: 0.4,
-        bevelThickness: 0.4,
-        bevelSegments: 1
+        bevelSize: 0.8,
+        bevelThickness: 0.8,
+        bevelSegments: 3
       });
       const hatchQMesh = new THREE.Mesh(hatchQGeo, bodyPaintMat);
       hatchQMesh.position.set(0, 0, zPos - 0.25);
@@ -2822,13 +2859,28 @@ function update3DStudio(car, seatsFolded, fitResult) {
     });
   });
 
-  // 9. ROOF PANEL & ROOF RAILS
+  // 9. ROOF PANEL & INTEGRATED SPOILER
   const roofLen = Math.abs(roofRearX - roofFrontX);
   const roofGeo = new THREE.BoxGeometry(roofLen, 2.2, cabinWidth - 4);
   const roofMesh = new THREE.Mesh(roofGeo, (car.id.includes('tesla') ? glassMat : bodyPaintMat));
   roofMesh.position.set((roofFrontX + roofRearX) / 2, roofTopY - 1.1, 0);
   addCadEdges(roofMesh, 0x38bdf8);
   car3DGroup.add(roofMesh);
+
+  // Aerodynamic Rear Roof Spoiler with High-Mount Stop Lamp (HMSL)
+  const spoilerLen = 10;
+  const spoilerGeo = new THREE.BoxGeometry(spoilerLen, 2.2, cabinWidth - 6);
+  const spoiler = new THREE.Mesh(spoilerGeo, bodyPaintMat);
+  spoiler.position.set(roofRearX + (spoilerLen / 2) - 2, roofTopY - 0.5, 0);
+  spoiler.rotation.z = -0.06;
+  addCadEdges(spoiler, 0x38bdf8);
+  car3DGroup.add(spoiler);
+
+  // High-Mount LED Brake Light Strip on Spoiler
+  const hmslGeo = new THREE.BoxGeometry(spoilerLen - 2, 1.0, cabinWidth * 0.35);
+  const hmsl = new THREE.Mesh(hmslGeo, taillampMat);
+  hmsl.position.set(roofRearX + (spoilerLen / 2) - 1, roofTopY - 0.5, 0);
+  car3DGroup.add(hmsl);
 
   // Longitudinal Roof Rails (Estate & SUV)
   if (isEstate || isSUV) {

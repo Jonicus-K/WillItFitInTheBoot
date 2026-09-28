@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://willitfitintheboot.com/sitemap.xml
+Sitemap: https://www.willitfitintheboot.co.uk/sitemap.xml

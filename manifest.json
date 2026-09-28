@@ -1,0 +1,18 @@
+{
+  "name": "Will It Fit In The Boot? - Car Cargo Space Calculator",
+  "short_name": "WillItFitInTheBoot",
+  "description": "Quickly check if furniture, TVs, appliances, and luggage fit into your car boot with an interactive 3D visualizer.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1329",
+  "theme_color": "#0b1329",
+  "icons": [
+    {
+      "src": "assets/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

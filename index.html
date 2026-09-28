@@ -3,21 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Will It Fit In The Boot? - Car Cargo Space Fitment Calculator</title>
-  <meta name="description" content="Quickly check if furniture, TVs, appliances, or boxes fit into your car boot with an interactive 3D visualizer.">
+  <title>Will It Fit In The Boot? - Car Cargo Space & Boot Fitment Calculator</title>
+  <meta name="description" content="Quickly check if TVs, furniture, appliances, or boxes will fit in your car boot with an interactive 3D visualizer, loading angle solver, and real UK/EU car boot dimensions.">
+  <meta name="keywords" content="will it fit in the boot, car boot dimensions, car cargo calculator, boot space guide, tv box car boot, ikea furniture car boot, golf mk8 boot space, focus estate boot dimensions, tesla model y cargo space">
+  <meta name="author" content="Will It Fit In The Boot?">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0b1329">
 
-  <!-- Favicon Configuration -->
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://willitfitintheboot.com/">
+
+  <!-- Web App Manifest & Favicon Configuration -->
+  <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
   <link rel="shortcut icon" href="favicon.ico">
+
+  <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://willitfitintheboot.com/">
+  <meta property="og:site_name" content="Will It Fit In The Boot?">
+  <meta property="og:title" content="Will It Fit In The Boot? - 3D Car Cargo Space Calculator">
+  <meta property="og:description" content="Quickly check if furniture, TVs, appliances, or boxes fit into your car boot with an interactive 3D visualizer and real UK/EU boot dimensions.">
+  <meta property="og:image" content="https://willitfitintheboot.com/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Will It Fit In The Boot 3D Car Cargo Fitment Calculator">
+
+  <!-- Twitter / X Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://willitfitintheboot.com/">
+  <meta name="twitter:title" content="Will It Fit In The Boot? - 3D Car Cargo Space Calculator">
+  <meta name="twitter:description" content="Quickly check if furniture, TVs, appliances, or boxes fit into your car boot with an interactive 3D visualizer.">
+  <meta name="twitter:image" content="https://willitfitintheboot.com/assets/og-image.png">
+
+  <!-- Structured Data: WebApplication Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Will It Fit In The Boot? - Car Cargo Space Calculator",
+    "url": "https://willitfitintheboot.com/",
+    "description": "Interactive 3D car boot cargo fitment calculator. Check if TVs, flat-pack furniture, washing machines, or luggage fit your vehicle boot before you buy or transport.",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "All",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "GBP"
+    },
+    "featureList": [
+      "Interactive 3D real-time cargo visualizer",
+      "4-gate fitment constraint solver (floor, wheel arches, roof, rear rake)",
+      "Dual-angle solver for flat, pitched, diagonal, banked, and center-load cargo",
+      "Tailgate entrance aperture clearance validation",
+      "Seats folded vs. seats up cargo depth toggle",
+      "Real boot dimensions for popular hatchbacks, estates, saloons, and SUVs"
+    ]
+  }
+  </script>
+
+  <!-- Structured Data: FAQPage Schema for Rich Snippets -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Will a 65-inch TV box fit in my car boot?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A standard 65-inch TV box measures approximately 160 cm long, 98 cm high, and 18 cm thick. In most hatchbacks (like a VW Golf), it will not fit flat between the wheel arches or through the tailgate aperture without tilting or folding the rear seats. In estate cars (like a Ford Focus Estate or Skoda Octavia) and SUVs (like a Tesla Model Y), a 65-inch TV box fits flat when the rear seats are folded."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will a washing machine fit in a standard hatchback boot?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A standard UK/European washing machine measures roughly 60 cm wide, 60 cm deep, and 85 cm high. While the boot floor in most hatchbacks is wide enough (typically 95-105 cm between wheel arches), the tailgate aperture height or boot roof height (often 67-75 cm) may require laying the machine on its side or folding the rear seats flat."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does rear window rake angle affect cargo fitment?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Even if an item fits onto the flat floor length of your boot, a sloping rear window or raked hatchback tailgate reduces the usable length near the roof. Our dual-angle 3D solver checks both the floor dimensions and the upper rear hatch glass slope so your cargo doesn't crack your rear window."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can an IKEA Billy bookcase fit in a car with seats folded?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A standard IKEA Billy flat-pack bookcase box is approximately 205 cm long, 30 cm wide, and 13 cm high. Because it exceeds 2 meters in length, it will typically require an estate car, an SUV with seats folded, or sliding the box slightly forward between the front bucket seats."
+        }
+      }
+    ]
+  }
+  </script>
 
   <!-- Friendly Modern Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=31">
   <!-- Three.js & OrbitControls via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -143,6 +237,10 @@
                 <button type="button" class="toggle-advanced-btn" id="btn-toggle-advanced" title="Customize tilt angles and loading modes">
                   ⚙️ Tilt Options ▾
                 </button>
+                <button type="button" class="share-btn" id="btn-share-link" title="Copy shareable link for this car and cargo">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                  <span>Share</span>
+                </button>
               </div>
             </div>
 
@@ -221,8 +319,248 @@
         </div>
       </section>
     </main>
+
+    <!-- Comprehensive Crawlable SEO Guide & Reference Tables -->
+    <section class="seo-guide-section" id="guide-section">
+      <div class="guide-card">
+        <header class="guide-header">
+          <span class="guide-badge">CARGO &amp; BOOT SPACE GUIDE</span>
+          <h2 class="guide-title">How To Know If Items Will Fit In Your Car Boot</h2>
+          <p class="guide-subtitle">Understand the 4 critical constraints: floor length, wheel arch pinch points, roof clearance, and rear window rake angle.</p>
+        </header>
+
+        <div class="guide-grid">
+          <article class="guide-block">
+            <h3>1. The Tailgate Aperture Gate</h3>
+            <p>An item cannot travel inside your boot if it cannot pass through the rear opening. Tailgates are often narrower and shorter than the internal boot cabin. Many flat-pack boxes get stuck at the sill before ever reaching the boot floor.</p>
+          </article>
+
+          <article class="guide-block">
+            <h3>2. Wheel Arch Width (The 100cm Pinch)</h3>
+            <p>Most medium family hatchbacks feature between 95 cm and 105 cm of flat width between the interior rear wheel arches. Large items like 65" TV boxes (98 cm wide in packaging) require flat orientation or propping one edge up.</p>
+          </article>
+
+          <article class="guide-block">
+            <h3>3. Sloping Hatch Glass (Rear Window Rake)</h3>
+            <p>While an estate car or SUV offers a boxy rear tailgate, sleek hatchbacks and saloons feature steep rake angles (29° to 48°). Tall rectangular items can easily strike the rear windscreen if not angled forward or stowed with seats folded.</p>
+          </article>
+
+          <article class="guide-block">
+            <h3>4. Seats Folded vs Seats Up Capacity</h3>
+            <p>Folding rear seats typically doubles or triples usable cargo floor length (from ~75 cm to over 150-195 cm). Our 3D calculator models both modes with authentic angled seatback risers.</p>
+          </article>
+        </div>
+
+        <!-- Popular Vehicle Boot Dimensions Table -->
+        <div class="table-section">
+          <h3 class="table-title">Popular Vehicle Boot Dimensions Reference</h3>
+          <div class="table-wrap">
+            <table class="seo-table">
+              <thead>
+                <tr>
+                  <th>Vehicle Model</th>
+                  <th>Body Type</th>
+                  <th>Floor (Seats Folded)</th>
+                  <th>Floor (Seats Up)</th>
+                  <th>Arch Width</th>
+                  <th>Roof Height</th>
+                  <th>Boot Aperture (W × H)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Volkswagen Golf (Mk8)</strong></td>
+                  <td><span class="type-pill">Hatchback</span></td>
+                  <td>149 cm</td>
+                  <td>77 cm</td>
+                  <td>100 cm</td>
+                  <td>71 cm</td>
+                  <td>102 × 67 cm</td>
+                </tr>
+                <tr>
+                  <td><strong>Ford Focus Estate (Mk4)</strong></td>
+                  <td><span class="type-pill">Estate</span></td>
+                  <td>175 cm</td>
+                  <td>104 cm</td>
+                  <td>115 cm</td>
+                  <td>78 cm</td>
+                  <td>108 × 75 cm</td>
+                </tr>
+                <tr>
+                  <td><strong>Škoda Octavia Estate (Mk4)</strong></td>
+                  <td><span class="type-pill">Estate</span></td>
+                  <td>188 cm</td>
+                  <td>109 cm</td>
+                  <td>101 cm</td>
+                  <td>82 cm</td>
+                  <td>107 × 78 cm</td>
+                </tr>
+                <tr>
+                  <td><strong>Tesla Model Y</strong></td>
+                  <td><span class="type-pill">SUV</span></td>
+                  <td>195 cm</td>
+                  <td>108 cm</td>
+                  <td>95 cm</td>
+                  <td>72 cm</td>
+                  <td>106 × 70 cm</td>
+                </tr>
+                <tr>
+                  <td><strong>Nissan Qashqai (Mk3)</strong></td>
+                  <td><span class="type-pill">SUV</span></td>
+                  <td>159 cm</td>
+                  <td>86 cm</td>
+                  <td>105 cm</td>
+                  <td>80 cm</td>
+                  <td>108 × 75 cm</td>
+                </tr>
+                <tr>
+                  <td><strong>BMW 3 Series Saloon (G20)</strong></td>
+                  <td><span class="type-pill">Saloon</span></td>
+                  <td>170 cm</td>
+                  <td>100 cm</td>
+                  <td>94 cm</td>
+                  <td>52 cm</td>
+                  <td>90 × 48 cm</td>
+                </tr>
+                <tr>
+                  <td><strong>Audi A4 Saloon (B9)</strong></td>
+                  <td><span class="type-pill">Saloon</span></td>
+                  <td>168 cm</td>
+                  <td>98 cm</td>
+                  <td>95 cm</td>
+                  <td>53 cm</td>
+                  <td>92 × 49 cm</td>
+                </tr>
+                <tr>
+                  <td><strong>Vauxhall Corsa (F)</strong></td>
+                  <td><span class="type-pill">Hatchback</span></td>
+                  <td>130 cm</td>
+                  <td>66 cm</td>
+                  <td>96 cm</td>
+                  <td>68 cm</td>
+                  <td>95 × 62 cm</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Common Cargo Dimensions Reference -->
+        <div class="table-section">
+          <h3 class="table-title">Standard Boxed Item Dimensions</h3>
+          <div class="table-wrap">
+            <table class="seo-table">
+              <thead>
+                <tr>
+                  <th>Item Description</th>
+                  <th>Length</th>
+                  <th>Width</th>
+                  <th>Height</th>
+                  <th>Typical Boot Requirement</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>55" TV Box in Packaging</strong></td>
+                  <td>140 cm</td>
+                  <td>85 cm</td>
+                  <td>16 cm</td>
+                  <td>Fits flat in most hatchbacks with seats folded</td>
+                </tr>
+                <tr>
+                  <td><strong>65" TV Box in Packaging</strong></td>
+                  <td>160 cm</td>
+                  <td>98 cm</td>
+                  <td>18 cm</td>
+                  <td>Requires estate, SUV, or front passenger seat tilt</td>
+                </tr>
+                <tr>
+                  <td><strong>Washing Machine / Dryer</strong></td>
+                  <td>60 cm</td>
+                  <td>60 cm</td>
+                  <td>85 cm</td>
+                  <td>Fits upright in taller estates/SUVs, or laid flat</td>
+                </tr>
+                <tr>
+                  <td><strong>IKEA Billy Bookcase Box</strong></td>
+                  <td>205 cm</td>
+                  <td>30 cm</td>
+                  <td>13 cm</td>
+                  <td>Requires through-loading between front seats or roof bars</td>
+                </tr>
+                <tr>
+                  <td><strong>Large Wheeled Suitcase</strong></td>
+                  <td>76 cm</td>
+                  <td>50 cm</td>
+                  <td>30 cm</td>
+                  <td>Fits easily seats up in standard hatchbacks</td>
+                </tr>
+                <tr>
+                  <td><strong>Adult Bicycle (Front Wheel On)</strong></td>
+                  <td>175 cm</td>
+                  <td>65 cm</td>
+                  <td>105 cm</td>
+                  <td>Requires seats folded flat and gentle diagonal tilt</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Frequently Asked Questions Accordion -->
+        <div class="faq-section">
+          <h3 class="table-title">Frequently Asked Questions (FAQ)</h3>
+          <div class="faq-accordion">
+            <details class="faq-item" open>
+              <summary class="faq-question">Will a 65-inch TV box fit in my car boot?</summary>
+              <div class="faq-answer">
+                <p>A standard boxed 65-inch TV measures approximately 160 cm long, 98 cm high, and 18 cm thick. In standard hatchbacks (like a VW Golf), it will not fit flat between the wheel arches without folding the rear seats. In estate cars (like the Ford Focus Estate or Skoda Octavia) and SUVs (like the Tesla Model Y), a 65-inch TV box fits flat when rear seats are folded.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">Will a washing machine fit in a standard hatchback boot?</summary>
+              <div class="faq-answer">
+                <p>Standard UK/European domestic washing machines measure 60 cm wide, 60 cm deep, and 85 cm high. While the boot floor in most hatchbacks is wide enough (95–105 cm), the tailgate opening aperture height or boot roof height (often 67–75 cm) prevents upright transport. You will usually need to lay the machine flat or transport it in an estate or SUV with seats folded.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">How does rear window rake angle affect cargo fitment?</summary>
+              <div class="faq-answer">
+                <p>Even if an item fits onto the flat floor length of your boot, a sloping rear window or raked hatchback tailgate reduces the usable length near the roof. Our dual-angle 3D solver checks both the floor dimensions and the upper rear hatch glass slope so your cargo doesn't contact or crack your rear glass.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">Can an IKEA Billy bookcase fit in a car with seats folded?</summary>
+              <div class="faq-answer">
+                <p>A standard flat-packed IKEA Billy bookcase box is approximately 205 cm long, 30 cm wide, and 13 cm high. Because it exceeds 2 meters in length, it will typically require an estate car, an SUV with seats folded, or sliding the box slightly forward between the front bucket seats.</p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Semantic Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <p class="footer-brand">Will It Fit In The Boot? — Free 3D Car Cargo Fitment Calculator</p>
+        <p class="footer-disclaimer">Dimensions are reference guides derived from manufacturer specifications and interior CAD blueprints. Always measure your vehicle and cargo before transporting bulky items.</p>
+        <p class="footer-links">
+          <a href="sitemap.xml">Sitemap</a> • 
+          <a href="https://willitfitintheboot.com/">Home</a> • 
+          <a href="manifest.json">Web App Manifest</a>
+        </p>
+        <p class="footer-copy">© 2026 Will It Fit In The Boot. All rights reserved.</p>
+      </div>
+    </footer>
   </div>
 
-  <script src="app.js?v=64"></script>
+  <!-- Toast Notification Container -->
+  <div id="toast-notification" class="toast-notification" aria-live="polite"></div>
+
+  <script src="app.js?v=65"></script>
 </body>
 </html>

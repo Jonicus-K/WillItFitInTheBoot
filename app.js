@@ -168,6 +168,19 @@ const chipStowed = document.getElementById('chip-stowed');
 const btnSimulateIngress = document.getElementById('btn-simulate-ingress');
 const animBtnLabel = document.getElementById('anim-btn-label');
 const btnToggleAdvanced = document.getElementById('btn-toggle-advanced');
+const btnShareLink = document.getElementById('btn-share-link');
+const toastNotification = document.getElementById('toast-notification');
+
+function showToast(message) {
+  if (!toastNotification) return;
+  toastNotification.textContent = message;
+  toastNotification.classList.add('show');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => {
+    toastNotification.classList.remove('show');
+  }, 2800);
+}
+
 const advancedControlsPanel = document.getElementById('advanced-controls-panel');
 const strategyPills = document.querySelectorAll('.strategy-pill');
 const customAngleSlider = document.getElementById('custom-angle-slider');
@@ -329,22 +342,60 @@ async function init() {
 
   selectedCar = vehicles[0];
 
-  // Optional URL parameter support for direct deep-linking & testing
+  // URL parameter support for direct deep-linking & SEO landing pages
   const urlParams = new URLSearchParams(window.location.search);
   const paramCar = urlParams.get('car');
   if (paramCar) {
-    const foundIdx = vehicles.findIndex(v => v.id === paramCar || v.name.toLowerCase().includes(paramCar.toLowerCase()));
+    const cleanParam = paramCar.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const foundIdx = vehicles.findIndex(v => {
+      const cleanId = (v.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanName = (v.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanId === cleanParam || cleanId.includes(cleanParam) || cleanParam.includes(cleanId) ||
+             cleanName.includes(cleanParam);
+    });
     if (foundIdx >= 0) {
       carSelect.value = String(foundIdx);
       selectedCar = vehicles[foundIdx];
     }
   }
-  if (urlParams.has('seatsFolded')) {
-    foldSeatsCheckbox.checked = urlParams.get('seatsFolded') === '1' || urlParams.get('seatsFolded') === 'true';
+
+  const paramItem = urlParams.get('item');
+  if (paramItem) {
+    const p = paramItem.toLowerCase();
+    if (p.includes('65')) {
+      cargoLengthInput.value = 160; cargoWidthInput.value = 98; cargoHeightInput.value = 18;
+      highlightPreset('160', '98', '18');
+    } else if (p.includes('55')) {
+      cargoLengthInput.value = 140; cargoWidthInput.value = 85; cargoHeightInput.value = 16;
+      highlightPreset('140', '85', '16');
+    } else if (p.includes('wash')) {
+      cargoLengthInput.value = 60; cargoWidthInput.value = 60; cargoHeightInput.value = 85;
+      highlightPreset('60', '60', '85');
+    } else if (p.includes('ikea') || p.includes('bookcase')) {
+      cargoLengthInput.value = 205; cargoWidthInput.value = 30; cargoHeightInput.value = 13;
+      highlightPreset('205', '30', '13');
+    } else if (p.includes('suit') || p.includes('luggage')) {
+      cargoLengthInput.value = 76; cargoWidthInput.value = 50; cargoHeightInput.value = 30;
+      highlightPreset('76', '50', '30');
+    } else if (p.includes('bike') || p.includes('bicycle')) {
+      cargoLengthInput.value = 175; cargoWidthInput.value = 65; cargoHeightInput.value = 105;
+      highlightPreset('175', '65', '105');
+    }
   }
-  if (urlParams.has('l')) cargoLengthInput.value = urlParams.get('l');
-  if (urlParams.has('w')) cargoWidthInput.value = urlParams.get('w');
-  if (urlParams.has('h')) cargoHeightInput.value = urlParams.get('h');
+
+  if (urlParams.has('length')) cargoLengthInput.value = urlParams.get('length');
+  else if (urlParams.has('l')) cargoLengthInput.value = urlParams.get('l');
+
+  if (urlParams.has('width')) cargoWidthInput.value = urlParams.get('width');
+  else if (urlParams.has('w')) cargoWidthInput.value = urlParams.get('w');
+
+  if (urlParams.has('height')) cargoHeightInput.value = urlParams.get('height');
+  else if (urlParams.has('h')) cargoHeightInput.value = urlParams.get('h');
+
+  if (urlParams.has('seats') || urlParams.has('seatsFolded')) {
+    const val = (urlParams.get('seats') || urlParams.get('seatsFolded')).toLowerCase();
+    foldSeatsCheckbox.checked = (val === 'down' || val === 'folded' || val === '1' || val === 'true');
+  }
   if (urlParams.has('boot')) {
     isTailgateOpen = urlParams.get('boot') === 'open' || urlParams.get('boot') === '1';
   }
@@ -487,11 +538,51 @@ function attachEvents() {
     });
   }
 
+  // Share Direct Fitment Link Button
+  if (btnShareLink) {
+    btnShareLink.addEventListener('click', () => {
+      const shareUrl = new URL(window.location.origin + window.location.pathname);
+      if (selectedCar && selectedCar.id) {
+        shareUrl.searchParams.set('car', selectedCar.id);
+      }
+      shareUrl.searchParams.set('l', cargoLengthInput.value || 0);
+      shareUrl.searchParams.set('w', cargoWidthInput.value || 0);
+      shareUrl.searchParams.set('h', cargoHeightInput.value || 0);
+      shareUrl.searchParams.set('seats', foldSeatsCheckbox.checked ? 'down' : 'up');
+
+      const urlString = shareUrl.toString();
+      try {
+        window.history.replaceState({}, '', shareUrl.search);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(urlString).then(() => {
+            showToast('🔗 Direct fitment link copied to clipboard!');
+          }).catch(() => {
+            prompt('Copy this fitment link:', urlString);
+          });
+        } else {
+          prompt('Copy this fitment link:', urlString);
+        }
+      } catch (err) {
+        prompt('Copy this fitment link:', urlString);
+      }
+    });
+  }
+
   window.addEventListener('resize', onWindowResize);
 }
 
 function clearActivePresets() {
   presetButtons.forEach(btn => btn.classList.remove('active'));
+}
+
+function highlightPreset(l, w, h) {
+  presetButtons.forEach(btn => {
+    if (btn.dataset.length === String(l) && btn.dataset.width === String(w) && btn.dataset.height === String(h)) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
 }
 
 function getUniqueRotations(l, w, h) {

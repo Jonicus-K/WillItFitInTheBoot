@@ -915,3 +915,315 @@ body {
   padding: 3px 9px;
   border-radius: var(--radius-pill);
 }
+
+/* =========================================================================
+   Share Button & Toast Notifications
+   ========================================================================= */
+.share-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-family: var(--font-family);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.share-btn:hover {
+  background: var(--bg-card-subtle);
+  color: var(--text-main);
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.share-btn svg {
+  color: #38bdf8;
+}
+
+.toast-notification {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(30px);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid #38bdf8;
+  color: #f8fafc;
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.25);
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 9999;
+}
+
+.toast-notification.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* =========================================================================
+   Comprehensive SEO Guide & Reference Tables
+   ========================================================================= */
+.seo-guide-section {
+  margin-top: 32px;
+  width: 100%;
+}
+
+.guide-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  padding: 32px 28px;
+  box-shadow: var(--shadow-card);
+}
+
+.guide-header {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 30px auto;
+}
+
+.guide-badge {
+  display: inline-block;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  font-size: 0.70rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  margin-bottom: 10px;
+}
+
+.guide-title {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+  margin: 0 0 8px 0;
+}
+
+.guide-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.guide-block {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 18px;
+  transition: border-color 0.2s ease;
+}
+
+.guide-block:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.guide-block h3 {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 8px 0;
+}
+
+.guide-block p {
+  font-size: 0.80rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.table-section {
+  margin-top: 32px;
+}
+
+.table-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 14px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.seo-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.seo-table th {
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.seo-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+}
+
+.seo-table tr:hover td {
+  background: rgba(56, 189, 248, 0.04);
+}
+
+.type-pill {
+  display: inline-block;
+  background: rgba(30, 41, 59, 0.8);
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* FAQ Accordion */
+.faq-section {
+  margin-top: 36px;
+}
+
+.faq-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.faq-item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.faq-item[open] {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.faq-question {
+  padding: 16px 20px;
+  font-size: 0.90rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+.faq-question::after {
+  content: "+";
+  font-size: 1.2rem;
+  color: #38bdf8;
+  font-weight: 400;
+  transition: transform 0.2s ease;
+}
+
+.faq-item[open] .faq-question::after {
+  content: "−";
+  transform: rotate(180deg);
+}
+
+.faq-answer {
+  padding: 0 20px 16px 20px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.faq-answer p {
+  margin: 0;
+}
+
+/* Footer */
+.app-footer {
+  margin-top: 36px;
+  padding: 24px 0 16px 0;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.footer-brand {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 6px 0;
+}
+
+.footer-disclaimer {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  max-width: 680px;
+  margin: 0 auto 12px auto;
+  line-height: 1.5;
+}
+
+.footer-links {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin: 0 0 8px 0;
+}
+
+.footer-links a {
+  color: #38bdf8;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+  color: #7dd3fc;
+}
+
+.footer-copy {
+  font-size: 0.70rem;
+  color: var(--text-dim);
+  margin: 0;
+}

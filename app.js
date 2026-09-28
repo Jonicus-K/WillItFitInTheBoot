@@ -2380,11 +2380,10 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   // B-pillar is aligned directly beside the driver's seat
   const bPillarX = frontSeatsX + 15;
-  const cPillarX = isEstate ? (bPillarX + (roofRearX - bPillarX) * 0.58) : (isSaloon ? deckFrontX : roofRearX);
+  const rearDoorShutX = rearWheelX - Math.max(16, wheelArchR * 0.42);
+  const rearDoorEnd = rearDoorShutX;
+  const cPillarX = isEstate ? rearDoorShutX : (isSaloon ? deckFrontX : roofRearX);
   const dPillarX = isEstate ? roofRearX : null;
-  const rearDoorEnd = isEstate
-    ? cPillarX
-    : (isSaloon ? (rearWheelX - 4) : (isSUV ? (rearWheelX + 2) : (rearWheelX - 2)));
 
   // Materials: CAD Cutaway vs Showroom Paint
   const isGhost = xRayMode < 0.85;
@@ -3282,17 +3281,17 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
     } else if (isSaloon) {
       // Saloon: Rear Door Window, Quarter Glass, and Fastback C-Pillar flowing down to trunk deck
-      const rWinWidth = Math.abs(rearWheelX - 4 - bPillarX) - 4;
+      const rWinWidth = Math.abs(rearDoorEnd - bPillarX) - 4;
       const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
       const rWin = new THREE.Mesh(rWinGeo, glassMat);
-      rWin.position.set((bPillarX + rearWheelX - 4) / 2, beltY + (winHeight / 2) + 0.5, zPos + 1.5);
+      rWin.position.set((bPillarX + rearDoorEnd) / 2, beltY + (winHeight / 2) + 0.5, zPos + 1.5);
       car3DGroup.add(rWin);
 
       // Rear Quarter Window (Hofmeister Kink)
-      const qWinWidth = Math.abs(deckFrontX - 3 - (rearWheelX - 4));
+      const qWinWidth = Math.abs(deckFrontX - 3 - rearDoorEnd);
       const qWinGeo = new THREE.BoxGeometry(qWinWidth, winHeight - 4, 1.2);
       const qWin = new THREE.Mesh(qWinGeo, glassMat);
-      qWin.position.set((rearWheelX - 4 + deckFrontX - 3) / 2, beltY + (winHeight / 2) - 1, zPos + 1.5);
+      qWin.position.set((rearDoorEnd + deckFrontX - 3) / 2, beltY + (winHeight / 2) - 1, zPos + 1.5);
       car3DGroup.add(qWin);
 
       // C-Pillar: Flows gracefully from trunk deck base up to swept roofline
@@ -3414,71 +3413,99 @@ function update3DStudio(car, seatsFolded, fitResult) {
     car3DGroup.add(bSeam);
 
     // C. REAR DOOR TRAILING SHUT LINE & WHEEL ARCH DOGLEG
-    // 1. Upper vertical segment from window sill down to rear wheel arch entry
-    const archTopY = wheelY + wheelArchR + 1.2;
-    const rSeamTopH = beltY - archTopY;
+    // 4-point contoured dogleg ensuring guaranteed > 2cm clearance ahead of the rear wheel arch at all heights
+    const archApexY = wheelY + wheelArchR + 2.0;
+    const rearDoorShutX = rearDoorEnd; // Positioned cleanly at rearWheelX - Math.max(16, wheelArchR * 0.42)
+
+    // 1. Upper vertical segment from window sill down to wheel arch apex level
+    const rSeamTopH = beltY - archApexY;
     if (rSeamTopH > 0) {
       const rSeamTopGeo = new THREE.BoxGeometry(0.65, rSeamTopH, 0.45);
       const rSeamTop = new THREE.Mesh(rSeamTopGeo, doorSeamMat);
-      rSeamTop.position.set(rearDoorEnd, archTopY + (rSeamTopH / 2), zSeam);
+      rSeamTop.position.set(rearDoorShutX, archApexY + (rSeamTopH / 2), zSeam);
       addCadEdges(rSeamTop, 0x38bdf8, 20);
       car3DGroup.add(rSeamTop);
     }
 
-    // 2. Dogleg curve contouring around the front lip of the rear wheel arch down to the rocker sill
-    const doglegFrontX = rearWheelX - wheelArchR - 2.0;
-    const midX = rearDoorEnd - (rearDoorEnd - doglegFrontX) * 0.48;
-    const midY = archTopY - (archTopY - rockerY) * 0.40;
+    // 2. Contoured Dogleg Curve around the Front Lip of the Rear Wheel Arch:
+    const p2X = rearDoorShutX;
+    const p2Y = archApexY;
 
-    // Segment 1 (arch top to mid dogleg):
-    const d1Len = Math.hypot(rearDoorEnd - midX, archTopY - midY);
-    const d1Angle = Math.atan2(rearDoorEnd - midX, archTopY - midY);
+    // Point 3 (Upper wheel arch shoulder):
+    const p3Y = wheelY + (wheelArchR * 0.62);
+    const dy3 = p3Y - wheelY;
+    const dx3 = Math.sqrt(Math.max(0, wheelArchR * wheelArchR - dy3 * dy3));
+    const p3X = rearWheelX - dx3 - 3.8;
+
+    // Point 4 (Lower arch flank):
+    const p4Y = wheelY + (wheelArchR * 0.15);
+    const dy4 = p4Y - wheelY;
+    const dx4 = Math.sqrt(Math.max(0, wheelArchR * wheelArchR - dy4 * dy4));
+    const p4X = rearWheelX - dx4 - 3.8;
+
+    // Point 5 (Rocker sill bottom corner):
+    const p5Y = rockerY;
+    const p5X = rearWheelX - wheelArchR - 3.8;
+
+    // Segment 1 (arch apex to upper shoulder):
+    const d1Len = Math.hypot(p2X - p3X, p2Y - p3Y);
+    const d1Angle = Math.atan2(p2X - p3X, p2Y - p3Y);
     const d1Geo = new THREE.BoxGeometry(0.65, d1Len, 0.45);
     const d1Mesh = new THREE.Mesh(d1Geo, doorSeamMat);
-    d1Mesh.position.set((rearDoorEnd + midX) / 2, (archTopY + midY) / 2, zSeam);
+    d1Mesh.position.set((p2X + p3X) / 2, (p2Y + p3Y) / 2, zSeam);
     d1Mesh.rotation.z = -d1Angle;
     addCadEdges(d1Mesh, 0x38bdf8, 20);
     car3DGroup.add(d1Mesh);
 
-    // Segment 2 (mid dogleg down to rocker sill):
-    const d2Len = Math.hypot(midX - doglegFrontX, midY - rockerY);
-    const d2Angle = Math.atan2(midX - doglegFrontX, midY - rockerY);
+    // Segment 2 (upper shoulder to lower arch flank):
+    const d2Len = Math.hypot(p3X - p4X, p3Y - p4Y);
+    const d2Angle = Math.atan2(p3X - p4X, p3Y - p4Y);
     const d2Geo = new THREE.BoxGeometry(0.65, d2Len, 0.45);
     const d2Mesh = new THREE.Mesh(d2Geo, doorSeamMat);
-    d2Mesh.position.set((midX + doglegFrontX) / 2, (midY + rockerY) / 2, zSeam);
+    d2Mesh.position.set((p3X + p4X) / 2, (p3Y + p4Y) / 2, zSeam);
     d2Mesh.rotation.z = -d2Angle;
     addCadEdges(d2Mesh, 0x38bdf8, 20);
     car3DGroup.add(d2Mesh);
 
+    // Segment 3 (lower arch flank down to rocker sill):
+    const d3Len = Math.hypot(p4X - p5X, p4Y - p5Y);
+    const d3Angle = Math.atan2(p4X - p5X, p4Y - p5Y);
+    const d3Geo = new THREE.BoxGeometry(0.65, d3Len, 0.45);
+    const d3Mesh = new THREE.Mesh(d3Geo, doorSeamMat);
+    d3Mesh.position.set((p4X + p5X) / 2, (p4Y + p5Y) / 2, zSeam);
+    d3Mesh.rotation.z = -d3Angle;
+    addCadEdges(d3Mesh, 0x38bdf8, 20);
+    car3DGroup.add(d3Mesh);
+
     // D. LOWER DOOR ROCKER SILL SEAM (Horizontal bottom door gap)
-    const rockerGapLen = Math.abs(doglegFrontX - frontBotX);
+    const rockerGapLen = Math.abs(p5X - frontBotX);
     const rockerGapGeo = new THREE.BoxGeometry(rockerGapLen, 0.55, 0.45);
     const rockerGap = new THREE.Mesh(rockerGapGeo, doorSeamMat);
-    rockerGap.position.set((frontBotX + doglegFrontX) / 2, rockerY + 0.8, zSeam);
+    rockerGap.position.set((frontBotX + p5X) / 2, rockerY + 0.8, zSeam);
     addCadEdges(rockerGap, 0x38bdf8, 20);
     car3DGroup.add(rockerGap);
 
     // E. DOOR SURFACE SCULPTING (Character Creases)
     // 1. Upper Waistline Character Crease (Tornado Line / Shoulder Highlight)
-    const waistlineLen = Math.abs(rearDoorEnd - (cowlX + 2.5));
+    const waistlineLen = Math.abs(rearDoorShutX - (cowlX + 2.5));
     const waistlineGeo = new THREE.BoxGeometry(waistlineLen, 0.55, 0.55);
     const waistline = new THREE.Mesh(waistlineGeo, bodyPaintMat);
-    waistline.position.set((cowlX + 2.5 + rearDoorEnd) / 2, beltY - 5.5, zOuter + (side * 0.15));
+    waistline.position.set((cowlX + 2.5 + rearDoorShutX) / 2, beltY - 5.5, zOuter + (side * 0.15));
     addCadEdges(waistline, 0x38bdf8, 15);
     car3DGroup.add(waistline);
 
     // 2. Lower Door Dynamic Scallop / Sill Swage Blade
-    const lowerBladeLen = Math.abs(doglegFrontX - 2.0 - (cowlX + 7.0));
+    const lowerBladeLen = Math.abs(p5X - 2.0 - (cowlX + 7.0));
     const lowerBladeGeo = new THREE.BoxGeometry(lowerBladeLen, 1.3, 0.5);
     const lowerBlade = new THREE.Mesh(lowerBladeGeo, isSUV ? claddingMat : bodyPaintMat);
-    lowerBlade.position.set((cowlX + 7.0 + doglegFrontX - 2.0) / 2, rockerY + 7.5, zOuter + (side * 0.15));
+    lowerBlade.position.set((cowlX + 7.0 + p5X - 2.0) / 2, rockerY + 7.5, zOuter + (side * 0.15));
     addCadEdges(lowerBlade, 0x38bdf8, 20);
     car3DGroup.add(lowerBlade);
 
     // F. HIGH-TECH ERGONOMIC DOOR HANDLES (Front & Rear Doors)
     const handleY = beltY - 5.5;
     const frontHandleX = bPillarX - 18;
-    const rearHandleX = Math.min(bPillarX + 26, rearDoorEnd - 14);
+    const rearHandleX = Math.min(bPillarX + 24, rearDoorShutX - 14);
 
     [
       { hx: frontHandleX, isFront: true },

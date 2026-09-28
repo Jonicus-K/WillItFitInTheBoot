@@ -2289,11 +2289,37 @@ function update3DStudio(car, seatsFolded, fitResult) {
   });
 
   const taillampMat = new THREE.MeshStandardMaterial({
-    color: 0x991b1b, // Deep automotive ruby red
-    emissive: 0x7f1d1d,
-    emissiveIntensity: 0.40,
-    roughness: 0.35,
-    metalness: 0.1
+    color: 0xdc2626, // Vibrant automotive ruby red
+    emissive: 0x991b1b, // Glowing ruby LED signature
+    emissiveIntensity: 0.85,
+    roughness: 0.20,
+    metalness: 0.20,
+    transparent: isGhost,
+    opacity: isGhost ? 0.85 : 1.0
+  });
+
+  const taillampBezelMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a, // Gloss dark obsidian / smoked housing
+    roughness: 0.25,
+    metalness: 0.60,
+    transparent: isGhost,
+    opacity: isGhost ? 0.85 : 1.0
+  });
+
+  const taillampLensMat = new THREE.MeshPhysicalMaterial({
+    color: 0x991b1b, // High-gloss crystalline ruby lens
+    roughness: 0.08,
+    metalness: 0.15,
+    transmission: 0.55,
+    transparent: true,
+    opacity: isGhost ? 0.55 : 0.85,
+    depthWrite: false
+  });
+
+  const taillampClearMat = new THREE.MeshStandardMaterial({
+    color: 0xf1f5f9, // Crisp silver-white crystalline reverse / indicator light
+    roughness: 0.15,
+    metalness: 0.85
   });
 
   // 1. FOUR WHEELS & WHEEL WELL LINERS
@@ -2994,6 +3020,15 @@ function update3DStudio(car, seatsFolded, fitResult) {
   // 10. TOGGLEABLE REAR BOOT / TAILGATE ASSEMBLY
   tailgatePivot = new THREE.Group();
   const openAngle = getOpenTailgateAngle(bodyType);
+  let outerLightX = rearBumperX - 6;
+  let outerLightY = beltY - 1.5;
+  const rearFaceHeight = Math.abs(beltY - (sillY + 4));
+  let lowerLen = Math.hypot(rearBumperX - rearSillX, (beltY + 1) - (sillY + 4));
+  let lowerAngle = isSaloon ? 0 : Math.atan2((beltY + 1) - (sillY + 4), rearBumperX - rearSillX);
+  let cornerPanelLen = lowerLen + 1;
+  let cornerPanelX = rearBumperX - 6;
+  let cornerPanelY = (sillY + 4) + (rearFaceHeight / 2);
+  let cornerPanelAngle = isSaloon ? 0 : -lowerAngle;
 
   if (isSaloon) {
     // SALOON NOTCHBACK SPECIFICS:
@@ -3025,16 +3060,43 @@ function update3DStudio(car, seatsFolded, fitResult) {
     addCadEdges(trunkLid, 0x38bdf8);
     tailgatePivot.add(trunkLid);
 
-    const rearFaceHeight = Math.abs(beltY - (sillY + 4));
     const rearFaceGeo = new THREE.BoxGeometry(3, rearFaceHeight, totalCarWidth - 18);
     const rearFace = new THREE.Mesh(rearFaceGeo, bodyPaintMat);
     rearFace.position.set(trunkLen, -(rearFaceHeight / 2), 0);
     tailgatePivot.add(rearFace);
 
-    const tailBarGeo = new THREE.BoxGeometry(4, 5, totalCarWidth - 22);
-    const tailBar = new THREE.Mesh(tailBarGeo, taillampMat);
-    tailBar.position.set(trunkLen + 1, -2, 0);
-    tailgatePivot.add(tailBar);
+    // Inner Trunk Taillight Clusters (Lifts with trunk lid)
+    const saloonLampH = Math.min(6.5, rearFaceHeight * 0.35);
+    const saloonInnerLightGroup = new THREE.Group();
+    saloonInnerLightGroup.position.set(trunkLen + 1.5, -(rearFaceHeight * 0.32), 0);
+    const saloonInnerWidth = (totalCarWidth - 22) / 2;
+    [-1, 1].forEach(side => {
+      const podGeo = new THREE.BoxGeometry(1.2, saloonLampH, 13);
+      const pod = new THREE.Mesh(podGeo, taillampBezelMat);
+      pod.position.set(-0.4, 0, side * (saloonInnerWidth * 0.65));
+      saloonInnerLightGroup.add(pod);
+
+      const bladeGeo = new THREE.BoxGeometry(0.4, saloonLampH * 0.45, 12.2);
+      const blade = new THREE.Mesh(bladeGeo, taillampMat);
+      blade.position.set(0.1, saloonLampH * 0.16, side * (saloonInnerWidth * 0.65));
+      saloonInnerLightGroup.add(blade);
+
+      const indGeo = new THREE.BoxGeometry(0.3, saloonLampH * 0.25, 11);
+      const ind = new THREE.Mesh(indGeo, taillampClearMat);
+      ind.position.set(0.1, -saloonLampH * 0.22, side * (saloonInnerWidth * 0.65));
+      saloonInnerLightGroup.add(ind);
+
+      const lensGeo = new THREE.BoxGeometry(0.5, saloonLampH + 0.2, 13.2);
+      const lens = new THREE.Mesh(lensGeo, taillampLensMat);
+      lens.position.set(0.3, 0, side * (saloonInnerWidth * 0.65));
+      saloonInnerLightGroup.add(lens);
+    });
+    // Center Chrome / LED connecting garnish
+    const garnishGeo = new THREE.BoxGeometry(0.5, 1.2, 18);
+    const garnish = new THREE.Mesh(garnishGeo, chromeMat);
+    garnish.position.set(0.1, saloonLampH * 0.16, 0);
+    saloonInnerLightGroup.add(garnish);
+    tailgatePivot.add(saloonInnerLightGroup);
 
     [-1, 1].forEach(side => {
       const hingeGeo = new THREE.CylinderGeometry(1.2, 1.2, 18, 12);
@@ -3043,6 +3105,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
       hinge.rotation.z = 0.5;
       tailgatePivot.add(hinge);
     });
+
+    outerLightX = deckFrontX + trunkLen + 1.5;
+    outerLightY = beltY - (rearFaceHeight * 0.32);
+    cornerPanelLen = rearFaceHeight;
+    cornerPanelX = deckFrontX + trunkLen;
+    cornerPanelY = (sillY + 4) + (rearFaceHeight / 2);
+    cornerPanelAngle = 0;
 
   } else {
     // HATCHBACK, ESTATE & SUV: Hinges at (roofRearX, roofTopY, 0)
@@ -3093,35 +3162,85 @@ function update3DStudio(car, seatsFolded, fitResult) {
     // Lower Tailgate Body Panel (dropping down from waistline to bumper loading sill):
     const lowerSpanX = sillPointX - waistX;
     const lowerSpanY = sillPointY - waistY;
-    const lowerLen = Math.hypot(lowerSpanX, lowerSpanY);
-    const lowerAngle = Math.atan2(-lowerSpanY, lowerSpanX);
+    lowerLen = Math.hypot(lowerSpanX, lowerSpanY);
+    lowerAngle = Math.atan2(-lowerSpanY, lowerSpanX);
 
     // Main Lower Tailgate Sheet Metal Panel (matches rear quarter panel curvature)
-    const lowerPanelGeo = new THREE.BoxGeometry(lowerLen + 1, 3.2, hatchWidth);
+    const lowerPanelGeo = new THREE.BoxGeometry(lowerLen + 0.5, 3.0, hatchWidth);
     const lowerPanel = new THREE.Mesh(lowerPanelGeo, bodyPaintMat);
     lowerPanel.position.set(waistX + (lowerSpanX / 2), waistY + (lowerSpanY / 2), 0);
     lowerPanel.rotation.z = -lowerAngle;
     addCadEdges(lowerPanel, 0x38bdf8);
     tailgatePivot.add(lowerPanel);
 
-    // Full-Width Tailgate Ruby Lightbar (mounted on tailgate below window waist)
-    const tailBarGeo = new THREE.BoxGeometry(Math.max(3.5, lowerLen * 0.28), 4.0, hatchWidth - 6);
-    const tailBar = new THREE.Mesh(tailBarGeo, taillampMat);
-    tailBar.position.set(waistX + (lowerSpanX * 0.20) + 0.8, waistY + (lowerSpanY * 0.20) + 0.6, 0);
-    tailBar.rotation.z = -lowerAngle;
-    tailgatePivot.add(tailBar);
+    // Modern Automotive Split Tailgate Taillights & Full-Width Connecting LED Lightbar:
+    // Placed ~28% down the slope below the rear glass waistline
+    const lightOffsetFrac = 0.28;
+    const innerLightGroup = new THREE.Group();
+    innerLightGroup.position.set(
+      waistX + (lowerSpanX * lightOffsetFrac),
+      waistY + (lowerSpanY * lightOffsetFrac),
+      0
+    );
+    innerLightGroup.rotation.z = -lowerAngle;
+
+    const halfHatchW = hatchWidth / 2;
+    const innerLightW = Math.min(20, halfHatchW * 0.38);
+    const lampHeight = Math.min(7.5, Math.max(5.0, lowerLen * 0.26));
+
+    [-1, 1].forEach(side => {
+      // Inner Light Pod Housing (Mounts flush on tailgate lid, aligns with outer cluster when closed)
+      const podZ = side * (halfHatchW - (innerLightW / 2) - 0.8);
+
+      const podGeo = new THREE.BoxGeometry(lampHeight, 1.2, innerLightW);
+      const pod = new THREE.Mesh(podGeo, taillampBezelMat);
+      pod.position.set(0, 1.1, podZ);
+      innerLightGroup.add(pod);
+
+      // Ruby LED Blade Segment
+      const bladeGeo = new THREE.BoxGeometry(lampHeight * 0.45, 0.4, innerLightW - 0.6);
+      const blade = new THREE.Mesh(bladeGeo, taillampMat);
+      blade.position.set(lampHeight * 0.16, 1.6, podZ);
+      innerLightGroup.add(blade);
+
+      // Crystalline Reverse / Indicator Inset
+      const indGeo = new THREE.BoxGeometry(lampHeight * 0.25, 0.3, innerLightW - 1.2);
+      const ind = new THREE.Mesh(indGeo, taillampClearMat);
+      ind.position.set(-lampHeight * 0.22, 1.6, podZ);
+      innerLightGroup.add(ind);
+
+      // High-Gloss Protective Ruby Outer Lens
+      const lensGeo = new THREE.BoxGeometry(lampHeight + 0.2, 0.5, innerLightW + 0.2);
+      const lens = new THREE.Mesh(lensGeo, taillampLensMat);
+      lens.position.set(0, 1.8, podZ);
+      innerLightGroup.add(lens);
+    });
+
+    // Sleek Illuminated Center LED Lightbar bridging both inner clusters
+    const centerBarW = Math.max(4, (halfHatchW - innerLightW - 1.6) * 2);
+    const centerBezelGeo = new THREE.BoxGeometry(1.6, 0.8, centerBarW);
+    const centerBezel = new THREE.Mesh(centerBezelGeo, taillampBezelMat);
+    centerBezel.position.set(lampHeight * 0.16, 1.1, 0);
+    innerLightGroup.add(centerBezel);
+
+    const centerLedGeo = new THREE.BoxGeometry(1.2, 0.4, centerBarW - 0.4);
+    const centerLed = new THREE.Mesh(centerLedGeo, taillampMat);
+    centerLed.position.set(lampHeight * 0.16, 1.5, 0);
+    innerLightGroup.add(centerLed);
+
+    tailgatePivot.add(innerLightGroup);
 
     // Centered Brand Emblem (VW Roundel Boot Release Handle)
     const badgeGeo = new THREE.CylinderGeometry(3.2, 3.2, 1.2, 24);
     const badge = new THREE.Mesh(badgeGeo, chromeMat);
-    badge.position.set(waistX + (lowerSpanX * 0.44) + 1.2, waistY + (lowerSpanY * 0.44), 0);
+    badge.position.set(waistX + (lowerSpanX * 0.46) + 1.2, waistY + (lowerSpanY * 0.46), 0);
     badge.rotation.z = -lowerAngle + (Math.PI / 2);
     tailgatePivot.add(badge);
 
     // Recessed Rear License Plate Plinth & UK Yellow Plate
     const plateCavityGeo = new THREE.BoxGeometry(Math.max(3.5, lowerLen * 0.36), 1.8, 38);
     const plateCavity = new THREE.Mesh(plateCavityGeo, trimMat);
-    plateCavity.position.set(waistX + (lowerSpanX * 0.72) + 0.6, waistY + (lowerSpanY * 0.72) - 0.2, 0);
+    plateCavity.position.set(waistX + (lowerSpanX * 0.74) + 0.6, waistY + (lowerSpanY * 0.74) - 0.2, 0);
     plateCavity.rotation.z = -lowerAngle;
     tailgatePivot.add(plateCavity);
 
@@ -3131,7 +3250,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
       roughness: 0.35
     });
     const rPlate = new THREE.Mesh(rPlateGeo, rPlateMat);
-    rPlate.position.set(waistX + (lowerSpanX * 0.72) + 1.2, waistY + (lowerSpanY * 0.72) - 0.2, 0);
+    rPlate.position.set(waistX + (lowerSpanX * 0.74) + 1.2, waistY + (lowerSpanY * 0.74) - 0.2, 0);
     rPlate.rotation.z = -lowerAngle;
     tailgatePivot.add(rPlate);
 
@@ -3142,6 +3261,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
       hinge.position.set(0, -1, side * ((hatchWidth / 2) - 4));
       tailgatePivot.add(hinge);
     });
+
+    outerLightX = roofRearX + waistX + (lowerSpanX * lightOffsetFrac);
+    outerLightY = roofTopY + waistY + (lowerSpanY * lightOffsetFrac);
+    cornerPanelLen = lowerLen + 0.5;
+    cornerPanelX = roofRearX + waistX + (lowerSpanX / 2);
+    cornerPanelY = roofTopY + waistY + (lowerSpanY / 2);
+    cornerPanelAngle = -lowerAngle;
   }
 
   targetTailgateAngle = isTailgateOpen ? openAngle : 0;
@@ -3165,28 +3291,81 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   // Rear Quarter Haunch Transition Panels & Outer Taillights (Mounted on body)
   const halfTailgateW = (isSaloon ? (totalCarWidth - 14) : (cabinWidth - 6)) / 2;
-  const quarterSpanW = Math.max(2, (totalCarWidth / 2) - halfTailgateW);
-  const lowerTailgateAngle = isSaloon ? 0 : Math.atan2(Math.abs((sillY + 4) - (beltY + 1)), Math.abs((rearBumperX - 2) - (rearSillX + 1)));
+  const quarterSpanW = Math.max(3, (totalCarWidth / 2) - halfTailgateW);
+  const outerLightW = Math.max(4, quarterSpanW - 1.6);
+  const lampHeight = isSaloon ? Math.min(6.5, rearFaceHeight * 0.35) : Math.min(7.5, Math.max(5.0, lowerLen * 0.26));
 
   [-1, 1].forEach(side => {
     const quarterCenterZ = side * (halfTailgateW + (quarterSpanW / 2));
+    const outerClusterZ = side * (halfTailgateW + 0.8 + (outerLightW / 2));
 
-    // Outer Taillight Cluster (Sits on body shoulder at waistline, aligns with tailgate lightbar)
-    const outerLampGeo = new THREE.BoxGeometry(9, 4.0, quarterSpanW);
-    const outerLamp = new THREE.Mesh(outerLampGeo, taillampMat);
-    outerLamp.position.set(rearSillX + 4.5, beltY - 0.5, quarterCenterZ);
-    outerLamp.rotation.y = side * -0.15;
-    outerLamp.rotation.z = -lowerTailgateAngle;
-    car3DGroup.add(outerLamp);
-
-    // Lower Corner Quarter Wrap (Between waistline and rear bumper sill)
-    const cornerH = Math.max(2, beltY - (sillY + 4));
-    const cornerGeo = new THREE.BoxGeometry(rearBumperX - rearSillX, cornerH, quarterSpanW);
+    // 1. Sleek Lower Quarter Haunch Sheet Metal (Flush with lower tailgate, 3.0cm thin, clean CAD edges)
+    const cornerGeo = new THREE.BoxGeometry(cornerPanelLen, 3.0, quarterSpanW);
     const corner = new THREE.Mesh(cornerGeo, bodyPaintMat);
-    corner.position.set((rearSillX + rearBumperX) / 2, (sillY + 4) + (cornerH / 2), quarterCenterZ);
-    corner.rotation.z = -lowerTailgateAngle * 0.5;
+    corner.position.set(cornerPanelX, cornerPanelY, quarterCenterZ);
+    corner.rotation.z = cornerPanelAngle;
     addCadEdges(corner, 0x38bdf8);
     car3DGroup.add(corner);
+
+    // 2. High-Tech Jewel Outer Taillight Cluster (Flush on quarter shoulder, perfectly aligned with tailgate)
+    const outerCluster = new THREE.Group();
+    outerCluster.position.set(outerLightX, outerLightY, outerClusterZ);
+    outerCluster.rotation.z = cornerPanelAngle;
+
+    if (isSaloon) {
+      const bezelGeo = new THREE.BoxGeometry(1.2, lampHeight, outerLightW);
+      const bezel = new THREE.Mesh(bezelGeo, taillampBezelMat);
+      bezel.position.set(-0.4, 0, 0);
+      outerCluster.add(bezel);
+
+      const rubyBladeGeo = new THREE.BoxGeometry(0.4, lampHeight * 0.45, outerLightW - 0.4);
+      const rubyBlade = new THREE.Mesh(rubyBladeGeo, taillampMat);
+      rubyBlade.position.set(0.1, lampHeight * 0.16, 0);
+      outerCluster.add(rubyBlade);
+
+      const indGeo = new THREE.BoxGeometry(0.3, lampHeight * 0.25, outerLightW - 0.8);
+      const indMesh = new THREE.Mesh(indGeo, taillampClearMat);
+      indMesh.position.set(0.1, -lampHeight * 0.22, 0);
+      outerCluster.add(indMesh);
+
+      const coverGeo = new THREE.BoxGeometry(0.5, lampHeight + 0.2, outerLightW + 0.2);
+      const cover = new THREE.Mesh(coverGeo, taillampLensMat);
+      cover.position.set(0.3, 0, 0);
+      outerCluster.add(cover);
+
+    } else {
+      // Dark Smoked Housing / Bezel (protrudes only 0.2cm proud of sheet metal)
+      const bezelGeo = new THREE.BoxGeometry(lampHeight, 1.2, outerLightW);
+      const bezel = new THREE.Mesh(bezelGeo, taillampBezelMat);
+      bezel.position.set(0, 1.1, 0);
+      outerCluster.add(bezel);
+
+      // Primary Illuminated Ruby LED Blade
+      const rubyBladeGeo = new THREE.BoxGeometry(lampHeight * 0.45, 0.4, outerLightW - 0.4);
+      const rubyBlade = new THREE.Mesh(rubyBladeGeo, taillampMat);
+      rubyBlade.position.set(lampHeight * 0.16, 1.6, 0);
+      outerCluster.add(rubyBlade);
+
+      // Aerodynamic wrap-around wing along the outer side fender
+      const wrapWingGeo = new THREE.BoxGeometry(lampHeight * 0.70, 0.4, 0.8);
+      const wrapWing = new THREE.Mesh(wrapWingGeo, taillampMat);
+      wrapWing.position.set(lampHeight * 0.10, 1.6, side * ((outerLightW / 2) - 0.4));
+      outerCluster.add(wrapWing);
+
+      // Crystalline Reversing / Indicator Accent Strip
+      const indGeo = new THREE.BoxGeometry(lampHeight * 0.25, 0.3, outerLightW - 0.8);
+      const indMesh = new THREE.Mesh(indGeo, taillampClearMat);
+      indMesh.position.set(-lampHeight * 0.22, 1.6, 0);
+      outerCluster.add(indMesh);
+
+      // High-Gloss Protective Ruby Polycarbonate Outer Lens
+      const coverGeo = new THREE.BoxGeometry(lampHeight + 0.2, 0.5, outerLightW + 0.2);
+      const cover = new THREE.Mesh(coverGeo, taillampLensMat);
+      cover.position.set(0, 1.8, 0);
+      outerCluster.add(cover);
+    }
+
+    car3DGroup.add(outerCluster);
   });
 
   // Lower Rear Diffuser / Valance with twin chrome exhaust tips

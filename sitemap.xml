@@ -8,21 +8,15 @@
     <priority>1.0</priority>
   </url>
 
-  <!-- Popular Vehicle Model Fitment Calculators -->
+  <!-- Popular Vehicle Model Fitment Calculators (All 18 Production Models) -->
   <url>
-    <loc>https://www.willitfitintheboot.co.uk/?car=ford-focus-estate</loc>
+    <loc>https://www.willitfitintheboot.co.uk/?car=ford-puma</loc>
     <lastmod>2026-09-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.willitfitintheboot.co.uk/?car=vw-golf-mk8</loc>
-    <lastmod>2026-09-28</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.willitfitintheboot.co.uk/?car=tesla-model-y</loc>
+    <loc>https://www.willitfitintheboot.co.uk/?car=kia-sportage-mk5</loc>
     <lastmod>2026-09-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -34,7 +28,55 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.willitfitintheboot.co.uk/?car=bmw-3-series-saloon</loc>
+    <loc>https://www.willitfitintheboot.co.uk/?car=hyundai-tucson-mk4</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=volvo-xc40</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=vw-tiguan-mk3</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=tesla-model-y</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=vw-golf-mk8</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=vauxhall-corsa-f</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=toyota-yaris-mk4</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=mini-cooper-5-door</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=ford-focus-estate</loc>
     <lastmod>2026-09-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -46,16 +88,34 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.willitfitintheboot.co.uk/?car=vauxhall-corsa-f</loc>
+    <loc>https://www.willitfitintheboot.co.uk/?car=bmw-3-series-touring</loc>
     <lastmod>2026-09-28</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=mercedes-c-class-estate</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=bmw-3-series-saloon</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.willitfitintheboot.co.uk/?car=audi-a4-saloon</loc>
     <lastmod>2026-09-28</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.willitfitintheboot.co.uk/?car=tesla-model-3</loc>
+    <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 
   <!-- Popular Cargo Item Fitment Checks -->

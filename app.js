@@ -38,6 +38,150 @@ const defaultCars = [
     rake_angle_deg: 32.0
   },
   {
+    id: "toyota-yaris-mk4",
+    name: "Toyota Yaris (Mk4, 2020+)",
+    body_type: "hatchback",
+    overall_length: 394,
+    overall_width: 175,
+    overall_height: 150,
+    wheelbase: 256,
+    floor_length_seats_folded: 124,
+    floor_length_seats_up: 64,
+    wheel_arch_width: 99,
+    roof_height: 68,
+    aperture_width: 98,
+    aperture_height: 65,
+    rake_angle_deg: 31.0
+  },
+  {
+    id: "mini-cooper-5-door",
+    name: "Mini Cooper 5-Door (F55, 2014+)",
+    body_type: "hatchback",
+    overall_length: 404,
+    overall_width: 173,
+    overall_height: 143,
+    wheelbase: 257,
+    floor_length_seats_folded: 128,
+    floor_length_seats_up: 67,
+    wheel_arch_width: 92,
+    roof_height: 66,
+    aperture_width: 91,
+    aperture_height: 60,
+    rake_angle_deg: 28.0
+  },
+  {
+    id: "ford-puma",
+    name: "Ford Puma (2020+)",
+    body_type: "suv",
+    overall_length: 421,
+    overall_width: 181,
+    overall_height: 154,
+    wheelbase: 259,
+    floor_length_seats_folded: 148,
+    floor_length_seats_up: 81,
+    wheel_arch_width: 100,
+    roof_height: 74,
+    aperture_width: 100,
+    aperture_height: 71,
+    rake_angle_deg: 28.0
+  },
+  {
+    id: "nissan-qashqai-mk3",
+    name: "Nissan Qashqai (Mk3, 2021+)",
+    body_type: "suv",
+    overall_length: 442,
+    overall_width: 184,
+    overall_height: 162,
+    wheelbase: 266,
+    floor_length_seats_folded: 159,
+    floor_length_seats_up: 86,
+    wheel_arch_width: 105,
+    roof_height: 80,
+    aperture_width: 108,
+    aperture_height: 75,
+    rake_angle_deg: 26.5
+  },
+  {
+    id: "kia-sportage-mk5",
+    name: "Kia Sportage (Mk5, 2021+)",
+    body_type: "suv",
+    overall_length: 452,
+    overall_width: 187,
+    overall_height: 165,
+    wheelbase: 268,
+    floor_length_seats_folded: 168,
+    floor_length_seats_up: 92,
+    wheel_arch_width: 105,
+    roof_height: 81,
+    aperture_width: 110,
+    aperture_height: 77,
+    rake_angle_deg: 25.0
+  },
+  {
+    id: "hyundai-tucson-mk4",
+    name: "Hyundai Tucson (Mk4, 2020+)",
+    body_type: "suv",
+    overall_length: 450,
+    overall_width: 187,
+    overall_height: 165,
+    wheelbase: 268,
+    floor_length_seats_folded: 166,
+    floor_length_seats_up: 90,
+    wheel_arch_width: 104,
+    roof_height: 80,
+    aperture_width: 109,
+    aperture_height: 76,
+    rake_angle_deg: 27.0
+  },
+  {
+    id: "volvo-xc40",
+    name: "Volvo XC40 (2018+)",
+    body_type: "suv",
+    overall_length: 443,
+    overall_width: 186,
+    overall_height: 165,
+    wheelbase: 270,
+    floor_length_seats_folded: 164,
+    floor_length_seats_up: 89,
+    wheel_arch_width: 101,
+    roof_height: 75,
+    aperture_width: 104,
+    aperture_height: 74,
+    rake_angle_deg: 22.0
+  },
+  {
+    id: "vw-tiguan-mk3",
+    name: "Volkswagen Tiguan (Mk3, 2024+)",
+    body_type: "suv",
+    overall_length: 454,
+    overall_width: 184,
+    overall_height: 166,
+    wheelbase: 268,
+    floor_length_seats_folded: 172,
+    floor_length_seats_up: 98,
+    wheel_arch_width: 101,
+    roof_height: 83,
+    aperture_width: 108,
+    aperture_height: 78,
+    rake_angle_deg: 24.0
+  },
+  {
+    id: "tesla-model-y",
+    name: "Tesla Model Y (2021+)",
+    body_type: "suv",
+    overall_length: 475,
+    overall_width: 192,
+    overall_height: 162,
+    wheelbase: 289,
+    floor_length_seats_folded: 195,
+    floor_length_seats_up: 108,
+    wheel_arch_width: 95,
+    roof_height: 72,
+    aperture_width: 106,
+    aperture_height: 70,
+    rake_angle_deg: 35.0
+  },
+  {
     id: "ford-focus-estate",
     name: "Ford Focus Estate (Mk4, 2018+)",
     body_type: "estate",
@@ -70,36 +214,36 @@ const defaultCars = [
     rake_angle_deg: 16.5
   },
   {
-    id: "nissan-qashqai-mk3",
-    name: "Nissan Qashqai (Mk3, 2021+)",
-    body_type: "suv",
-    overall_length: 442,
-    overall_width: 184,
-    overall_height: 162,
-    wheelbase: 266,
-    floor_length_seats_folded: 159,
-    floor_length_seats_up: 86,
-    wheel_arch_width: 105,
-    roof_height: 80,
-    aperture_width: 108,
-    aperture_height: 75,
-    rake_angle_deg: 26.5
+    id: "bmw-3-series-touring",
+    name: "BMW 3 Series Touring (G21, 2019+)",
+    body_type: "estate",
+    overall_length: 471,
+    overall_width: 183,
+    overall_height: 144,
+    wheelbase: 285,
+    floor_length_seats_folded: 174,
+    floor_length_seats_up: 103,
+    wheel_arch_width: 102,
+    roof_height: 74,
+    aperture_width: 104,
+    aperture_height: 72,
+    rake_angle_deg: 26.0
   },
   {
-    id: "tesla-model-y",
-    name: "Tesla Model Y (2021+)",
-    body_type: "suv",
+    id: "mercedes-c-class-estate",
+    name: "Mercedes-Benz C-Class Estate (S206, 2021+)",
+    body_type: "estate",
     overall_length: 475,
-    overall_width: 192,
-    overall_height: 162,
-    wheelbase: 289,
-    floor_length_seats_folded: 195,
-    floor_length_seats_up: 108,
-    wheel_arch_width: 95,
-    roof_height: 72,
+    overall_width: 182,
+    overall_height: 145,
+    wheelbase: 287,
+    floor_length_seats_folded: 176,
+    floor_length_seats_up: 105,
+    wheel_arch_width: 105,
+    roof_height: 76,
     aperture_width: 106,
-    aperture_height: 70,
-    rake_angle_deg: 35.0
+    aperture_height: 73,
+    rake_angle_deg: 25.0
   },
   {
     id: "bmw-3-series-saloon",
@@ -132,6 +276,22 @@ const defaultCars = [
     aperture_width: 92,
     aperture_height: 49,
     rake_angle_deg: 46.5
+  },
+  {
+    id: "tesla-model-3",
+    name: "Tesla Model 3 (2019+)",
+    body_type: "saloon",
+    overall_length: 472,
+    overall_width: 185,
+    overall_height: 144,
+    wheelbase: 288,
+    floor_length_seats_folded: 190,
+    floor_length_seats_up: 107,
+    wheel_arch_width: 94,
+    roof_height: 50,
+    aperture_width: 88,
+    aperture_height: 46,
+    rake_angle_deg: 47.0
   }
 ];
 
@@ -2966,6 +3126,150 @@ function update3DStudio(car, seatsFolded, fitResult) {
     vBadge.rotation.z = Math.PI / 2;
     vBadge.position.set(grilleX - 0.8, grilleY, 0);
     car3DGroup.add(vBadge);
+
+  } else if (car.id.includes('volvo')) {
+    // Volvo XC40: Concave Satin Silver Grille Surround with Iconic Diagonal Slash Bar & Iron Mark
+    const volvoFrame = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, grilleW), chromeMat);
+    volvoFrame.position.set(grilleX - 0.2, grilleY, 0);
+    car3DGroup.add(volvoFrame);
+
+    const volvoMesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, grilleH - 1.6, grilleW - 2.5), grilleMeshMat);
+    volvoMesh.position.set(grilleX + 0.1, grilleY, 0);
+    car3DGroup.add(volvoMesh);
+
+    // Vertical black/chrome waterfall slats
+    [-grilleW * 0.35, -grilleW * 0.2, -grilleW * 0.08, grilleW * 0.08, grilleW * 0.2, grilleW * 0.35].forEach(sz => {
+      const slat = new THREE.Mesh(new THREE.BoxGeometry(1.6, grilleH - 2.0, 0.6), chromeMat);
+      slat.position.set(grilleX - 0.3, grilleY, sz);
+      car3DGroup.add(slat);
+    });
+
+    // Signature Diagonal Sash crossing from top-left to bottom-right
+    const slashBar = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, grilleW * 0.72), chromeMat);
+    slashBar.position.set(grilleX - 0.5, grilleY, 0);
+    slashBar.rotation.x = 0.52; // ~30 degree diagonal slash across grille
+    car3DGroup.add(slashBar);
+
+    // Volvo Iron Mark Roundel Badge in center of diagonal sash
+    const ironMark = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.9, 24), chromeMat);
+    ironMark.rotation.z = Math.PI / 2;
+    ironMark.position.set(grilleX - 0.8, grilleY, 0);
+    car3DGroup.add(ironMark);
+
+  } else if (car.id.includes('kia')) {
+    // Kia Sportage (Mk5): Bold 'Digital Tiger Face' with Gloss Black Honeycomb & Wing Accents
+    const tigerMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, grilleH, grilleW), grilleMeshMat);
+    tigerMesh.position.set(grilleX + 0.1, grilleY, 0);
+    car3DGroup.add(tigerMesh);
+
+    // Upper and lower pinched Tiger Nose contour brackets
+    [-1, 1].forEach(side => {
+      const pinchedLip = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, grilleW * 0.38), trimMat);
+      pinchedLip.position.set(grilleX - 0.3, grilleY + side * (grilleH / 2 - 0.5), 0);
+      car3DGroup.add(pinchedLip);
+    });
+
+    // Modern Brushed KIA Wordmark Emblem on Front Bonnet Leading Edge
+    const kiaBadge = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.2, 7.5), chromeMat);
+    kiaBadge.position.set(grilleX - 0.8, grilleY + (grilleH / 2) + 1.6, 0);
+    car3DGroup.add(kiaBadge);
+
+  } else if (car.id.includes('hyundai')) {
+    // Hyundai Tucson (Mk4): Parametric Jewel Geometric Faceted Grille with Winged Contours
+    const hyundaiMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, grilleH, grilleW), grilleMeshMat);
+    hyundaiMesh.position.set(grilleX + 0.1, grilleY, 0);
+    car3DGroup.add(hyundaiMesh);
+
+    // Parametric Facet Wings (signature Tucson geometric jewel modules)
+    [-grilleW * 0.38, -grilleW * 0.22, grilleW * 0.22, grilleW * 0.38].forEach((fz, idx) => {
+      const facet = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH * 0.45, grilleW * 0.12), chromeMat);
+      facet.position.set(grilleX - 0.4, grilleY + (idx % 2 === 0 ? 1.5 : -1.5), fz);
+      facet.rotation.z = 0.08;
+      car3DGroup.add(facet);
+    });
+
+    // Hyundai Slanted 'H' Oval Badge in center
+    const hyOval = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 0.8, 24), chromeMat);
+    hyOval.rotation.z = Math.PI / 2;
+    hyOval.rotation.y = 0.18; // Slanted italicized oval
+    hyOval.scale.set(1, 1, 1.4);
+    hyOval.position.set(grilleX - 0.8, grilleY + 0.5, 0);
+    car3DGroup.add(hyOval);
+
+  } else if (car.id.includes('mercedes')) {
+    // Mercedes-Benz C-Class Estate: Star-Pattern Radiator Grille with Central Chrome Louvre & Star
+    const mbFrame = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, grilleW), chromeMat);
+    mbFrame.position.set(grilleX - 0.2, grilleY, 0);
+    car3DGroup.add(mbFrame);
+
+    const mbMesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, grilleH - 1.6, grilleW - 2.5), grilleMeshMat);
+    mbMesh.position.set(grilleX + 0.1, grilleY, 0);
+    car3DGroup.add(mbMesh);
+
+    // Dominant Single Horizontal Chrome Louvre Slat
+    const louvre = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.2, grilleW - 3.5), chromeMat);
+    louvre.position.set(grilleX - 0.4, grilleY, 0);
+    car3DGroup.add(louvre);
+
+    // Iconic Mercedes Three-Pointed Star Roundel
+    const starRing = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.0, 0.8, 24), chromeMat);
+    starRing.rotation.z = Math.PI / 2;
+    starRing.position.set(grilleX - 0.8, grilleY, 0);
+    car3DGroup.add(starRing);
+
+    // Star Tri-star inner blades
+    [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3].forEach(angle => {
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.4, 0.45), chromeMat);
+      blade.position.set(grilleX - 0.9, grilleY + Math.cos(angle) * 1.1, Math.sin(angle) * 1.1);
+      blade.rotation.x = -angle;
+      car3DGroup.add(blade);
+    });
+
+  } else if (car.id.includes('toyota')) {
+    // Toyota Yaris (Mk4): Aggressive Trapezoidal Front Grille with Centered Triple-Oval Badge
+    const tyFrame = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, grilleW), trimMat);
+    tyFrame.position.set(grilleX - 0.2, grilleY, 0);
+    car3DGroup.add(tyFrame);
+
+    const tyMesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, grilleH - 1.4, grilleW - 2), grilleMeshMat);
+    tyMesh.position.set(grilleX + 0.1, grilleY, 0);
+    car3DGroup.add(tyMesh);
+
+    // Toyota Triple-Oval Chrome Emblem on Upper Nose Beak
+    const tyBadgeOuter = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 0.8, 24), chromeMat);
+    tyBadgeOuter.rotation.z = Math.PI / 2;
+    tyBadgeOuter.scale.set(1, 1, 1.5);
+    tyBadgeOuter.position.set(grilleX - 0.8, grilleY + (grilleH / 2) + 0.8, 0);
+    car3DGroup.add(tyBadgeOuter);
+
+  } else if (car.id.includes('mini')) {
+    // Mini Cooper: Iconic Hexagonal Chrome Frame with Horizontal Radiator Slats & Winged Badge
+    const miniFrame = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, grilleW), chromeMat);
+    miniFrame.position.set(grilleX - 0.2, grilleY, 0);
+    car3DGroup.add(miniFrame);
+
+    const miniMesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, grilleH - 1.6, grilleW - 2), pillarMat);
+    miniMesh.position.set(grilleX + 0.1, grilleY, 0);
+    car3DGroup.add(miniMesh);
+
+    // Horizontal Chrome Slats across hexagonal aperture
+    [-grilleH * 0.22, 0, grilleH * 0.22].forEach(sy => {
+      const mSlat = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, grilleW - 4.0), chromeMat);
+      mSlat.position.set(grilleX - 0.3, grilleY + sy, 0);
+      car3DGroup.add(mSlat);
+    });
+
+    // Mini Winged Badge on Bonnet Lip
+    const miniBadgeCenter = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.8, 20), chromeMat);
+    miniBadgeCenter.rotation.z = Math.PI / 2;
+    miniBadgeCenter.position.set(grilleX - 0.8, grilleY + (grilleH / 2) + 1.4, 0);
+    car3DGroup.add(miniBadgeCenter);
+
+    [-1, 1].forEach(side => {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 3.2), chromeMat);
+      wing.position.set(grilleX - 0.8, grilleY + (grilleH / 2) + 1.4, side * 3.0);
+      car3DGroup.add(wing);
+    });
 
   } else {
     // VW Golf Mk8 & Standard Hatchbacks: Sleek horizontal grille strip with illuminated LED lightbar

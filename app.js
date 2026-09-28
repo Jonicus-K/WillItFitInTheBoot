@@ -1324,16 +1324,28 @@ function initThreeStudio() {
   }
 
   // Friendly Showroom Studio Lighting
-  const ambientLight = new THREE.AmbientLight(0x566b8b, 1.8);
+  const ambientLight = new THREE.AmbientLight(0x64748b, 1.9);
   scene.add(ambientLight);
 
-  const keySun = new THREE.DirectionalLight(0xfffaf0, 2.2);
+  // Key Sun (Rear-Right 3/4)
+  const keySun = new THREE.DirectionalLight(0xfffaf0, 2.0);
   keySun.position.set(240, 360, 200);
   scene.add(keySun);
 
-  const fillLight = new THREE.DirectionalLight(0x94a3b8, 1.1);
-  fillLight.position.set(-240, 180, -200);
-  scene.add(fillLight);
+  // Front Key Light (Front-Left 3/4, beautifully illuminating the hood, grille, and headlights)
+  const frontKey = new THREE.DirectionalLight(0xf8fafc, 2.2);
+  frontKey.position.set(-450, 260, 220);
+  scene.add(frontKey);
+
+  // Front Fill Light (Front-Right 3/4, softening shadows across the front bumper)
+  const frontFill = new THREE.DirectionalLight(0x93c5fd, 1.4);
+  frontFill.position.set(-450, 180, -220);
+  scene.add(frontFill);
+
+  // Low Ground Glint / Rim Light for Wheels & Lower Splitter
+  const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.7);
+  rimLight.position.set(-200, 20, 300);
+  scene.add(rimLight);
 
   const rearHighlight = new THREE.DirectionalLight(0x93c5fd, 1.0);
   rearHighlight.position.set(260, 120, 0);
@@ -2271,9 +2283,9 @@ function update3DStudio(car, seatsFolded, fitResult) {
   });
 
   const chromeMat = new THREE.MeshStandardMaterial({
-    color: 0xf1f5f9,
-    metalness: 0.96,
-    roughness: 0.12
+    color: 0xffffff,
+    metalness: 0.78,
+    roughness: 0.18
   });
 
   const trimMat = new THREE.MeshStandardMaterial({
@@ -2282,10 +2294,67 @@ function update3DStudio(car, seatsFolded, fitResult) {
   });
 
   const headlampMat = new THREE.MeshStandardMaterial({
-    color: 0xe0f2fe,
-    emissive: 0x38bdf8,
-    emissiveIntensity: 2.2,
-    roughness: 0.1
+    color: 0xf8fafc,
+    emissive: 0xf8fafc,
+    emissiveIntensity: 0.85,
+    roughness: 0.12
+  });
+
+  const headlampDrlMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xffffff,
+    emissiveIntensity: 1.25,
+    roughness: 0.06
+  });
+
+  const headlampLensMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    roughness: 0.04,
+    metalness: 0.05,
+    transmission: 0.94,
+    transparent: true,
+    opacity: 0.22,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.04,
+    depthWrite: false
+  });
+
+  const headlampBezelMat = new THREE.MeshStandardMaterial({
+    color: 0x080d1a, // Gloss obsidian / smoked housing
+    roughness: 0.25,
+    metalness: 0.75
+  });
+
+  const headlampProjectorMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xe0f2fe,
+    emissiveIntensity: 1.15,
+    metalness: 0.85,
+    roughness: 0.08
+  });
+
+  const amberMat = new THREE.MeshStandardMaterial({
+    color: 0xf59e0b,
+    emissive: 0xd97706,
+    emissiveIntensity: 0.75,
+    roughness: 0.20
+  });
+
+  const grilleMeshMat = new THREE.MeshStandardMaterial({
+    color: 0x111827, // Dark honeycomb mesh texture
+    roughness: 0.85,
+    metalness: 0.25
+  });
+
+  const plateMat = new THREE.MeshStandardMaterial({
+    color: 0xf8fafc, // Crisp white registration plate
+    roughness: 0.45,
+    metalness: 0.05
+  });
+
+  const euroBlueMat = new THREE.MeshStandardMaterial({
+    color: 0x1d4ed8, // EU / UK blue band
+    roughness: 0.40
   });
 
   const taillampMat = new THREE.MeshStandardMaterial({
@@ -2340,17 +2409,17 @@ function update3DStudio(car, seatsFolded, fitResult) {
   });
 
   // 2. SCULPTED AERODYNAMIC HOOD & NOSE CONE
-  // Two-stage sculpted bonnet: gentle main slope + nose drop into bumper
+  // Gentle, aerodynamic bonnet slope flowing into sculpted nose beak and front fenders
   const noseBreakX = carFrontX + 16;
   const mainHoodLen = Math.abs(cowlX - noseBreakX);
   const mainHoodSlope = Math.atan2((cowlY - 1) - noseTopY, mainHoodLen);
 
   const mainHoodWidthRear = cabinWidth - 4;
-  const mainHoodWidthFront = totalCarWidth * 0.74;
+  const mainHoodWidthFront = totalCarWidth * 0.72;
   const mainHoodAvgWidth = (mainHoodWidthRear + mainHoodWidthFront) / 2;
 
   // Main Bonnet Surface
-  const mainHoodGeo = new THREE.BoxGeometry(mainHoodLen, 2.2, mainHoodAvgWidth);
+  const mainHoodGeo = new THREE.BoxGeometry(mainHoodLen, 2.0, mainHoodAvgWidth);
   const mainHood = new THREE.Mesh(mainHoodGeo, bodyPaintMat);
   mainHood.position.set((cowlX + noseBreakX) / 2, ((cowlY - 1) + noseTopY) / 2, 0);
   mainHood.rotation.z = mainHoodSlope;
@@ -2358,57 +2427,54 @@ function update3DStudio(car, seatsFolded, fitResult) {
   car3DGroup.add(mainHood);
 
   // Athletic Center Power Bulge / Spine
-  const spineGeo = new THREE.BoxGeometry(mainHoodLen - 6, 1.8, mainHoodAvgWidth * 0.42);
+  const spineGeo = new THREE.BoxGeometry(mainHoodLen - 6, 1.2, mainHoodAvgWidth * 0.38);
   const spine = new THREE.Mesh(spineGeo, bodyPaintMat);
-  spine.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + noseTopY) / 2) + 1.0, 0);
+  spine.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + noseTopY) / 2) + 0.7, 0);
   spine.rotation.z = mainHoodSlope;
   car3DGroup.add(spine);
 
   // Dynamic Aerodynamic Swage Character Creases on Bonnet
   [-mainHoodAvgWidth * 0.28, mainHoodAvgWidth * 0.28].forEach(sz => {
-    const creaseGeo = new THREE.BoxGeometry(mainHoodLen - 4, 1.2, 1.6);
+    const creaseGeo = new THREE.BoxGeometry(mainHoodLen - 4, 0.8, 1.2);
     const crease = new THREE.Mesh(creaseGeo, bodyPaintMat);
-    crease.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + noseTopY) / 2) + 0.6, sz);
+    crease.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + noseTopY) / 2) + 0.4, sz);
     crease.rotation.z = mainHoodSlope;
-    addCadEdges(crease, 0x38bdf8);
     car3DGroup.add(crease);
   });
 
-  // Curved Nose Drop into Front Grille / Bumper
-  const noseDropLen = Math.abs(noseBreakX - (carFrontX + 2));
-  const noseDropSlope = Math.atan2(noseTopY - (noseTopY - 9), noseDropLen);
-  const noseDropGeo = new THREE.BoxGeometry(noseDropLen, 2.2, mainHoodWidthFront);
+  // Aerodynamic Nose Beak / Header Cap flowing down into Grille
+  const noseDropLen = Math.abs(noseBreakX - (carFrontX + 3.8));
+  const noseDropSlope = Math.atan2(noseTopY - (noseTopY - 4.5), noseDropLen);
+  const noseDropGeo = new THREE.BoxGeometry(noseDropLen, 2.0, mainHoodWidthFront);
   const noseDrop = new THREE.Mesh(noseDropGeo, bodyPaintMat);
-  noseDrop.position.set((noseBreakX + carFrontX + 2) / 2, (noseTopY + (noseTopY - 9)) / 2, 0);
+  noseDrop.position.set((noseBreakX + carFrontX + 3.8) / 2, (noseTopY + (noseTopY - 4.5)) / 2, 0);
   noseDrop.rotation.z = noseDropSlope;
-  addCadEdges(noseDrop, 0x38bdf8);
   car3DGroup.add(noseDrop);
 
-  // Front Wings / Fender Top Shelves & Brow Panels (Eliminates bonnet shutline gaps to outer flanks)
+  // Front Wings / Fender Top Shelves & Brow Panels
   [-1, 1].forEach(side => {
     // 1. Main Fender Top Shelf (cowlX to noseBreakX along main bonnet slope)
     const wingWidth = Math.max(2, (totalCarWidth / 2) - (mainHoodAvgWidth / 2));
     const wingCenterZ = side * ((mainHoodAvgWidth / 2) + (wingWidth / 2));
-    const wingTopGeo = new THREE.BoxGeometry(mainHoodLen, 2.2, wingWidth);
+    const wingTopGeo = new THREE.BoxGeometry(mainHoodLen, 2.0, wingWidth);
     const wingTop = new THREE.Mesh(wingTopGeo, bodyPaintMat);
     wingTop.position.set((cowlX + noseBreakX) / 2, ((cowlY - 1) + noseTopY) / 2, wingCenterZ);
     wingTop.rotation.z = mainHoodSlope;
     addCadEdges(wingTop, 0x38bdf8);
     car3DGroup.add(wingTop);
 
-    // 2. Front Fender Brow / Cap above Headlights (noseBreakX to carFrontX + 2)
+    // 2. Front Fender Brow above Headlights (noseBreakX to carFrontX + 3.8)
     const browWidth = Math.max(2, (totalCarWidth / 2) - (mainHoodWidthFront / 2));
     const browCenterZ = side * ((mainHoodWidthFront / 2) + (browWidth / 2));
-    const browGeo = new THREE.BoxGeometry(noseDropLen, 2.2, browWidth);
+    const browGeo = new THREE.BoxGeometry(noseDropLen, 2.0, browWidth);
     const brow = new THREE.Mesh(browGeo, bodyPaintMat);
-    brow.position.set((noseBreakX + carFrontX + 2) / 2, (noseTopY + (noseTopY - 9)) / 2, browCenterZ);
+    brow.position.set((noseBreakX + carFrontX + 3.8) / 2, (noseTopY + (noseTopY - 4.5)) / 2, browCenterZ);
     brow.rotation.z = noseDropSlope;
-    addCadEdges(brow, 0x38bdf8);
     car3DGroup.add(brow);
   });
 
   // Recessed Cowl Plenum Tray & Wiper Arms at base of windshield
-  const cowlPlenumGeo = new THREE.BoxGeometry(7, 2.2, cabinWidth - 4);
+  const cowlPlenumGeo = new THREE.BoxGeometry(7, 2.0, cabinWidth - 4);
   const cowlPlenum = new THREE.Mesh(cowlPlenumGeo, trimMat);
   cowlPlenum.position.set(cowlX + 2, cowlY - 1.2, 0);
   car3DGroup.add(cowlPlenum);
@@ -2421,225 +2487,423 @@ function update3DStudio(car, seatsFolded, fitResult) {
     car3DGroup.add(wiper);
   });
 
-  // 3. SCULPTED AERODYNAMIC FRONT BUMPER, LOWER AIR INTAKES & GRILLE
-  const bumperTopY = noseTopY - 4;
-  const bumperBottomY = rockerY + 1.5;
-  const bumperTotalH = bumperTopY - bumperBottomY;
+  // 3. SCULPTED AERODYNAMIC FRONT BUMPER, BRAND GRILLES & JEWEL LED HEADLIGHTS
+  const halfW = totalCarWidth / 2;
+  const getSweep = (z) => Math.pow(Math.abs(z) / halfW, 1.85) * 13.5;
 
-  // A. Upper Painted Bumper Nose Fascia & Center Impact Beam
-  const centerFasciaW = Math.min(84, totalCarWidth * 0.48);
-  const centerFasciaH = bumperTotalH * 0.44;
-  const centerFasciaY = bumperTopY - (centerFasciaH / 2);
+  const grilleTopY = noseTopY - 4.5;
+  const grilleBottomY = noseTopY - 18.5;
+  const grilleH = grilleTopY - grilleBottomY; // 14.0 cm
+  const grilleY = (grilleTopY + grilleBottomY) / 2;
+  const grilleW = Math.min(62, Math.round(totalCarWidth * 0.35));
+  const grilleX = carFrontX + 1.2;
 
-  const centerFasciaGeo = new THREE.BoxGeometry(6, centerFasciaH, centerFasciaW);
-  const centerFascia = new THREE.Mesh(centerFasciaGeo, bodyPaintMat);
-  centerFascia.position.set(carFrontX + 3.5, centerFasciaY, 0);
-  addCadEdges(centerFascia, 0x38bdf8);
-  car3DGroup.add(centerFascia);
+  const bumperBeamTopY = grilleBottomY;
+  const bumperBeamBottomY = rockerY + 11.0;
+  const bumperBeamH = bumperBeamTopY - bumperBeamBottomY;
+  const bumperBeamY = (bumperBeamTopY + bumperBeamBottomY) / 2;
 
-  // Front European License Plate Plinth & Embossed Registration Plate
-  const platePlinthGeo = new THREE.BoxGeometry(2.0, 11, 46);
-  const platePlinth = new THREE.Mesh(platePlinthGeo, trimMat);
-  platePlinth.position.set(carFrontX + 1.2, centerFasciaY - 1, 0);
-  car3DGroup.add(platePlinth);
+  const lowerIntakeBottomY = rockerY + 2.8;
+  const lowerIntakeTopY = bumperBeamBottomY;
+  const lowerIntakeH = lowerIntakeTopY - lowerIntakeBottomY;
+  const lowerIntakeY = (lowerIntakeTopY + lowerIntakeBottomY) / 2;
+  const lowerIntakeW = Math.min(58, grilleW - 4);
 
-  const plateGeo = new THREE.BoxGeometry(0.8, 9.5, 44);
-  const plateMat = new THREE.MeshStandardMaterial({
-    color: 0xf8fafc,
-    roughness: 0.3,
-    metalness: 0.1
-  });
-  const plate = new THREE.Mesh(plateGeo, plateMat);
-  plate.position.set(carFrontX + 0.6, centerFasciaY - 1, 0);
-  car3DGroup.add(plate);
+  // A. CONTINUOUS SCULPTED AERODYNAMIC FRONT BUMPER FASCIA (Smooth Parametric Mesh)
+  // Continuous curved apron across the entire width of the car: eliminates all disjointed blocks and gaps
+  const bCols = 20;
+  const bRows = 3;
+  const bPositions = [];
+  const bIndices = [];
 
-  // Blue Euro identification band on license plate
-  const euroBandGeo = new THREE.BoxGeometry(0.9, 9.5, 4.5);
-  const euroBandMat = new THREE.MeshStandardMaterial({
-    color: 0x1d4ed8,
-    roughness: 0.4
-  });
-  const euroBand = new THREE.Mesh(euroBandGeo, euroBandMat);
-  euroBand.position.set(carFrontX + 0.5, centerFasciaY - 1, -19.5);
-  car3DGroup.add(euroBand);
+  const bYLevels = [
+    rockerY + 1.2,
+    rockerY + 7.5,
+    bumperBeamY,
+    grilleBottomY
+  ];
+  const bXOffsets = [3.2, 1.0, -0.4, 1.2];
 
-  // Swept Aerodynamic Bumper Corner Shoulders (wrapping smoothly back to wheel arches and headlights)
-  const cornerSpanW = (totalCarWidth - centerFasciaW) / 2;
+  for (let r = 0; r <= bRows; r++) {
+    const yVal = bYLevels[r];
+    const xOff = bXOffsets[r];
+    for (let c = 0; c <= bCols; c++) {
+      const tz = c / bCols;
+      const zVal = -halfW + tz * (2 * halfW);
+      const sweep = getSweep(zVal);
+      const xVal = carFrontX + xOff + sweep;
+      bPositions.push(xVal, yVal, zVal);
+    }
+  }
+
+  for (let r = 0; r < bRows; r++) {
+    for (let c = 0; c < bCols; c++) {
+      const i0 = r * (bCols + 1) + c;
+      const i1 = i0 + 1;
+      const i2 = (r + 1) * (bCols + 1) + c;
+      const i3 = i2 + 1;
+      bIndices.push(i0, i1, i2, i1, i3, i2);
+    }
+  }
+
+  const bumperGeo = new THREE.BufferGeometry();
+  bumperGeo.setAttribute('position', new THREE.Float32BufferAttribute(bPositions, 3));
+  bumperGeo.setIndex(bIndices);
+  bumperGeo.computeVertexNormals();
+
+  const bumperShell = new THREE.Mesh(bumperGeo, bodyPaintMat);
+  bumperShell.material.side = THREE.DoubleSide;
+  car3DGroup.add(bumperShell);
+
+  // B. FRONT FENDER CORNER CHEEKS (Above grilleBottomY, flanking the headlights out to flanks)
+  const headlampW = Math.min(36.0, (halfW - 8.0) - (grilleW / 2 + 1.0));
+  const headlampH = grilleH - 1.0;
+  const headlampLen = 7.0;
+  const headlampCenterZ = (grilleW / 2) + (headlampW / 2) + 1.0;
+
   [-1, 1].forEach(side => {
-    const cornerCenterZ = side * ((centerFasciaW / 2) + (cornerSpanW / 2));
-    const cornerGeo = new THREE.BoxGeometry(14, bumperTotalH, cornerSpanW + 2);
-    const corner = new THREE.Mesh(cornerGeo, bodyPaintMat);
-    corner.position.set(carFrontX + 8.5, bumperBottomY + (bumperTotalH / 2), cornerCenterZ);
-    corner.rotation.y = side * -0.28;
-    addCadEdges(corner, 0x38bdf8);
-    car3DGroup.add(corner);
-
-    // Front Wheel Arch Flank Transition Blend
-    const blendGeo = new THREE.BoxGeometry(8, bumperTotalH * 0.85, 4);
-    const blend = new THREE.Mesh(blendGeo, bodyPaintMat);
-    blend.position.set(carFrontX + 13, bumperBottomY + (bumperTotalH * 0.45), side * ((totalCarWidth / 2) - 2));
-    car3DGroup.add(blend);
+    const fCornerInnerZ = (grilleW / 2) + headlampW + 1.0;
+    const fCornerW = Math.max(2.0, halfW - fCornerInnerZ);
+    const fCornerCenterZ = side * (fCornerInnerZ + (fCornerW / 2));
+    const fSweep = getSweep(fCornerCenterZ);
+    const fCornerGeo = new THREE.BoxGeometry(9.0, grilleH, fCornerW + 1.0);
+    const fCorner = new THREE.Mesh(fCornerGeo, bodyPaintMat);
+    fCorner.position.set(carFrontX + 3.0 + fSweep, grilleY, fCornerCenterZ);
+    fCorner.rotation.y = side * 0.22;
+    car3DGroup.add(fCorner);
   });
 
-  // B. Athletic Lower Radiator Grille / Center Air Intake Dam
-  const lowerIntakeW = Math.min(76, centerFasciaW - 8);
-  const lowerIntakeH = bumperTotalH * 0.50;
-  const lowerIntakeY = bumperBottomY + (lowerIntakeH / 2) + 1.2;
-
-  // Deep recessed dark intake pocket / honeycomb mesh backing
-  const lowerIntakeGeo = new THREE.BoxGeometry(5, lowerIntakeH, lowerIntakeW);
-  const lowerIntake = new THREE.Mesh(lowerIntakeGeo, trimMat);
-  lowerIntake.position.set(carFrontX + 5.0, lowerIntakeY, 0);
+  // C. LOWER RADIATOR AIR INTAKE DAM (Recessed Honeycomb Mesh)
+  const lowerIntakeGeo = new THREE.BoxGeometry(2.5, lowerIntakeH, lowerIntakeW);
+  const lowerIntake = new THREE.Mesh(lowerIntakeGeo, grilleMeshMat);
+  lowerIntake.position.set(carFrontX + 2.2, lowerIntakeY, 0);
   car3DGroup.add(lowerIntake);
 
-  // Twin Horizontal Aerodynamic Louver Slats (Multi-stage intake detailing)
+  // Twin Horizontal Aerodynamic Louver Slats
   [-lowerIntakeH * 0.22, lowerIntakeH * 0.22].forEach(offY => {
-    const slatGeo = new THREE.BoxGeometry(4.2, 1.4, lowerIntakeW - 2);
+    const slatGeo = new THREE.BoxGeometry(2.0, 1.0, lowerIntakeW - 2);
     const slat = new THREE.Mesh(slatGeo, chromeMat);
-    slat.position.set(carFrontX + 3.2, lowerIntakeY + offY, 0);
+    slat.position.set(carFrontX + 1.6, lowerIntakeY + offY, 0);
     car3DGroup.add(slat);
   });
 
-  // C. Sculpted Side Air Curtains & Cornering Fog Lamp Scoops
+  // D. INTEGRATED AERODYNAMIC SIDE AIR CURTAINS & LED FOG LIGHTS
   [-1, 1].forEach(side => {
-    const scoopZ = side * ((centerFasciaW / 2) + 13);
-    const scoopGeo = new THREE.BoxGeometry(7, lowerIntakeH + 1, 12);
+    const curZ = side * ((lowerIntakeW / 2) + 8.0);
+    const curSweep = getSweep(curZ);
+    const scoopX = carFrontX + 1.0 + curSweep;
+
+    // Sleek vertical air duct recess (gloss black)
+    const scoopGeo = new THREE.BoxGeometry(2.0, lowerIntakeH * 0.72, 3.8);
     const scoop = new THREE.Mesh(scoopGeo, trimMat);
-    scoop.position.set(carFrontX + 7.5, lowerIntakeY, scoopZ);
-    scoop.rotation.y = side * -0.28;
+    scoop.position.set(scoopX + 0.6, lowerIntakeY, curZ);
+    scoop.rotation.y = side * 0.18;
     car3DGroup.add(scoop);
 
-    // Aerodynamic Air Guide Strake (Gloss Black Blade)
-    const strakeGeo = new THREE.BoxGeometry(8, lowerIntakeH * 0.8, 1.4);
+    // Aerodynamic strake blade
+    const strakeGeo = new THREE.BoxGeometry(2.2, lowerIntakeH * 0.62, 0.8);
     const strake = new THREE.Mesh(strakeGeo, pillarMat);
-    strake.position.set(carFrontX + 6.8, lowerIntakeY, scoopZ + (side * 2.5));
-    strake.rotation.y = side * -0.28;
+    strake.position.set(scoopX + 0.3, lowerIntakeY, curZ + (side * 1.3));
+    strake.rotation.y = side * 0.18;
     car3DGroup.add(strake);
 
-    // Jewel LED Fog / Cornering Light Accent
-    const fogGeo = new THREE.BoxGeometry(3.5, 2.2, 5.0);
+    // Jewel LED Fog / Cornering Light Accent (Flush in air curtain)
+    const fogGeo = new THREE.BoxGeometry(1.6, 1.4, 2.8);
     const fog = new THREE.Mesh(fogGeo, headlampMat);
-    fog.position.set(carFrontX + 5.5, lowerIntakeY - (lowerIntakeH * 0.25), scoopZ - (side * 1.5));
-    fog.rotation.y = side * -0.28;
+    fog.position.set(scoopX - 0.2, lowerIntakeY - (lowerIntakeH * 0.18), curZ - (side * 0.6));
+    fog.rotation.y = side * 0.18;
     car3DGroup.add(fog);
   });
 
-  // D. Full-Width Lower Front Splitter Blade / Chin Spoiler
-  const splitterCenterW = centerFasciaW + 4;
-  const splitterCenterGeo = new THREE.BoxGeometry(8, 2.2, splitterCenterW);
-  const splitterCenter = new THREE.Mesh(splitterCenterGeo, trimMat);
-  splitterCenter.position.set(carFrontX + 3.8, rockerY + 1.1, 0);
-  car3DGroup.add(splitterCenter);
+  // E. AUTHENTIC FRONT REGISTRATION PLATE (UK / Euro standard white plate on slim plinth)
+  const platePlinthGeo = new THREE.BoxGeometry(0.8, 9.2, 44);
+  const platePlinth = new THREE.Mesh(platePlinthGeo, trimMat);
+  platePlinth.position.set(carFrontX - 0.2, bumperBeamY, 0);
+  car3DGroup.add(platePlinth);
 
-  [-1, 1].forEach(side => {
-    const splitCornerW = (totalCarWidth - splitterCenterW) / 2 + 1;
-    const splitCornerGeo = new THREE.BoxGeometry(13, 2.2, splitCornerW);
-    const splitCorner = new THREE.Mesh(splitCornerGeo, trimMat);
-    splitCorner.position.set(carFrontX + 8.5, rockerY + 1.1, side * ((splitterCenterW / 2) + (splitCornerW / 2) - 0.5));
-    splitCorner.rotation.y = side * -0.28;
-    car3DGroup.add(splitCorner);
-  });
+  const plateGeo = new THREE.BoxGeometry(0.5, 8.4, 42);
+  const plate = new THREE.Mesh(plateGeo, plateMat);
+  plate.position.set(carFrontX - 0.6, bumperBeamY, 0);
+  car3DGroup.add(plate);
 
-  // Brand-Specific Grille Styling
-  if (car.id.includes('tesla')) {
-    // Tesla Model Y: Smooth aerodynamic grille-less nose
-    const aeroCapGeo = new THREE.BoxGeometry(3, 8, centerFasciaW - 16);
-    const aeroCap = new THREE.Mesh(aeroCapGeo, bodyPaintMat);
-    aeroCap.position.set(carFrontX + 4.5, noseTopY - 4, 0);
-    car3DGroup.add(aeroCap);
-  } else if (car.id.includes('bmw')) {
-    // BMW Twin Kidney Grille Bezels
-    [-1, 1].forEach(side => {
-      const kidneyGeo = new THREE.BoxGeometry(3.5, 9, 14);
-      const kidney = new THREE.Mesh(kidneyGeo, chromeMat);
-      kidney.position.set(carFrontX + 4.8, noseTopY - 4, side * 8.5);
-      car3DGroup.add(kidney);
+  const euroBandGeo = new THREE.BoxGeometry(0.6, 8.4, 4.2);
+  const euroBand = new THREE.Mesh(euroBandGeo, euroBlueMat);
+  euroBand.position.set(carFrontX - 0.65, bumperBeamY, -18.7);
+  car3DGroup.add(euroBand);
 
-      const slatGeo = new THREE.BoxGeometry(3.8, 8, 12);
-      const slat = new THREE.Mesh(slatGeo, trimMat);
-      slat.position.set(carFrontX + 4.6, noseTopY - 4, side * 8.5);
-      car3DGroup.add(slat);
-    });
-  } else if (car.id.includes('audi')) {
-    // Audi Singleframe Grille
-    const singleframeGeo = new THREE.BoxGeometry(3.5, 15, centerFasciaW - 20);
-    const singleframe = new THREE.Mesh(singleframeGeo, trimMat);
-    singleframe.position.set(carFrontX + 4.8, noseTopY - 7, 0);
-    car3DGroup.add(singleframe);
-    addCadEdges(singleframe, 0xe2e8f0);
-  } else {
-    // VW Golf Mk8 & Hatchbacks: Sleek horizontal grille strip with illuminated LED lightbar
-    const grilleStripGeo = new THREE.BoxGeometry(3.5, 3.2, centerFasciaW - 8);
-    const grilleStrip = new THREE.Mesh(grilleStripGeo, trimMat);
-    grilleStrip.position.set(carFrontX + 3.8, noseTopY - 4.5, 0);
-    car3DGroup.add(grilleStrip);
+  // F. FULL-WIDTH LOWER FRONT CHIN SPLITTER / SPOILER
+  const splitterGeo = new THREE.BoxGeometry(6.0, 1.6, totalCarWidth - 4);
+  const splitter = new THREE.Mesh(splitterGeo, trimMat);
+  splitter.position.set(carFrontX + 5.5, rockerY + 0.8, 0);
+  car3DGroup.add(splitter);
 
-    const ledStripGeo = new THREE.BoxGeometry(3.6, 1.2, centerFasciaW - 12);
-    const ledStrip = new THREE.Mesh(ledStripGeo, headlampMat);
-    ledStrip.position.set(carFrontX + 3.6, noseTopY - 4.5, 0);
-    car3DGroup.add(ledStrip);
-
-    // Iconic VW Centered Front Badge Roundel
-    const badgeGeo = new THREE.CylinderGeometry(3.2, 3.2, 1.2, 24);
-    const badge = new THREE.Mesh(badgeGeo, chromeMat);
-    badge.rotation.z = Math.PI / 2;
-    badge.position.set(carFrontX + 3.0, noseTopY - 4.5, 0);
-    car3DGroup.add(badge);
-  }
-
-  // SUV Front Skid Plate
+  // SUV Front Satin Silver Skid Plate
   if (isSUV) {
-    const skidGeo = new THREE.BoxGeometry(10, 6, centerFasciaW - 24);
+    const skidGeo = new THREE.BoxGeometry(5.0, 3.6, lowerIntakeW - 10);
     const skid = new THREE.Mesh(skidGeo, chromeMat);
-    skid.position.set(carFrontX + 4.5, rockerY + 3.5, 0);
+    skid.position.set(carFrontX + 1.8, rockerY + 2.5, 0);
     car3DGroup.add(skid);
   }
 
-  // 4. HIGH-TECH JEWEL LED HEADLIGHT CLUSTERS
+  // G. BRAND-SPECIFIC UPPER GRILLE ARCHITECTURE
+  if (car.id.includes('ford')) {
+    // Ford Focus (Mk4): Iconic trapezoidal hexagonal grille with chrome rim and Ford blue oval
+    const frameTop = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, grilleW), chromeMat);
+    frameTop.position.set(grilleX - 0.5, grilleY + (grilleH / 2) - 0.6, 0);
+    car3DGroup.add(frameTop);
+
+    const frameBottom = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, grilleW * 0.82), chromeMat);
+    frameBottom.position.set(grilleX - 0.5, grilleY - (grilleH / 2) + 0.6, 0);
+    car3DGroup.add(frameBottom);
+
+    [-1, 1].forEach(side => {
+      const armGeo = new THREE.BoxGeometry(1.8, grilleH - 1.0, 1.4);
+      const arm = new THREE.Mesh(armGeo, chromeMat);
+      arm.position.set(grilleX - 0.5, grilleY, side * (grilleW * 0.45));
+      arm.rotation.x = side * 0.12;
+      car3DGroup.add(arm);
+    });
+
+    const meshGeo = new THREE.BoxGeometry(1.2, grilleH - 1.6, grilleW - 2.0);
+    const mesh = new THREE.Mesh(meshGeo, grilleMeshMat);
+    mesh.position.set(grilleX + 0.1, grilleY, 0);
+    car3DGroup.add(mesh);
+
+    // 3 Horizontal Chrome Blades
+    [-grilleH * 0.22, 0, grilleH * 0.22].forEach(by => {
+      const bGeo = new THREE.BoxGeometry(1.8, 0.9, grilleW - 3.5);
+      const b = new THREE.Mesh(bGeo, chromeMat);
+      b.position.set(grilleX - 0.3, grilleY + by, 0);
+      car3DGroup.add(b);
+    });
+
+    // Centered Ford Blue Oval Badge
+    const ovalBorder = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 0.8, 24), chromeMat);
+    ovalBorder.rotation.z = Math.PI / 2;
+    ovalBorder.scale.set(1, 1, 1.65);
+    ovalBorder.position.set(grilleX - 0.8, grilleY + (grilleH * 0.12), 0);
+    car3DGroup.add(ovalBorder);
+
+    const ovalMat = new THREE.MeshStandardMaterial({
+      color: 0x003399,
+      emissive: 0x001f5c,
+      emissiveIntensity: 0.5,
+      roughness: 0.2,
+      metalness: 0.5
+    });
+    const ovalCenter = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 0.9, 24), ovalMat);
+    ovalCenter.rotation.z = Math.PI / 2;
+    ovalCenter.scale.set(1, 1, 1.65);
+    ovalCenter.position.set(grilleX - 0.85, grilleY + (grilleH * 0.12), 0);
+    car3DGroup.add(ovalCenter);
+
+    const fordBar = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 4.0), chromeMat);
+    fordBar.position.set(grilleX - 1.0, grilleY + (grilleH * 0.12), 0);
+    car3DGroup.add(fordBar);
+
+  } else if (car.id.includes('tesla')) {
+    // Tesla Model Y: Clean, aerodynamic grille-less nose with sculpted aero crease
+    const aeroCapGeo = new THREE.BoxGeometry(2.0, grilleH, grilleW);
+    const aeroCap = new THREE.Mesh(aeroCapGeo, bodyPaintMat);
+    aeroCap.position.set(grilleX, grilleY, 0);
+    car3DGroup.add(aeroCap);
+
+    // Chrome Tesla 'T' Emblem
+    const tBadgeGeo = new THREE.BoxGeometry(0.6, 3.0, 3.2);
+    const tBadge = new THREE.Mesh(tBadgeGeo, chromeMat);
+    tBadge.position.set(grilleX - 0.8, grilleY + 1.0, 0);
+    car3DGroup.add(tBadge);
+
+  } else if (car.id.includes('bmw')) {
+    // BMW Twin Kidney Grille Bezels with Chrome Rim & Vertical Air Slats
+    [-1, 1].forEach(side => {
+      const kCenterZ = side * 8.6;
+      const kW = 14.0;
+      // Chrome surround frame
+      const kTop = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.0, kW), chromeMat);
+      kTop.position.set(grilleX - 0.5, grilleY + (grilleH / 2) - 0.5, kCenterZ);
+      car3DGroup.add(kTop);
+
+      const kBottom = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.0, kW), chromeMat);
+      kBottom.position.set(grilleX - 0.5, grilleY - (grilleH / 2) + 0.5, kCenterZ);
+      car3DGroup.add(kBottom);
+
+      [-1, 1].forEach(kSide => {
+        const kSideBezel = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, 1.0), chromeMat);
+        kSideBezel.position.set(grilleX - 0.5, grilleY, kCenterZ + kSide * (kW / 2 - 0.5));
+        car3DGroup.add(kSideBezel);
+      });
+
+      // Dark background mesh
+      const slatMeshGeo = new THREE.BoxGeometry(1.4, grilleH - 1.6, kW - 1.6);
+      const slatMesh = new THREE.Mesh(slatMeshGeo, trimMat);
+      slatMesh.position.set(grilleX + 0.1, grilleY, kCenterZ);
+      car3DGroup.add(slatMesh);
+
+      // Vertical kidney slats
+      [-4.0, -1.3, 1.3, 4.0].forEach(sz => {
+        const vSlat = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH - 2.0, 0.8), chromeMat);
+        vSlat.position.set(grilleX - 0.4, grilleY, kCenterZ + sz);
+        car3DGroup.add(vSlat);
+      });
+    });
+
+    // Centered BMW Roundel Badge above kidneys on nose cap
+    const bBadge = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.8, 24), chromeMat);
+    bBadge.rotation.z = Math.PI / 2;
+    bBadge.position.set(grilleX - 0.8, grilleY + (grilleH / 2) + 1.4, 0);
+    car3DGroup.add(bBadge);
+
+  } else if (car.id.includes('audi')) {
+    // Audi Singleframe Grille with Satin Chrome Surround & Four Rings
+    const singleframeGeo = new THREE.BoxGeometry(1.8, grilleH + 2, grilleW - 6);
+    const singleframe = new THREE.Mesh(singleframeGeo, chromeMat);
+    singleframe.position.set(grilleX - 0.2, grilleY - 1.0, 0);
+    car3DGroup.add(singleframe);
+
+    const singleMesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, grilleH + 0.8, grilleW - 8), grilleMeshMat);
+    singleMesh.position.set(grilleX + 0.1, grilleY - 1.0, 0);
+    car3DGroup.add(singleMesh);
+
+    // Audi Four Interlocking Rings
+    [-3.0, -1.0, 1.0, 3.0].forEach(rx => {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.25, 8, 16), chromeMat);
+      ring.position.set(grilleX - 0.8, grilleY + 1.8, rx);
+      ring.rotation.y = Math.PI / 2;
+      car3DGroup.add(ring);
+    });
+
+  } else if (car.id.includes('skoda') || car.id.includes('octavia')) {
+    // Škoda Octavia: Chrome-rimmed butterfly grille with vertical black slats
+    const skodaFrame = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, grilleW), chromeMat);
+    skodaFrame.position.set(grilleX - 0.2, grilleY, 0);
+    car3DGroup.add(skodaFrame);
+
+    const skodaMesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, grilleH - 1.6, grilleW - 2), grilleMeshMat);
+    skodaMesh.position.set(grilleX + 0.1, grilleY, 0);
+    car3DGroup.add(skodaMesh);
+
+    // Chrome Škoda Winged Arrow Badge
+    const skBadge = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.8, 24), chromeMat);
+    skBadge.rotation.z = Math.PI / 2;
+    skBadge.position.set(grilleX - 0.8, grilleY + (grilleH / 2) + 1.2, 0);
+    car3DGroup.add(skBadge);
+
+  } else if (car.id.includes('nissan') || car.id.includes('qashqai')) {
+    // Nissan Qashqai: Bold Chrome V-Motion Grille Surround
+    const nissanMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, grilleH, grilleW), grilleMeshMat);
+    nissanMesh.position.set(grilleX + 0.1, grilleY, 0);
+    car3DGroup.add(nissanMesh);
+
+    [-1, 1].forEach(side => {
+      const vArm = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, grilleW * 0.35), chromeMat);
+      vArm.position.set(grilleX - 0.4, grilleY - (side === 1 ? 1 : 1), side * (grilleW * 0.22));
+      vArm.rotation.x = side * 0.45;
+      car3DGroup.add(vArm);
+    });
+
+    const nBadge = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.8, 24), chromeMat);
+    nBadge.rotation.z = Math.PI / 2;
+    nBadge.position.set(grilleX - 0.8, grilleY, 0);
+    car3DGroup.add(nBadge);
+
+  } else if (car.id.includes('vauxhall') || car.id.includes('corsa')) {
+    // Vauxhall Corsa: 'Vauxhall Vizor' Full-Width Gloss Black Panel
+    const vizor = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, grilleW), pillarMat);
+    vizor.position.set(grilleX, grilleY, 0);
+    car3DGroup.add(vizor);
+
+    const vBadge = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.8, 24), chromeMat);
+    vBadge.rotation.z = Math.PI / 2;
+    vBadge.position.set(grilleX - 0.8, grilleY, 0);
+    car3DGroup.add(vBadge);
+
+  } else {
+    // VW Golf Mk8 & Standard Hatchbacks: Sleek horizontal grille strip with illuminated LED lightbar
+    const grilleStripGeo = new THREE.BoxGeometry(1.8, 3.4, grilleW);
+    const grilleStrip = new THREE.Mesh(grilleStripGeo, pillarMat);
+    grilleStrip.position.set(grilleX, grilleY, 0);
+    car3DGroup.add(grilleStrip);
+
+    const ledStripGeo = new THREE.BoxGeometry(2.0, 0.9, grilleW - 2);
+    const ledStrip = new THREE.Mesh(ledStripGeo, headlampDrlMat);
+    ledStrip.position.set(grilleX - 0.4, grilleY + 0.9, 0);
+    car3DGroup.add(ledStrip);
+
+    // Iconic VW Centered Front Badge Roundel
+    const badgeGeo = new THREE.CylinderGeometry(2.8, 2.8, 0.8, 24);
+    const badge = new THREE.Mesh(badgeGeo, chromeMat);
+    badge.rotation.z = Math.PI / 2;
+    badge.position.set(grilleX - 0.8, grilleY, 0);
+    car3DGroup.add(badge);
+  }
+
+  // H. HIGH-TECH JEWEL LED HEADLIGHT CLUSTERS
   [-1, 1].forEach(side => {
     const headGroup = new THREE.Group();
-    const headZ = side * ((totalCarWidth / 2) - 15);
-    headGroup.position.set(carFrontX + 5.0, noseTopY - 5.5, headZ);
-    headGroup.rotation.y = side * -0.28; // Swept back along bumper and fender curve
+    const headlampSweep = getSweep(headlampCenterZ);
+    const headlampX = carFrontX + 2.0 + headlampSweep;
+    const sweepInner = getSweep(headlampCenterZ - headlampW / 2);
+    const sweepOuter = getSweep(headlampCenterZ + headlampW / 2);
+    const headAngle = Math.atan2(sweepOuter - sweepInner, headlampW);
 
-    // Outer Aerodynamic Clear Polycarbonate Lens
-    const lensGeo = new THREE.BoxGeometry(14, 5.0, 22);
-    const lens = new THREE.Mesh(lensGeo, glassMat);
-    headGroup.add(lens);
+    headGroup.position.set(headlampX, grilleY, side * headlampCenterZ);
+    headGroup.rotation.y = side * headAngle; // Swept back naturally matching bumper parabola
 
-    // Dark Inner Projector Housing
-    const housingGeo = new THREE.BoxGeometry(11, 4.2, 20);
-    const housing = new THREE.Mesh(housingGeo, trimMat);
-    housing.position.set(-1, 0, 0);
-    headGroup.add(housing);
+    // Dark Smoked Rear Housing Cavity Wall (thin backplate so cavity is hollow!)
+    const backWallGeo = new THREE.BoxGeometry(0.6, headlampH - 0.4, headlampW - 0.6);
+    const backWall = new THREE.Mesh(backWallGeo, headlampBezelMat);
+    backWall.position.set((headlampLen / 2) - 0.4, 0, 0);
+    headGroup.add(backWall);
 
-    // Dual Glowing LED Projector Lenses
-    [-5, 4].forEach(offsetZ => {
-      const projGeo = new THREE.CylinderGeometry(2.0, 2.0, 3, 16);
-      const proj = new THREE.Mesh(projGeo, headlampMat);
-      proj.rotation.z = Math.PI / 2;
-      proj.position.set(4, 0, offsetZ);
-      headGroup.add(proj);
-    });
+    // Glowing LED Daytime Running Light (DRL) Signature Guide
+    // Continuous top brow strip
+    const drlTopGeo = new THREE.BoxGeometry(0.8, 0.7, headlampW - 1.2);
+    const drlTop = new THREE.Mesh(drlTopGeo, headlampDrlMat);
+    drlTop.position.set(-2.7, (headlampH / 2) - 0.7, 0);
+    headGroup.add(drlTop);
 
-    // Signature Glowing LED Daytime Running Light (DRL) Brow Strip
-    const drlGeo = new THREE.BoxGeometry(12, 1.2, 19);
-    const drl = new THREE.Mesh(drlGeo, headlampMat);
-    drl.position.set(1.5, 2.6, 0);
-    headGroup.add(drl);
+    // Outer vertical return blade (forming signature L-shape hockey stick)
+    const drlSideGeo = new THREE.BoxGeometry(0.8, headlampH * 0.55, 0.7);
+    const drlSide = new THREE.Mesh(drlSideGeo, headlampDrlMat);
+    drlSide.position.set(-2.7, -0.6, side * ((headlampW / 2) - 1.0));
+    headGroup.add(drlSide);
 
-    // Amber Turn Signal Corner Accent
-    const amberGeo = new THREE.BoxGeometry(4, 3, 2.5);
-    const amberMat = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      emissive: 0xf59e0b,
-      emissiveIntensity: 1.8
-    });
+    // Dual Jewelled LED Projector Eyes
+    // Outer Low Beam Projector
+    const projOuterRing = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.3, 0.8, 24), chromeMat);
+    projOuterRing.rotation.z = Math.PI / 2;
+    projOuterRing.position.set(-2.3, -0.5, side * (headlampW * 0.22));
+    headGroup.add(projOuterRing);
+
+    const projOuter = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 1.2, 24), headlampProjectorMat);
+    projOuter.rotation.z = Math.PI / 2;
+    projOuter.position.set(-2.6, -0.5, side * (headlampW * 0.22));
+    headGroup.add(projOuter);
+
+    // Inner High Beam Projector
+    const projInnerRing = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.8, 20), chromeMat);
+    projInnerRing.rotation.z = Math.PI / 2;
+    projInnerRing.position.set(-2.3, -0.5, -side * (headlampW * 0.22));
+    headGroup.add(projInnerRing);
+
+    const projInner = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 1.2, 20), headlampProjectorMat);
+    projInner.rotation.z = Math.PI / 2;
+    projInner.position.set(-2.6, -0.5, -side * (headlampW * 0.22));
+    headGroup.add(projInner);
+
+    // Amber Crystal Turn Indicator Accent
+    const amberGeo = new THREE.BoxGeometry(1.4, 1.6, 2.4);
     const amber = new THREE.Mesh(amberGeo, amberMat);
-    amber.position.set(-2, 0, side * 9);
+    amber.position.set(-2.5, -1.8, side * ((headlampW / 2) - 1.5));
     headGroup.add(amber);
 
-    addCadEdges(lens, 0x38bdf8);
+    // High-Gloss Transparent Polycarbonate Outer Lens
+    const lensGeo = new THREE.BoxGeometry(0.5, headlampH, headlampW);
+    const lens = new THREE.Mesh(lensGeo, headlampLensMat);
+    lens.position.set(-(headlampLen / 2) + 0.3, 0, 0);
+    headGroup.add(lens);
+
     car3DGroup.add(headGroup);
   });
 
@@ -2682,13 +2946,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
   // Beltline at ~61-63% height provides substantial athletic door metal (70-80cm)
   // Rocker line at ~15-18cm ensures full underside closure and authentic wheel wells
   const flankShape = new THREE.Shape();
-  // Start at lower front chin with aerodynamic curve
-  flankShape.moveTo(carFrontX + 8, rockerY + 1);
-  flankShape.quadraticCurveTo(carFrontX, rockerY + 2, carFrontX, rockerY + 10);
-  // Curve up the front bumper fascia
-  flankShape.quadraticCurveTo(carFrontX - 0.5, noseTopY - 5, carFrontX + 10, noseTopY);
+  // Start at lower front chin with aerodynamic curve swept back to wheel arch
+  flankShape.moveTo(carFrontX + 16, rockerY + 1.2);
+  flankShape.quadraticCurveTo(carFrontX + 13.5, rockerY + 6, carFrontX + 13.5, rockerY + 14);
+  // Curve up along front fender corner seam
+  flankShape.quadraticCurveTo(carFrontX + 13, noseTopY - 5, carFrontX + 15, noseTopY);
   // Flow aerodynamically from nose cone into bonnet and cowl
-  flankShape.quadraticCurveTo(carFrontX + (Math.abs(cowlX - carFrontX) * 0.45), noseTopY + (beltY - noseTopY) * 0.35, cowlX, beltY + 2);
+  flankShape.quadraticCurveTo(carFrontX + 15 + (Math.abs(cowlX - (carFrontX + 15)) * 0.45), noseTopY + (beltY - noseTopY) * 0.35, cowlX, beltY + 2);
   flankShape.lineTo(cowlX + 4, beltY);
 
   if (isSaloon) {
@@ -2722,7 +2986,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   flankShape.lineTo(frontWheelX - wheelArchR, rockerY);
 
   // Smooth front lower chin transition
-  flankShape.quadraticCurveTo(carFrontX + 14, rockerY, carFrontX + 8, rockerY + 1);
+  flankShape.quadraticCurveTo(carFrontX + 18, rockerY, carFrontX + 16, rockerY + 1.2);
 
   const flankExtrude = {
     depth: 4.5,
@@ -2735,12 +2999,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   const leftFlank = new THREE.Mesh(flankGeo, bodyPaintMat);
   leftFlank.position.z = (totalCarWidth / 2) - 4.5;
-  addCadEdges(leftFlank, 0x38bdf8);
+  addCadEdges(leftFlank, 0x38bdf8, 48);
   car3DGroup.add(leftFlank);
 
   const rightFlank = new THREE.Mesh(flankGeo, bodyPaintMat);
   rightFlank.position.z = -(totalCarWidth / 2);
-  addCadEdges(rightFlank, 0x38bdf8);
+  addCadEdges(rightFlank, 0x38bdf8, 48);
   car3DGroup.add(rightFlank);
 
   // Sculpted 3D Wheel Arch Eyebrow Blister Flares (adds authentic muscular fender curvature)

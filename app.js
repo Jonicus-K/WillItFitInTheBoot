@@ -208,6 +208,8 @@ let car3DGroup = null;
 let cargo3DMesh = null;
 let plinthGroup = null;
 let gridHelper = null;
+let flankFill = null;
+let flankFillOpposite = null;
 
 function extractNumber(obj, candidateKeys, fallback) {
   if (!obj || typeof obj !== 'object') return fallback;
@@ -1444,6 +1446,15 @@ function initThreeStudio() {
   rearHighlight.position.set(260, 120, 0);
   scene.add(rearHighlight);
 
+  // Studio Flank Key/Fill Lights (Illuminates passenger doors, character lines, and handles)
+  flankFill = new THREE.DirectionalLight(0xf1f5f9, 1.4);
+  flankFill.position.set(-160, 140, 480);
+  scene.add(flankFill);
+
+  flankFillOpposite = new THREE.DirectionalLight(0x94a3b8, 0.9);
+  flankFillOpposite.position.set(-160, 140, -480);
+  scene.add(flankFillOpposite);
+
   const bootInteriorLight = new THREE.PointLight(0xffedd5, 1.8, 300);
   bootInteriorLight.position.set(20, 95, 0);
   scene.add(bootInteriorLight);
@@ -2307,9 +2318,11 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const carFrontX = rearBumperX - totalLength;
   const carCenterX = (carFrontX + rearBumperX) / 2;
 
-  // Keep Showroom Turntable Plinth and Ground Grid dead-central under any car
+  // Keep Showroom Turntable Plinth, Ground Grid, and Side Lights dead-central under any car
   if (plinthGroup) plinthGroup.position.x = carCenterX;
   if (gridHelper) gridHelper.position.x = carCenterX;
+  if (flankFill) flankFill.position.x = carCenterX;
+  if (flankFillOpposite) flankFillOpposite.position.x = carCenterX;
 
   // AUTHENTIC AUTOMOTIVE ARCHITECTURE: Realistic front overhangs & wheelbases
   // (Prevents the cartoonish long bonnet / anteater look!)
@@ -2369,6 +2382,9 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const bPillarX = frontSeatsX + 15;
   const cPillarX = isEstate ? (bPillarX + (roofRearX - bPillarX) * 0.58) : (isSaloon ? deckFrontX : roofRearX);
   const dPillarX = isEstate ? roofRearX : null;
+  const rearDoorEnd = isEstate
+    ? cPillarX
+    : (isSaloon ? (rearWheelX - 4) : (isSUV ? (rearWheelX + 2) : (rearWheelX - 2)));
 
   // Materials: CAD Cutaway vs Showroom Paint
   const isGhost = xRayMode < 0.85;
@@ -2417,6 +2433,14 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const trimMat = new THREE.MeshStandardMaterial({
     color: 0x0f172a,
     roughness: 0.8
+  });
+
+  const doorSeamMat = new THREE.MeshStandardMaterial({
+    color: 0x070c16, // Deep obsidian shadow seam / panel gap
+    roughness: 0.95,
+    metalness: 0.15,
+    transparent: isGhost,
+    opacity: isGhost ? 0.70 : 1.0
   });
 
   const headlampMat = new THREE.MeshStandardMaterial({
@@ -3285,7 +3309,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
     } else if (isSUV) {
       // SUV: Rear Passenger Door Window, Quarter Window, and Solid D-Pillar Rear Corner
-      const rearDoorEnd = rearWheelX + 2;
       const rWinWidth = Math.abs(rearDoorEnd - bPillarX) - 4;
       const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
       const rWin = new THREE.Mesh(rWinGeo, glassMat);
@@ -3322,7 +3345,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
     } else {
       // Hatchback (VW Golf Mk8, Vauxhall Corsa F):
       // Rear Passenger Door Window
-      const rearDoorEnd = rearWheelX - 2;
       const rWinWidth = Math.abs(rearDoorEnd - bPillarX) - 4;
       const rWinGeo = new THREE.BoxGeometry(rWinWidth, winHeight, 1.2);
       const rWin = new THREE.Mesh(rWinGeo, glassMat);
@@ -3351,7 +3373,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     }
   });
 
-  // 8. SIDE WING MIRRORS & DOOR HANDLES
+  // 8. SIDE WING MIRRORS, ARTICULATED PASSENGER DOORS, SHUT LINES & HANDLES
   const leftMirror = createSideMirror3D(true, bodyPaintMat, trimMat);
   leftMirror.position.set(cowlX + 4, beltY + 2, (totalCarWidth / 2) - 4);
   car3DGroup.add(leftMirror);
@@ -3360,13 +3382,153 @@ function update3DStudio(car, seatsFolded, fitResult) {
   rightMirror.position.set(cowlX + 4, beltY + 2, -((totalCarWidth / 2) - 4));
   car3DGroup.add(rightMirror);
 
-  [-wheelZOffset, wheelZOffset - 2].forEach(zPos => {
-    [bPillarX - 22, bPillarX + 26].forEach(hx => {
-      const handleGeo = new THREE.BoxGeometry(9, 2.2, 1.8);
-      const handle = new THREE.Mesh(handleGeo, bodyPaintMat);
-      handle.position.set(hx, beltY - 5, zPos + (zPos > 0 ? 3 : -3));
-      car3DGroup.add(handle);
+  // Authentically Articulated Front & Rear Passenger Doors
+  [-1, 1].forEach(side => {
+    const zOuter = side * ((totalCarWidth / 2) + 1.2);
+    const zSeam = side * ((totalCarWidth / 2) + 1.25);
+    const zHandleWell = side * ((totalCarWidth / 2) + 1.28);
+    const zHandleBar = side * ((totalCarWidth / 2) + 2.10);
+    const zHandleChrome = side * ((totalCarWidth / 2) + 2.90);
+
+    // A. FRONT DOOR LEADING SEAM (A-Pillar / Front Fender Seam)
+    // Runs from the cowl base / front window corner down to the rocker sill
+    const frontTopX = cowlX + 2.0;
+    const frontBotX = cowlX + 0.8;
+    const frontSeamH = beltY - rockerY;
+    const frontRakeAngle = Math.atan2(frontTopX - frontBotX, frontSeamH);
+    const frontSeamLen = Math.hypot(frontTopX - frontBotX, frontSeamH);
+    const frontSeamGeo = new THREE.BoxGeometry(0.65, frontSeamLen, 0.45);
+    const frontSeam = new THREE.Mesh(frontSeamGeo, doorSeamMat);
+    frontSeam.position.set((frontTopX + frontBotX) / 2, (beltY + rockerY) / 2, zSeam);
+    frontSeam.rotation.z = -frontRakeAngle;
+    addCadEdges(frontSeam, 0x38bdf8, 20);
+    car3DGroup.add(frontSeam);
+
+    // B. CENTER B-PILLAR SEAM (Front-to-Rear Passenger Door Division)
+    // Runs vertically from the window sill at bPillarX down to the rocker panel
+    const bSeamH = beltY - rockerY;
+    const bSeamGeo = new THREE.BoxGeometry(0.65, bSeamH, 0.45);
+    const bSeam = new THREE.Mesh(bSeamGeo, doorSeamMat);
+    bSeam.position.set(bPillarX, (beltY + rockerY) / 2, zSeam);
+    addCadEdges(bSeam, 0x38bdf8, 20);
+    car3DGroup.add(bSeam);
+
+    // C. REAR DOOR TRAILING SHUT LINE & WHEEL ARCH DOGLEG
+    // 1. Upper vertical segment from window sill down to rear wheel arch entry
+    const archTopY = wheelY + wheelArchR + 1.2;
+    const rSeamTopH = beltY - archTopY;
+    if (rSeamTopH > 0) {
+      const rSeamTopGeo = new THREE.BoxGeometry(0.65, rSeamTopH, 0.45);
+      const rSeamTop = new THREE.Mesh(rSeamTopGeo, doorSeamMat);
+      rSeamTop.position.set(rearDoorEnd, archTopY + (rSeamTopH / 2), zSeam);
+      addCadEdges(rSeamTop, 0x38bdf8, 20);
+      car3DGroup.add(rSeamTop);
+    }
+
+    // 2. Dogleg curve contouring around the front lip of the rear wheel arch down to the rocker sill
+    const doglegFrontX = rearWheelX - wheelArchR - 2.0;
+    const midX = rearDoorEnd - (rearDoorEnd - doglegFrontX) * 0.48;
+    const midY = archTopY - (archTopY - rockerY) * 0.40;
+
+    // Segment 1 (arch top to mid dogleg):
+    const d1Len = Math.hypot(rearDoorEnd - midX, archTopY - midY);
+    const d1Angle = Math.atan2(rearDoorEnd - midX, archTopY - midY);
+    const d1Geo = new THREE.BoxGeometry(0.65, d1Len, 0.45);
+    const d1Mesh = new THREE.Mesh(d1Geo, doorSeamMat);
+    d1Mesh.position.set((rearDoorEnd + midX) / 2, (archTopY + midY) / 2, zSeam);
+    d1Mesh.rotation.z = -d1Angle;
+    addCadEdges(d1Mesh, 0x38bdf8, 20);
+    car3DGroup.add(d1Mesh);
+
+    // Segment 2 (mid dogleg down to rocker sill):
+    const d2Len = Math.hypot(midX - doglegFrontX, midY - rockerY);
+    const d2Angle = Math.atan2(midX - doglegFrontX, midY - rockerY);
+    const d2Geo = new THREE.BoxGeometry(0.65, d2Len, 0.45);
+    const d2Mesh = new THREE.Mesh(d2Geo, doorSeamMat);
+    d2Mesh.position.set((midX + doglegFrontX) / 2, (midY + rockerY) / 2, zSeam);
+    d2Mesh.rotation.z = -d2Angle;
+    addCadEdges(d2Mesh, 0x38bdf8, 20);
+    car3DGroup.add(d2Mesh);
+
+    // D. LOWER DOOR ROCKER SILL SEAM (Horizontal bottom door gap)
+    const rockerGapLen = Math.abs(doglegFrontX - frontBotX);
+    const rockerGapGeo = new THREE.BoxGeometry(rockerGapLen, 0.55, 0.45);
+    const rockerGap = new THREE.Mesh(rockerGapGeo, doorSeamMat);
+    rockerGap.position.set((frontBotX + doglegFrontX) / 2, rockerY + 0.8, zSeam);
+    addCadEdges(rockerGap, 0x38bdf8, 20);
+    car3DGroup.add(rockerGap);
+
+    // E. DOOR SURFACE SCULPTING (Character Creases)
+    // 1. Upper Waistline Character Crease (Tornado Line / Shoulder Highlight)
+    const waistlineLen = Math.abs(rearDoorEnd - (cowlX + 2.5));
+    const waistlineGeo = new THREE.BoxGeometry(waistlineLen, 0.55, 0.55);
+    const waistline = new THREE.Mesh(waistlineGeo, bodyPaintMat);
+    waistline.position.set((cowlX + 2.5 + rearDoorEnd) / 2, beltY - 5.5, zOuter + (side * 0.15));
+    addCadEdges(waistline, 0x38bdf8, 15);
+    car3DGroup.add(waistline);
+
+    // 2. Lower Door Dynamic Scallop / Sill Swage Blade
+    const lowerBladeLen = Math.abs(doglegFrontX - 2.0 - (cowlX + 7.0));
+    const lowerBladeGeo = new THREE.BoxGeometry(lowerBladeLen, 1.3, 0.5);
+    const lowerBlade = new THREE.Mesh(lowerBladeGeo, isSUV ? claddingMat : bodyPaintMat);
+    lowerBlade.position.set((cowlX + 7.0 + doglegFrontX - 2.0) / 2, rockerY + 7.5, zOuter + (side * 0.15));
+    addCadEdges(lowerBlade, 0x38bdf8, 20);
+    car3DGroup.add(lowerBlade);
+
+    // F. HIGH-TECH ERGONOMIC DOOR HANDLES (Front & Rear Doors)
+    const handleY = beltY - 5.5;
+    const frontHandleX = bPillarX - 18;
+    const rearHandleX = Math.min(bPillarX + 26, rearDoorEnd - 14);
+
+    [
+      { hx: frontHandleX, isFront: true },
+      { hx: rearHandleX, isFront: false }
+    ].forEach(({ hx, isFront }) => {
+      // 1. Recessed Finger Cup Cavity (Escutcheon Well)
+      const cupGeo = new THREE.BoxGeometry(11.5, 4.2, 0.45);
+      const cup = new THREE.Mesh(cupGeo, trimMat);
+      cup.position.set(hx, handleY, zHandleWell);
+      addCadEdges(cup, 0x1e293b, 15);
+      car3DGroup.add(cup);
+
+      // 2. Body-Color Aerodynamic Pull Bar (Grab Handle)
+      const barGeo = new THREE.BoxGeometry(9.6, 2.0, 1.6);
+      const bar = new THREE.Mesh(barGeo, bodyPaintMat);
+      bar.position.set(hx, handleY, zHandleBar);
+      addCadEdges(bar, 0x38bdf8, 15);
+      car3DGroup.add(bar);
+
+      // 3. High-Tech Chrome Accent / Touch-to-Unlock Sensor Strip
+      const chromeGeo = new THREE.BoxGeometry(5.0, 0.35, 0.35);
+      const chromeStrip = new THREE.Mesh(chromeGeo, chromeMat);
+      chromeStrip.position.set(hx, handleY + 0.8, zHandleChrome);
+      car3DGroup.add(chromeStrip);
+
+      // 4. Subtle Mechanical Key Lock Cylinder on Front Driver's Door
+      if (isFront) {
+        const lockGeo = new THREE.BoxGeometry(1.2, 1.2, 0.35);
+        const lockMesh = new THREE.Mesh(lockGeo, chromeMat);
+        lockMesh.position.set(hx + (side > 0 ? 3.6 : -3.6), handleY, zHandleBar + (side * 0.1));
+        car3DGroup.add(lockMesh);
+      }
     });
+
+    // G. GREENHOUSE WEATHERSTRIPS & DOOR FRAME SASHES
+    // Beltline window weatherstrip running along glass base
+    const greenhouseGlassLen = Math.abs(rearSillX - (cowlX + 2.5));
+    const scraperGeo = new THREE.BoxGeometry(greenhouseGlassLen, 0.75, 0.9);
+    const scraper = new THREE.Mesh(scraperGeo, trimMat);
+    scraper.position.set((cowlX + 2.5 + rearSillX) / 2, beltY + 0.4, side * ((cabinWidth / 2) + 0.7));
+    car3DGroup.add(scraper);
+
+    // Rear door division bar (separating roll-down door glass from fixed rear quarter glass)
+    const bHeight = roofTopY - beltY - 3;
+    const winHeight = roofTopY - beltY - 5;
+    const divGeo = new THREE.BoxGeometry(1.6, winHeight, 1.4);
+    const divBar = new THREE.Mesh(divGeo, pillarMat);
+    divBar.position.set(rearDoorEnd, beltY + (winHeight / 2) + 0.5, side * ((cabinWidth / 2) + 0.7));
+    addCadEdges(divBar, 0x38bdf8, 20);
+    car3DGroup.add(divBar);
   });
 
   // 9. ROOF PANEL & INTEGRATED SPOILER

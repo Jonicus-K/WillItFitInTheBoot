@@ -22,6 +22,86 @@ const defaultCars = [
     rake_angle_deg: 29.4
   },
   {
+    id: "vw-golf-mk5",
+    name: "Volkswagen Golf (Mk5, 2003–2008)",
+    body_type: "hatchback",
+    overall_length: 420,
+    overall_width: 176,
+    overall_height: 148,
+    wheelbase: 258,
+    floor_length_seats_folded: 145,
+    floor_length_seats_up: 75,
+    wheel_arch_width: 101,
+    roof_height: 72,
+    aperture_width: 100,
+    aperture_height: 66,
+    rake_angle_deg: 29.0
+  },
+  {
+    id: "ford-fiesta-mk7",
+    name: "Ford Fiesta (Mk7, 2008–2017)",
+    body_type: "hatchback",
+    overall_length: 395,
+    overall_width: 172,
+    overall_height: 148,
+    wheelbase: 249,
+    floor_length_seats_folded: 122,
+    floor_length_seats_up: 70,
+    wheel_arch_width: 99,
+    roof_height: 65,
+    aperture_width: 96,
+    aperture_height: 60,
+    rake_angle_deg: 30.0
+  },
+  {
+    id: "ford-focus-mk2",
+    name: "Ford Focus (Mk2, 2004–2011)",
+    body_type: "hatchback",
+    overall_length: 434,
+    overall_width: 184,
+    overall_height: 150,
+    wheelbase: 264,
+    floor_length_seats_folded: 152,
+    floor_length_seats_up: 82,
+    wheel_arch_width: 104,
+    roof_height: 73,
+    aperture_width: 103,
+    aperture_height: 68,
+    rake_angle_deg: 28.5
+  },
+  {
+    id: "honda-civic-mk8",
+    name: "Honda Civic (Mk8, 2006–2011)",
+    body_type: "hatchback",
+    overall_length: 425,
+    overall_width: 177,
+    overall_height: 146,
+    wheelbase: 263,
+    floor_length_seats_folded: 158,
+    floor_length_seats_up: 84,
+    wheel_arch_width: 102,
+    roof_height: 73,
+    aperture_width: 103,
+    aperture_height: 71,
+    rake_angle_deg: 32.5
+  },
+  {
+    id: "vauxhall-astra-h",
+    name: "Vauxhall Astra (H, 2004–2010)",
+    body_type: "hatchback",
+    overall_length: 425,
+    overall_width: 175,
+    overall_height: 146,
+    wheelbase: 261,
+    floor_length_seats_folded: 146,
+    floor_length_seats_up: 78,
+    wheel_arch_width: 100,
+    roof_height: 70,
+    aperture_width: 98,
+    aperture_height: 64,
+    rake_angle_deg: 31.0
+  },
+  {
     id: "vauxhall-corsa-f",
     name: "Vauxhall Corsa (F, 2019+)",
     body_type: "hatchback",
@@ -100,6 +180,22 @@ const defaultCars = [
     aperture_width: 108,
     aperture_height: 75,
     rake_angle_deg: 26.5
+  },
+  {
+    id: "nissan-qashqai-mk1",
+    name: "Nissan Qashqai (Mk1, 2006–2013)",
+    body_type: "suv",
+    overall_length: 431,
+    overall_width: 178,
+    overall_height: 161,
+    wheelbase: 263,
+    floor_length_seats_folded: 151,
+    floor_length_seats_up: 80,
+    wheel_arch_width: 100,
+    roof_height: 77,
+    aperture_width: 104,
+    aperture_height: 72,
+    rake_angle_deg: 27.5
   },
   {
     id: "kia-sportage-mk5",
@@ -214,6 +310,22 @@ const defaultCars = [
     rake_angle_deg: 16.5
   },
   {
+    id: "skoda-octavia-estate-mk2",
+    "name": "Škoda Octavia Estate (Mk2, 2004–2013)",
+    body_type: "estate",
+    overall_length: 457,
+    overall_width: 177,
+    overall_height: 147,
+    wheelbase: 258,
+    floor_length_seats_folded: 182,
+    floor_length_seats_up: 106,
+    wheel_arch_width: 101,
+    roof_height: 80,
+    aperture_width: 104,
+    aperture_height: 76,
+    rake_angle_deg: 17.0
+  },
+  {
     id: "bmw-3-series-touring",
     name: "BMW 3 Series Touring (G21, 2019+)",
     body_type: "estate",
@@ -260,6 +372,22 @@ const defaultCars = [
     aperture_width: 90,
     aperture_height: 48,
     rake_angle_deg: 48.0
+  },
+  {
+    id: "bmw-3-series-saloon-e90",
+    name: "BMW 3 Series Saloon (E90, 2005–2011)",
+    body_type: "saloon",
+    overall_length: 452,
+    overall_width: 182,
+    overall_height: 142,
+    wheelbase: 276,
+    floor_length_seats_folded: 165,
+    floor_length_seats_up: 98,
+    wheel_arch_width: 92,
+    roof_height: 50,
+    aperture_width: 88,
+    aperture_height: 46,
+    rake_angle_deg: 49.0
   },
   {
     id: "audi-a4-saloon",
@@ -511,12 +639,17 @@ async function init() {
   const paramCar = urlParams.get('car');
   if (paramCar) {
     const cleanParam = paramCar.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const foundIdx = vehicles.findIndex(v => {
+    let foundIdx = vehicles.findIndex(v => {
       const cleanId = (v.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const cleanName = (v.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      return cleanId === cleanParam || cleanId.includes(cleanParam) || cleanParam.includes(cleanId) ||
-             cleanName.includes(cleanParam);
+      return cleanId === cleanParam;
     });
+    if (foundIdx < 0) {
+      foundIdx = vehicles.findIndex(v => {
+        const cleanId = (v.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanName = (v.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return cleanId.includes(cleanParam) || cleanParam.includes(cleanId) || cleanName.includes(cleanParam);
+      });
+    }
     if (foundIdx >= 0) {
       carSelect.value = String(foundIdx);
       selectedCar = vehicles[foundIdx];
@@ -3116,16 +3249,44 @@ function update3DStudio(car, seatsFolded, fitResult) {
     nBadge.position.set(grilleX - 0.8, grilleY, 0);
     car3DGroup.add(nBadge);
 
-  } else if (car.id.includes('vauxhall') || car.id.includes('corsa')) {
-    // Vauxhall Corsa: 'Vauxhall Vizor' Full-Width Gloss Black Panel
+  } else if (car.id.includes('vauxhall') || car.id.includes('corsa') || car.id.includes('astra')) {
+    // Vauxhall Astra & Corsa: Bold chrome crossbar with centered Griffin badge
     const vizor = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, grilleW), pillarMat);
     vizor.position.set(grilleX, grilleY, 0);
     car3DGroup.add(vizor);
 
-    const vBadge = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.8, 24), chromeMat);
+    const vBar = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.2, grilleW - 3.0), chromeMat);
+    vBar.position.set(grilleX - 0.4, grilleY + 0.5, 0);
+    car3DGroup.add(vBar);
+
+    const vBadge = new THREE.Mesh(new THREE.CylinderGeometry(2.8, 2.8, 0.9, 24), chromeMat);
     vBadge.rotation.z = Math.PI / 2;
-    vBadge.position.set(grilleX - 0.8, grilleY, 0);
+    vBadge.position.set(grilleX - 0.8, grilleY + 0.5, 0);
     car3DGroup.add(vBadge);
+
+  } else if (car.id.includes('honda') || car.id.includes('civic')) {
+    // Honda Civic (Mk8): Iconic full-width acrylic perspex glass grille band with chrome 'H'
+    const glassGrilleGeo = new THREE.BoxGeometry(1.8, grilleH, grilleW);
+    const acrylicMat = new THREE.MeshPhysicalMaterial({
+      color: 0x93c5fd,
+      transmission: 0.85,
+      opacity: 0.9,
+      transparent: true,
+      roughness: 0.1,
+      ior: 1.49
+    });
+    const glassGrille = new THREE.Mesh(glassGrilleGeo, acrylicMat);
+    glassGrille.position.set(grilleX, grilleY, 0);
+    car3DGroup.add(glassGrille);
+
+    const hMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, grilleH - 1.2, grilleW - 2.0), grilleMeshMat);
+    hMesh.position.set(grilleX + 0.3, grilleY, 0);
+    car3DGroup.add(hMesh);
+
+    const hBadgeGeo = new THREE.BoxGeometry(0.7, 3.4, 3.8);
+    const hBadge = new THREE.Mesh(hBadgeGeo, chromeMat);
+    hBadge.position.set(grilleX - 0.7, grilleY, 0);
+    car3DGroup.add(hBadge);
 
   } else if (car.id.includes('volvo')) {
     // Volvo XC40: Concave Satin Silver Grille Surround with Iconic Diagonal Slash Bar & Iron Mark

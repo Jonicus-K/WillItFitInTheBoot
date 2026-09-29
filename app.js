@@ -983,11 +983,13 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
   let bestYaw = null;
   let bestRoll = null;
   let bestThrough = null;
+  let bestPassenger = null;
   let bestIngress = null;
   let failureReasons = [];
 
   const maxFloorSpan = floorLength + fwdBuffer;
   const centerMaxLen = floorLength + 68;
+  const passengerMaxLen = car.floor_length_seats_folded + 105;
 
   for (const rot of rotations) {
     const ingress = checkApertureIngress(rot, apWidth, apHeight);
@@ -1057,6 +1059,19 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
           margin,
           ingress,
           centerMaxLen
+        };
+      }
+    }
+
+    // 6. Reclined Front Passenger Seat Test (Full-length passenger side through-load)
+    if (seatsFolded && ingress.canEnter && rot.w <= 46 && rot.h <= 42 && rot.l <= passengerMaxLen) {
+      const margin = Math.min(passengerMaxLen - rot.l, 46 - rot.w, 42 - rot.h);
+      if (!bestPassenger || margin > bestPassenger.margin) {
+        bestPassenger = {
+          rot,
+          margin,
+          ingress,
+          passengerMaxLen
         };
       }
     }
@@ -1232,10 +1247,23 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       heading: 'Fits Between Front Seats',
       instruction: `Slides forward between the two front seats over the armrest console with ${Math.round(bestThrough.margin)} cm room.`
     };
+  } else if (bestPassenger) {
+    overallOptimal = {
+      mode: 'passenger',
+      rot: bestPassenger.rot,
+      angle: 0,
+      status: bestPassenger.margin >= 4 ? 'comfortable' : 'tight',
+      margin: bestPassenger.margin,
+      ingress: bestPassenger.ingress,
+      heading: 'Fits With Reclined Front Passenger Seat',
+      instruction: `Nearly the full length of the car is usable (~${bestPassenger.passengerMaxLen} cm)! Recline the front passenger seat fully flat to slide this ${bestPassenger.rot.l} cm item into the front passenger footwell.`
+    };
   } else {
     const canFitFolded = !seatsFolded && (
       (rawL <= car.floor_length_seats_folded && rawW <= archWidth && rawH <= roofHeight) ||
-      (rawW <= car.floor_length_seats_folded && rawL <= archWidth && rawH <= roofHeight)
+      (rawW <= car.floor_length_seats_folded && rawL <= archWidth && rawH <= roofHeight) ||
+      (rawL <= passengerMaxLen && Math.min(rawW, rawH) <= 46 && Math.max(rawW, rawH) <= 42) ||
+      (rawW <= passengerMaxLen && Math.min(rawL, rawH) <= 46 && Math.max(rawL, rawH) <= 42)
     );
     overallOptimal = {
       mode: 'colliding',
@@ -1244,9 +1272,9 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       status: 'colliding',
       margin: -1,
       ingress: checkApertureIngress({ l: rawL, w: rawW, h: rawH }, apWidth, apHeight),
-      heading: canFitFolded ? "Won't Fit (Seats Up) – Fold Seats Flat" : "Too Large For This Boot",
+      heading: canFitFolded ? "Won't Fit (Seats Up) – Fold Seats & Recline Passenger Seat" : "Too Large For This Boot",
       instruction: canFitFolded 
-        ? "This item won't fit with the rear seats up, but should fit easily once you fold the rear seats flat!"
+        ? "This item won't fit with the rear seats up, but should fit once you fold the rear seats flat and recline the front passenger seat!"
         : "This item is too large for the interior space of this car."
     };
   }
@@ -1259,6 +1287,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
       yaw: bestYaw,
       roll: bestRoll,
       center: bestThrough,
+      passenger: bestPassenger,
       ingress: bestIngress
     },
     carLimits: {
@@ -1312,13 +1341,14 @@ function evaluateFitment() {
     activeResult = optimal;
     const optAngle = Math.round(activeResult.angle || 0);
     if (customAngleSlider) customAngleSlider.value = optAngle;
-    if (angleValueBadge) angleValueBadge.textContent = `${optAngle}°`;
+    if (angleValueBadge) angleValueBadge.textContent = activeResult.mode === 'passenger' ? 'Flat' : `${optAngle}°`;
     if (angleSliderLabel) {
       if (activeResult.mode === 'pitch') angleSliderLabel.textContent = 'Seatback Tilt:';
       else if (activeResult.mode === 'yaw') angleSliderLabel.textContent = 'Diagonal Yaw:';
       else if (activeResult.mode === 'roll') angleSliderLabel.textContent = 'Bank Roll:';
       else if (activeResult.mode === 'ingress') angleSliderLabel.textContent = 'Ingress Roll:';
       else if (activeResult.mode === 'center') angleSliderLabel.textContent = 'Through-Load:';
+      else if (activeResult.mode === 'passenger') angleSliderLabel.textContent = 'Passenger Recline:';
       else angleSliderLabel.textContent = 'Loading Angle:';
     }
     if (angleStatusHint) angleStatusHint.textContent = `Auto optimal: ${activeResult.heading}`;
@@ -1596,6 +1626,49 @@ function evaluateFitment() {
           instruction: failReasons.join('; ') + '.'
         };
       }
+    } else if (activeAngleMode === 'passenger') {
+      if (angleSliderLabel) angleSliderLabel.textContent = 'Passenger Recline:';
+      if (angleStatusHint) angleStatusHint.textContent = 'Recline front passenger seat flat';
+      if (customAngleSlider) customAngleSlider.value = 0;
+      if (angleValueBadge) angleValueBadge.textContent = 'Flat';
+
+      const passengerMaxLen = car.floor_length_seats_folded + 105;
+      const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
+      const fitsPassenger = seatsFolded && ingress.canEnter && candidateRot.w <= 46 && candidateRot.h <= 42 && candidateRot.l <= passengerMaxLen;
+
+      if (fitsPassenger) {
+        const m = Math.min(passengerMaxLen - candidateRot.l, 46 - candidateRot.w, 42 - candidateRot.h);
+        activeResult = {
+          mode: 'passenger',
+          rot: candidateRot,
+          angle: 0,
+          status: m >= 4 ? 'comfortable' : 'tight',
+          margin: m,
+          ingress,
+          passengerMaxLen,
+          heading: m >= 4 ? 'Fits With Reclined Passenger Seat (Comfortable)' : 'Fits With Reclined Passenger Seat (Tight)',
+          instruction: `Nearly the full length of the car is usable (~${passengerMaxLen} cm)! Reclining the front passenger seat flat gives ${Math.round(m * 10) / 10} cm clearance to the front footwell.`
+        };
+      } else {
+        let failReasons = [];
+        if (!seatsFolded) failReasons.push('Requires rear seats to be folded flat');
+        if (candidateRot.w > 46) failReasons.push(`Width (${candidateRot.w} cm) exceeds 46 cm passenger lane width`);
+        if (candidateRot.h > 42) failReasons.push(`Height (${candidateRot.h} cm) exceeds 42 cm roof/dashboard clearance`);
+        if (candidateRot.l > passengerMaxLen) failReasons.push(`Length (${candidateRot.l} cm) exceeds maximum vehicle length (~${passengerMaxLen} cm)`);
+        if (!ingress.canEnter) failReasons.push('Exceeds tailgate aperture opening');
+
+        activeResult = {
+          mode: 'passenger',
+          rot: candidateRot,
+          angle: 0,
+          status: 'colliding',
+          margin: -1,
+          ingress,
+          passengerMaxLen,
+          heading: 'Cannot Fit In Passenger Lane',
+          instruction: failReasons.join('; ') + '.'
+        };
+      }
     }
   }
 
@@ -1604,10 +1677,14 @@ function evaluateFitment() {
   // Update UI Elements with friendly, human-first copy
   if (activeResult.status === 'comfortable') {
     resultBanner.className = 'result-banner fits-comfortable';
-    resultBanner.textContent = '🎉 Yes, It Fits Comfortably!';
+    resultBanner.textContent = activeResult.mode === 'passenger'
+      ? '🎉 Yes, It Fits (Passenger Seat Reclined)!'
+      : (activeResult.mode === 'center' ? '🎉 Yes, It Fits (Through Front Seats)!' : '🎉 Yes, It Fits Comfortably!');
   } else if (activeResult.status === 'tight') {
     resultBanner.className = 'result-banner fits-tight';
-    resultBanner.textContent = '⚠️ Tight Squeeze – But It Fits!';
+    resultBanner.textContent = activeResult.mode === 'passenger'
+      ? '⚠️ Fits (Passenger Seat Reclined) – Snug Fit!'
+      : '⚠️ Tight Squeeze – But It Fits!';
   } else if (activeResult.status === 'angled') {
     resultBanner.className = 'result-banner fits-angled';
     resultBanner.textContent = `📐 Fits With A Tilt (~${Math.round(activeResult.angle)}°)`;
@@ -1646,7 +1723,13 @@ function evaluateFitment() {
   if (chipStowed) {
     if (activeResult.status === 'comfortable' || activeResult.status === 'tight') {
       chipStowed.className = 'strategy-chip clears';
-      chipStowed.textContent = `✓ Boot Space: Fits flat (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
+      if (activeResult.mode === 'passenger') {
+        chipStowed.textContent = `🛋️ Passenger Seat: Reclined (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
+      } else if (activeResult.mode === 'center') {
+        chipStowed.textContent = `↔ Center: Through Seats (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
+      } else {
+        chipStowed.textContent = `✓ Boot Space: Fits flat (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
+      }
     } else if (activeResult.status === 'angled') {
       chipStowed.className = 'strategy-chip angled';
       chipStowed.textContent = `✓ Boot Space: Fits tilted ~${Math.round(activeResult.angle)}°`;
@@ -2160,7 +2243,7 @@ function createWheel3D(radius = 30, width = 22, isSUV = false) {
  * Creates authentic front bucket seats with ergonomic contouring, lateral bolsters,
  * elevated seat base pedestal, and adjustable headrest on chrome support posts.
  */
-function createSeat3D(width = 44, riserHeight = 22) {
+function createSeat3D(width = 44, riserHeight = 22, isReclinedFlat = false) {
   const seatGroup = new THREE.Group();
   const seatMat = new THREE.MeshStandardMaterial({ color: 0x121b2b, roughness: 0.75 });
   const bolsterMat = new THREE.MeshStandardMaterial({ color: 0x0c1320, roughness: 0.85 });
@@ -2200,7 +2283,8 @@ function createSeat3D(width = 44, riserHeight = 22) {
   // 3. Ergonomic Sport Seat Back (tall 58 cm backrest seamlessly aligned with base)
   const backHeight = 58;
   const backThick = 9.0;
-  const reclineAngle = -0.12; // Natural recline towards rear (+X)
+  // Natural upright recline is -0.12 rad. If reclined flat, backrest reclines back flat (+X) into rear footwell:
+  const reclineAngle = isReclinedFlat ? -1.45 : -0.12;
   // Backrest base rear face is perfectly flush with the rear edge of cushion (+21)
   const backBaseX = (cushionLen / 2) - (backThick / 2);
   const backBaseY = riserHeight + cushionThick;
@@ -2233,7 +2317,7 @@ function createSeat3D(width = 44, riserHeight = 22) {
     const postGeo = new THREE.CylinderGeometry(0.7, 0.7, 5.5, 12);
     const post = new THREE.Mesh(postGeo, chromeMat);
     post.position.set(backTopX - 1.5, backTopY + 2.0, offsetZ);
-    post.rotation.z = -0.04;
+    post.rotation.z = isReclinedFlat ? reclineAngle : -0.04;
     seatGroup.add(post);
   });
 
@@ -2241,14 +2325,14 @@ function createSeat3D(width = 44, riserHeight = 22) {
   const headrestGeo = new THREE.BoxGeometry(8.5, 13.0, 21);
   const headrest = new THREE.Mesh(headrestGeo, seatMat);
   headrest.position.set(backTopX - 2.5, backTopY + 6.0, 0);
-  headrest.rotation.z = -0.02; // Upright / slight forward ergonomic angle
+  headrest.rotation.z = isReclinedFlat ? reclineAngle : -0.02; // Upright / slight forward ergonomic angle
   seatGroup.add(headrest);
 
   // Soft Front Padded Cushion Face
   const headPadGeo = new THREE.BoxGeometry(2.0, 11.0, 18);
   const headPad = new THREE.Mesh(headPadGeo, bolsterMat);
   headPad.position.set(backTopX - 6.5, backTopY + 6.0, 0);
-  headPad.rotation.z = -0.02;
+  headPad.rotation.z = isReclinedFlat ? reclineAngle : -0.02;
   seatGroup.add(headPad);
 
   return seatGroup;
@@ -5023,9 +5107,10 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   // Front Bucket Seats (UK Right Hand Drive: Driver at -Z, Passenger at +Z)
   const seatZOffset = (totalCarWidth / 4) - 6;
-  const driverSeat = createSeat3D(44, 22);
+  const driverSeat = createSeat3D(44, 22, false);
   driverSeat.position.set(frontSeatsX, cabinFloorY, -seatZOffset); // Driver on RIGHT side (-Z)
-  const passSeat = createSeat3D(44, 22);
+  const isPassReclined = fitResult && fitResult.mode === 'passenger';
+  const passSeat = createSeat3D(44, 22, isPassReclined);
   passSeat.position.set(frontSeatsX, cabinFloorY, seatZOffset); // Passenger on LEFT side (+Z)
   car3DGroup.add(driverSeat);
   car3DGroup.add(passSeat);
@@ -5390,6 +5475,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
       // Center through-load: rests flat on boot floor and glides between front bucket seats
       const centerPosX = Math.min(defaultPosX, cargoBedFrontX + (rot.l / 2) - 10);
       cargo3DMesh.position.set(centerPosX, sillY + (rot.h / 2) + 2.5, 0);
+      cargoSimulationBaseGroup.add(cargo3DMesh);
+
+    } else if (fitResult.mode === 'passenger') {
+      // Reclined Front Passenger Seat: extends along passenger lane into front footwell
+      const seatZOffset = (totalCarWidth / 4) - 6;
+      const passPosX = (rearSillX - 6) - (rot.l / 2);
+      cargo3DMesh.position.set(passPosX, sillY + (rot.h / 2) + 2.5, seatZOffset);
       cargoSimulationBaseGroup.add(cargo3DMesh);
 
     } else {

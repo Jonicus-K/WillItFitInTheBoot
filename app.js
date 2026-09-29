@@ -2938,11 +2938,18 @@ function update3DStudio(car, seatsFolded, fitResult) {
   cowlPlenum.position.set(cowlX + 2, cowlY - 1.2, 0);
   car3DGroup.add(cowlPlenum);
 
+  // Sleek Aerodynamic Windscreen Wiper Blades parked horizontally across cowl glass
+  const wiperLen = 24;
+  const wiperRake = Math.atan2(roofFrontY - cowlY, roofFrontX - cowlX);
   [-1, 1].forEach(side => {
-    const wiperGeo = new THREE.BoxGeometry(26, 0.9, 1.2);
+    const wiperGeo = new THREE.BoxGeometry(1.6, 0.7, wiperLen);
     const wiper = new THREE.Mesh(wiperGeo, trimMat);
-    wiper.position.set(cowlX + 3, cowlY + 0.4, side * ((cabinWidth / 4) - 2));
-    wiper.rotation.y = side * 0.08;
+    const zOffset = side < 0 ? -(cabinWidth * 0.22) : (cabinWidth * 0.20);
+    const xOffset = side < 0 ? cowlX + 3.2 : cowlX + 2.4;
+    const yOffset = side < 0 ? cowlY + 1.2 : cowlY + 0.4;
+    wiper.position.set(xOffset, yOffset, zOffset);
+    wiper.rotation.z = wiperRake;
+    wiper.rotation.y = side * 0.05;
     car3DGroup.add(wiper);
   });
 
@@ -3586,32 +3593,41 @@ function update3DStudio(car, seatsFolded, fitResult) {
   addCadEdges(windshield, 0x38bdf8);
   car3DGroup.add(windshield);
 
-  // Left & Right Swept 3D A-Pillars (Framing Windscreen and leaning inward into Roof Cantrails)
+  // Left & Right Swept 3D A-Pillars (Framing Windscreen and seamlessly joining Roof Cantrails)
   [-1, 1].forEach(side => {
-    const aSpanX = roofFrontX - cowlX;
-    const aSpanY = roofFrontY - cowlY;
-    const aSpanZ = side * (roofZ - shoulderZ);
-    const aLen = Math.hypot(aSpanX, aSpanY, aSpanZ);
+    const p1 = new THREE.Vector3(cowlX + 0.8, cowlY - 0.2, side * (shoulderZ - 0.6));
+    const p2 = new THREE.Vector3(roofFrontX, roofFrontY - 0.6, side * roofZ);
+    const span = new THREE.Vector3().subVectors(p2, p1);
+    const aLen = span.length();
+    const axisX = span.clone().normalize();
 
-    const aPillarGeo = new THREE.BoxGeometry(aLen + 2, 4.2, 3.2);
+    // Outward-facing nominal normal to windshield rake (up & forward into airstream)
+    const upNominal = new THREE.Vector3(-(roofFrontY - cowlY), roofFrontX - cowlX, 0).normalize();
+    // Gram-Schmidt orthogonalization ensuring axisY is strictly perpendicular to axisX
+    const dot = upNominal.dot(axisX);
+    const axisY = new THREE.Vector3().subVectors(upNominal, axisX.clone().multiplyScalar(dot)).normalize();
+    // Complete right-handed orthonormal basis
+    const axisZ = new THREE.Vector3().crossVectors(axisX, axisY).normalize();
+
+    const rotMat = new THREE.Matrix4().makeBasis(axisX, axisY, axisZ);
+
+    const aPillarGeo = new THREE.BoxGeometry(aLen + 1.6, 3.8, 3.2);
     const aPillar = new THREE.Mesh(aPillarGeo, bodyPaintMat);
-    aPillar.position.set((cowlX + roofFrontX) / 2, (cowlY + roofFrontY) / 2, side * ((shoulderZ + roofZ) / 2));
-    aPillar.rotation.z = Math.atan2(aSpanY, aSpanX);
-    aPillar.rotation.y = -Math.atan2(aSpanZ, aSpanX);
-    aPillar.rotation.x = -side * tumbleAngle;
+    aPillar.setRotationFromMatrix(rotMat);
+    aPillar.position.set((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, (p1.z + p2.z) / 2);
     addCadEdges(aPillar, 0x38bdf8);
     car3DGroup.add(aPillar);
   });
 
-  // Interior Rearview Mirror mounted at top center of windscreen
-  const rvmStemGeo = new THREE.BoxGeometry(2, 4, 2);
+  // Interior Rearview Mirror mounted at top center inside windscreen
+  const rvmStemGeo = new THREE.BoxGeometry(2, 3.5, 1.8);
   const rvmStem = new THREE.Mesh(rvmStemGeo, trimMat);
-  rvmStem.position.set(roofFrontX - 4, roofTopY - 4, 0);
+  rvmStem.position.set(roofFrontX + 1.5, roofTopY - 3.8, 0);
   car3DGroup.add(rvmStem);
 
   const rvmGeo = new THREE.BoxGeometry(2.5, 4.5, 14);
   const rvm = new THREE.Mesh(rvmGeo, trimMat);
-  rvm.position.set(roofFrontX - 3, roofTopY - 6.5, 0);
+  rvm.position.set(roofFrontX + 2.5, roofTopY - 6.5, 0);
   car3DGroup.add(rvm);
 
   // 6. SCULPTED FLANKS & MOLDED WHEEL ARCH LIPS

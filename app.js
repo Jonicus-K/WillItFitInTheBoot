@@ -1064,11 +1064,16 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
     }
 
     // 6. Reclined Front Passenger Seat Test (Full-length passenger side through-load)
-    if (seatsFolded && ingress.canEnter && rot.w <= 46 && rot.h <= 42 && rot.l <= passengerMaxLen) {
+    // Long items resting from boot floor over reclined seat incline gently upward (~5° to 6°)
+    const passAngle = 5.5;
+    const passRad = (passAngle * Math.PI) / 180;
+    const topPassH = (rot.l * Math.sin(passRad)) + (rot.h * Math.cos(passRad));
+    if (seatsFolded && ingress.canEnter && rot.w <= 46 && rot.h <= 42 && rot.l <= passengerMaxLen && topPassH <= (roofHeight + 10)) {
       const margin = Math.min(passengerMaxLen - rot.l, 46 - rot.w, 42 - rot.h);
       if (!bestPassenger || margin > bestPassenger.margin) {
         bestPassenger = {
           rot,
+          angle: passAngle,
           margin,
           ingress,
           passengerMaxLen
@@ -1251,12 +1256,12 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
     overallOptimal = {
       mode: 'passenger',
       rot: bestPassenger.rot,
-      angle: 0,
+      angle: bestPassenger.angle,
       status: bestPassenger.margin >= 4 ? 'comfortable' : 'tight',
       margin: bestPassenger.margin,
       ingress: bestPassenger.ingress,
-      heading: 'Fits With Reclined Front Passenger Seat',
-      instruction: `Nearly the full length of the car is usable (~${bestPassenger.passengerMaxLen} cm)! Recline the front passenger seat fully flat to slide this ${bestPassenger.rot.l} cm item into the front passenger footwell.`
+      heading: `Fits On Reclined Seat (~${Math.round(bestPassenger.angle)}° Incline)`,
+      instruction: `Nearly the full length of the car is usable (~${bestPassenger.passengerMaxLen} cm)! Reclining the passenger seat flat allows this item to rest comfortably on the seat ramp (~${Math.round(bestPassenger.angle)}° upward angle) extending into the front passenger footwell.`
     };
   } else {
     const canFitFolded = !seatsFolded && (
@@ -1367,12 +1372,13 @@ function evaluateFitment() {
       if (activeAngleMode === 'pitch') testAngle = 14;
       else if (activeAngleMode === 'yaw') testAngle = 18;
       else if (activeAngleMode === 'roll') testAngle = 20;
+      else if (activeAngleMode === 'passenger') testAngle = 5.5;
       else if (activeAngleMode === 'ingress') testAngle = (targetModeData && targetModeData.ingress && !targetModeData.ingress.direct) ? targetModeData.ingress.rollAngle : 0;
       else testAngle = 0;
     }
 
     if (customAngleSlider) customAngleSlider.value = Math.round(testAngle);
-    if (angleValueBadge) angleValueBadge.textContent = `${Math.round(testAngle)}°`;
+    if (angleValueBadge) angleValueBadge.textContent = activeAngleMode === 'passenger' ? (testAngle === 0 ? '0° Flat' : `~${Math.round(testAngle)}° Incline`) : `${Math.round(testAngle)}°`;
 
     if (activeAngleMode === 'flat') {
       if (angleSliderLabel) angleSliderLabel.textContent = 'Loading Angle:';
@@ -1627,27 +1633,29 @@ function evaluateFitment() {
         };
       }
     } else if (activeAngleMode === 'passenger') {
-      if (angleSliderLabel) angleSliderLabel.textContent = 'Passenger Recline:';
-      if (angleStatusHint) angleStatusHint.textContent = 'Recline front passenger seat flat';
-      if (customAngleSlider) customAngleSlider.value = 0;
-      if (angleValueBadge) angleValueBadge.textContent = 'Flat';
+      if (angleSliderLabel) angleSliderLabel.textContent = 'Passenger Incline:';
+      if (angleStatusHint) angleStatusHint.textContent = `Angled ~${Math.round(testAngle)}° resting on reclined front seat`;
+      if (customAngleSlider) customAngleSlider.value = Math.round(testAngle);
+      if (angleValueBadge) angleValueBadge.textContent = testAngle === 0 ? '0° Flat' : `~${Math.round(testAngle)}° Incline`;
 
       const passengerMaxLen = car.floor_length_seats_folded + 105;
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
-      const fitsPassenger = seatsFolded && ingress.canEnter && candidateRot.w <= 46 && candidateRot.h <= 42 && candidateRot.l <= passengerMaxLen;
+      const rad = (testAngle * Math.PI) / 180;
+      const topFrontH = (candidateRot.l * Math.sin(rad)) + (candidateRot.h * Math.cos(rad));
+      const fitsPassenger = seatsFolded && ingress.canEnter && candidateRot.w <= 46 && candidateRot.h <= 42 && candidateRot.l <= passengerMaxLen && topFrontH <= (roofHeight + 10);
 
       if (fitsPassenger) {
         const m = Math.min(passengerMaxLen - candidateRot.l, 46 - candidateRot.w, 42 - candidateRot.h);
         activeResult = {
           mode: 'passenger',
           rot: candidateRot,
-          angle: 0,
+          angle: testAngle,
           status: m >= 4 ? 'comfortable' : 'tight',
           margin: m,
           ingress,
           passengerMaxLen,
-          heading: m >= 4 ? 'Fits With Reclined Passenger Seat (Comfortable)' : 'Fits With Reclined Passenger Seat (Tight)',
-          instruction: `Nearly the full length of the car is usable (~${passengerMaxLen} cm)! Reclining the front passenger seat flat gives ${Math.round(m * 10) / 10} cm clearance to the front footwell.`
+          heading: m >= 4 ? `Fits On Reclined Seat (~${Math.round(testAngle)}° Incline)` : `Fits On Reclined Seat (Tight Squeeze)`,
+          instruction: `Nearly the full length of the car is usable (~${passengerMaxLen} cm)! Reclining the passenger seat flat allows this item to rest securely on the seat ramp (~${Math.round(testAngle)}° upward angle) with ${Math.round(m * 10) / 10} cm room to the front footwell.`
         };
       } else {
         let failReasons = [];
@@ -1655,12 +1663,13 @@ function evaluateFitment() {
         if (candidateRot.w > 46) failReasons.push(`Width (${candidateRot.w} cm) exceeds 46 cm passenger lane width`);
         if (candidateRot.h > 42) failReasons.push(`Height (${candidateRot.h} cm) exceeds 42 cm roof/dashboard clearance`);
         if (candidateRot.l > passengerMaxLen) failReasons.push(`Length (${candidateRot.l} cm) exceeds maximum vehicle length (~${passengerMaxLen} cm)`);
+        if (topFrontH > roofHeight + 10) failReasons.push(`At ${Math.round(testAngle)}° incline, front contacts cabin roof (height ${Math.round(topFrontH)} cm)`);
         if (!ingress.canEnter) failReasons.push('Exceeds tailgate aperture opening');
 
         activeResult = {
           mode: 'passenger',
           rot: candidateRot,
-          angle: 0,
+          angle: testAngle,
           status: 'colliding',
           margin: -1,
           ingress,
@@ -1678,12 +1687,12 @@ function evaluateFitment() {
   if (activeResult.status === 'comfortable') {
     resultBanner.className = 'result-banner fits-comfortable';
     resultBanner.textContent = activeResult.mode === 'passenger'
-      ? '🎉 Yes, It Fits (Passenger Seat Reclined)!'
+      ? `🎉 Yes, It Fits (Resting On Reclined Seat, ~${Math.round(activeResult.angle || 5.5)}° Incline)!`
       : (activeResult.mode === 'center' ? '🎉 Yes, It Fits (Through Front Seats)!' : '🎉 Yes, It Fits Comfortably!');
   } else if (activeResult.status === 'tight') {
     resultBanner.className = 'result-banner fits-tight';
     resultBanner.textContent = activeResult.mode === 'passenger'
-      ? '⚠️ Fits (Passenger Seat Reclined) – Snug Fit!'
+      ? `⚠️ Fits (Resting On Reclined Seat, ~${Math.round(activeResult.angle || 5.5)}° Incline) – Snug Fit!`
       : '⚠️ Tight Squeeze – But It Fits!';
   } else if (activeResult.status === 'angled') {
     resultBanner.className = 'result-banner fits-angled';
@@ -1724,7 +1733,7 @@ function evaluateFitment() {
     if (activeResult.status === 'comfortable' || activeResult.status === 'tight') {
       chipStowed.className = 'strategy-chip clears';
       if (activeResult.mode === 'passenger') {
-        chipStowed.textContent = `🛋️ Passenger Seat: Reclined (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
+        chipStowed.textContent = `🛋️ Passenger Seat: Reclined (~${Math.round(activeResult.angle || 5.5)}° Incline, +${Math.max(0, Math.round(activeResult.margin))} cm room)`;
       } else if (activeResult.mode === 'center') {
         chipStowed.textContent = `↔ Center: Through Seats (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
       } else {
@@ -5478,11 +5487,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
       cargoSimulationBaseGroup.add(cargo3DMesh);
 
     } else if (fitResult.mode === 'passenger') {
-      // Reclined Front Passenger Seat: extends along passenger lane into front footwell
+      // Reclined Front Passenger Seat: rests on boot floor near sill and angles up gently (~5°) resting on reclined front seat
       const seatZOffset = (totalCarWidth / 4) - 6;
-      const passPosX = (rearSillX - 6) - (rot.l / 2);
-      cargo3DMesh.position.set(passPosX, sillY + (rot.h / 2) + 2.5, seatZOffset);
-      cargoSimulationBaseGroup.add(cargo3DMesh);
+      const pivot = new THREE.Group();
+      const passPivotX = rearSillX - 6;
+      pivot.position.set(passPivotX, sillY + 2.5, seatZOffset);
+      cargo3DMesh.position.set(-(rot.l / 2), rot.h / 2, 0);
+      const inclineAngle = (fitResult.angle !== undefined && fitResult.angle !== null) ? fitResult.angle : 5.5;
+      pivot.rotation.z = -(inclineAngle * Math.PI) / 180;
+      pivot.add(cargo3DMesh);
+      cargoSimulationBaseGroup.add(pivot);
 
     } else {
       // Standard Flat or Colliding

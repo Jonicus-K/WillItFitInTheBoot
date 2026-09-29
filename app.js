@@ -3936,13 +3936,14 @@ function update3DStudio(car, seatsFolded, fitResult) {
       car3DGroup.add(rWin);
 
       // Signature Solid Hatchback Broad C-Pillar with athletic forward rake & tumblehome
+      // Extends seamlessly from the rear passenger door trailing edge back to the tailgate shut line (rearSillX)
       const hatchQFrontX = rearDoorEnd + 1.2;
-      const hatchQRearX = rearWheelX + 16;
+      const hatchQRearX = rearSillX;
       const hatchQMidX = (hatchQFrontX + hatchQRearX) / 2;
       const hatchQShape = new THREE.Shape();
       hatchQShape.moveTo(hatchQFrontX - hatchQMidX, beltY - winMidY);
       hatchQShape.lineTo(hatchQRearX - hatchQMidX, beltY - winMidY);
-      hatchQShape.quadraticCurveTo(hatchQRearX - 3 - hatchQMidX, (beltY + roofRearY) / 2 - winMidY, roofRearX - hatchQMidX, roofRearY - 2.0 - winMidY);
+      hatchQShape.lineTo(roofRearX - hatchQMidX, roofRearY - 2.0 - winMidY);
       hatchQShape.lineTo(hatchQFrontX - hatchQMidX, roofRearY - 2.0 - winMidY);
       hatchQShape.closePath();
 
@@ -3954,7 +3955,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
         bevelSegments: 2
       });
       const hatchQMesh = new THREE.Mesh(hatchQGeo, bodyPaintMat);
-      hatchQMesh.position.set(hatchQMidX, winMidY, winMidZ - (side * 1.4));
+      hatchQMesh.position.set(hatchQMidX, winMidY, winMidZ - 1.4);
       hatchQMesh.rotation.x = -side * tumbleAngle;
       addCadEdges(hatchQMesh, 0x38bdf8);
       car3DGroup.add(hatchQMesh);
@@ -4390,22 +4391,146 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const glassLen = Math.hypot(waistX, waistY);
     const glassAngle = Math.atan2(-waistY, waistX);
 
-    // Rear Windshield Glass (proportioned cleanly within tailgate frame, zero C-pillar collision)
-    const hatchGlassW = Math.min(apWidth - 4, roofWidth - 8);
-    const rearGlassGeo = new THREE.BoxGeometry(glassLen - 3, 1.8, hatchGlassW);
-    const rearGlass = new THREE.Mesh(rearGlassGeo, glassMat);
-    rearGlass.position.set(waistX / 2, waistY / 2, 0);
-    rearGlass.rotation.z = -glassAngle;
-    tailgatePivot.add(rearGlass);
+    // Upper Tailgate Assembly (oriented along the raked rear windscreen slope)
+    const upperTailgateGroup = new THREE.Group();
+    upperTailgateGroup.rotation.z = -glassAngle;
 
-    // Side cantrails framing the glass (closes gap to C-pillar)
+    // Tailgate Frame Dimensions (smoothly tapering from roof cantrail down to waistline lower tailgate):
+    const tailgateTopW = roofWidth - 2;
+    const tailgateBotW = hatchWidth;
+    const halfTopW = tailgateTopW / 2;
+    const halfBotW = tailgateBotW / 2;
+
+    // Rear Windshield Glass Dimensions (matching the tapered shape of the tailgate without gaps):
+    const glassTopW = roofWidth - 8;
+    const glassBotW = hatchWidth - 10;
+    const halfGlassTopW = glassTopW / 2;
+    const halfGlassBotW = glassBotW / 2;
+
+    // A. Transverse Header Beam under the roof spoiler framing top of rear windscreen
+    const headerGeo = new THREE.BoxGeometry(2.4, 2.4, tailgateTopW);
+    const headerMesh = new THREE.Mesh(headerGeo, bodyPaintMat);
+    headerMesh.position.set(1.2, 0, 0);
+    addCadEdges(headerMesh, 0x38bdf8);
+    upperTailgateGroup.add(headerMesh);
+
+    // B. Left & Right Tapered Structural Tailgate Cantrails / Pillars Framing Rear Window
     [-1, 1].forEach(side => {
-      const cantrailGeo = new THREE.BoxGeometry(glassLen, 2.4, 2.5);
-      const cantrail = new THREE.Mesh(cantrailGeo, bodyPaintMat);
-      cantrail.position.set(waistX / 2, waistY / 2, side * ((hatchGlassW / 2) + 1.25));
-      cantrail.rotation.z = -glassAngle;
-      tailgatePivot.add(cantrail);
+      const zIT = side * halfGlassTopW;
+      const zOT = side * halfTopW;
+      const zIB = side * halfGlassBotW;
+      const zOB = side * halfBotW;
+      const yTop = 1.2;
+      const yBot = -1.2;
+
+      const verts = new Float32Array([
+        0, yTop, zIT,        // 0: roof, upper, inner
+        0, yTop, zOT,        // 1: roof, upper, outer
+        0, yBot, zOT,        // 2: roof, lower, outer
+        0, yBot, zIT,        // 3: roof, lower, inner
+        glassLen, yTop, zIB, // 4: waist, upper, inner
+        glassLen, yTop, zOB, // 5: waist, upper, outer
+        glassLen, yBot, zOB, // 6: waist, lower, outer
+        glassLen, yBot, zIB  // 7: waist, lower, inner
+      ]);
+
+      const quadToTris = (a, b, c, d) => [a, b, c, a, c, d];
+      let indices = [];
+      if (side === 1) {
+        indices = [
+          ...quadToTris(0, 1, 5, 4), // Top (+Y)
+          ...quadToTris(3, 7, 6, 2), // Bottom (-Y)
+          ...quadToTris(1, 2, 6, 5), // Outer (+Z)
+          ...quadToTris(0, 4, 7, 3), // Inner (-Z)
+          ...quadToTris(0, 3, 2, 1), // Roof (-X)
+          ...quadToTris(4, 5, 6, 7)  // Waist (+X)
+        ];
+      } else {
+        indices = [
+          ...quadToTris(0, 4, 5, 1), // Top (+Y)
+          ...quadToTris(3, 2, 6, 7), // Bottom (-Y)
+          ...quadToTris(1, 5, 6, 2), // Outer (-Z)
+          ...quadToTris(0, 3, 7, 4), // Inner (+Z)
+          ...quadToTris(0, 1, 2, 3), // Roof (-X)
+          ...quadToTris(4, 7, 6, 5)  // Waist (+X)
+        ];
+      }
+
+      const cantrailGeo = new THREE.BufferGeometry();
+      cantrailGeo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+      cantrailGeo.setIndex(indices);
+      cantrailGeo.computeVertexNormals();
+
+      const cantrailMesh = new THREE.Mesh(cantrailGeo, bodyPaintMat);
+      addCadEdges(cantrailMesh, 0x38bdf8);
+      upperTailgateGroup.add(cantrailMesh);
     });
+
+    // C. Sculpted, Double-Curved Rear Windshield Glass matching the tailgate trapezoidal taper
+    const numRows = 6;
+    const numCols = 12;
+    const glassStart = 2.0;
+    const glassSpan = glassLen - 3.5;
+    const glassPositions = [];
+    const glassUvs = [];
+    const glassIndices = [];
+
+    for (let r = 0; r <= numRows; r++) {
+      const tr = r / numRows;
+      const xVal = glassStart + (tr * glassSpan);
+      const tTotal = xVal / glassLen;
+      const curHalfW = (halfGlassTopW * (1 - tTotal)) + (halfGlassBotW * tTotal);
+
+      for (let c = 0; c <= numCols; c++) {
+        const tc = (c / numCols) * 2 - 1; // -1 to +1
+        const zVal = tc * curHalfW;
+        // Subtle aerodynamic convex surface curve (1.5 cm outward bow)
+        const bow = (1 - tc * tc) * 1.5;
+        glassPositions.push(xVal, bow + 0.3, zVal);
+        glassUvs.push(c / numCols, tr);
+      }
+    }
+
+    for (let r = 0; r < numRows; r++) {
+      for (let c = 0; c < numCols; c++) {
+        const p1 = r * (numCols + 1) + c;
+        const p2 = p1 + 1;
+        const p3 = (r + 1) * (numCols + 1) + c;
+        const p4 = p3 + 1;
+        glassIndices.push(p1, p2, p3);
+        glassIndices.push(p2, p4, p3);
+      }
+    }
+
+    const rearGlassGeo = new THREE.BufferGeometry();
+    rearGlassGeo.setAttribute('position', new THREE.Float32BufferAttribute(glassPositions, 3));
+    rearGlassGeo.setAttribute('uv', new THREE.Float32BufferAttribute(glassUvs, 2));
+    rearGlassGeo.setIndex(glassIndices);
+    rearGlassGeo.computeVertexNormals();
+
+    const rearGlassMesh = new THREE.Mesh(rearGlassGeo, glassMat);
+    rearGlassMesh.material.side = THREE.DoubleSide;
+    addCadEdges(rearGlassMesh, 0x38bdf8);
+    upperTailgateGroup.add(rearGlassMesh);
+
+    // D. Sleek Aerodynamic Rear Windscreen Wiper Assembly (Parked horizontally at base)
+    const wiperHubGeo = new THREE.CylinderGeometry(1.2, 1.2, 1.4, 16);
+    const wiperHub = new THREE.Mesh(wiperHubGeo, trimMat);
+    wiperHub.position.set(glassLen - 2.8, 1.5, 4.0);
+    wiperHub.rotation.x = Math.PI / 2;
+    upperTailgateGroup.add(wiperHub);
+
+    const wiperArmGeo = new THREE.BoxGeometry(0.8, 0.6, 16);
+    const wiperArm = new THREE.Mesh(wiperArmGeo, trimMat);
+    wiperArm.position.set(glassLen - 2.8, 1.8, -4.0);
+    upperTailgateGroup.add(wiperArm);
+
+    const wiperBladeGeo = new THREE.BoxGeometry(0.6, 0.4, 28);
+    const wiperBlade = new THREE.Mesh(wiperBladeGeo, trimMat);
+    wiperBlade.position.set(glassLen - 2.8, 2.0, -10.0);
+    upperTailgateGroup.add(wiperBlade);
+
+    tailgatePivot.add(upperTailgateGroup);
 
     // Lower Tailgate Body Panel (dropping down from waistline to bumper loading sill):
     const lowerSpanX = sillPointX - waistX;

@@ -673,8 +673,8 @@ async function init() {
       cargoLengthInput.value = 205; cargoWidthInput.value = 30; cargoHeightInput.value = 13;
       highlightPreset('205', '30', '13');
     } else if (p.includes('suit') || p.includes('luggage')) {
-      cargoLengthInput.value = 76; cargoWidthInput.value = 50; cargoHeightInput.value = 30;
-      highlightPreset('76', '50', '30');
+      cargoLengthInput.value = 70; cargoWidthInput.value = 48; cargoHeightInput.value = 28;
+      highlightPreset('70', '48', '28');
     } else if (p.includes('bike') || p.includes('bicycle')) {
       cargoLengthInput.value = 175; cargoWidthInput.value = 65; cargoHeightInput.value = 105;
       highlightPreset('175', '65', '105');
@@ -1332,24 +1332,18 @@ function evaluateFitment() {
       seatsFolded = true;
       foldSeatsCheckbox.checked = true;
     } else {
-      // 1. Check if the item fits with rear seats up / in place
+      // Check if the item fits flat in the boot with rear seats up / in place
       const outcomeSeatsUp = solveAllFitmentAngles(selectedCar, rawL, rawW, rawH, false);
-      if (outcomeSeatsUp.optimal.status !== 'colliding') {
-        // Fits comfortably or angled with rear seats up!
+      const fitsFlatSeatsUp = (outcomeSeatsUp.optimal.mode === 'flat' && outcomeSeatsUp.optimal.status !== 'colliding');
+
+      if (fitsFlatSeatsUp) {
+        // Fits comfortably or flat in the boot with seats in place!
         seatsFolded = false;
         foldSeatsCheckbox.checked = false;
       } else {
-        // 2. Doesn't fit seats up; check if folding the rear seats allows it to fit
-        const outcomeSeatsFolded = solveAllFitmentAngles(selectedCar, rawL, rawW, rawH, true);
-        if (outcomeSeatsFolded.optimal.status !== 'colliding') {
-          // Fits with rear seats folded flat!
-          seatsFolded = true;
-          foldSeatsCheckbox.checked = true;
-        } else {
-          // Exceeds boot even when folded; retain seats up by default
-          seatsFolded = false;
-          foldSeatsCheckbox.checked = false;
-        }
+        // Larger item that exceeds standard seats-up boot space: fold the rear seats flat!
+        seatsFolded = true;
+        foldSeatsCheckbox.checked = true;
       }
     }
   } else if (activeAngleMode === 'passenger' || activeAngleMode === 'center') {

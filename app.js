@@ -444,6 +444,7 @@ const cargoWidthInput = document.getElementById('cargo-width');
 const cargoHeightInput = document.getElementById('cargo-height');
 const carSelect = document.getElementById('car-select');
 const foldSeatsCheckbox = document.getElementById('fold-seats');
+let userExplicitSeatToggle = false;
 
 const resultBanner = document.getElementById('result-banner');
 const resultExplanation = document.getElementById('result-explanation');
@@ -692,6 +693,10 @@ async function init() {
   if (urlParams.has('seats') || urlParams.has('seatsFolded')) {
     const val = (urlParams.get('seats') || urlParams.get('seatsFolded')).toLowerCase();
     foldSeatsCheckbox.checked = (val === 'down' || val === 'folded' || val === '1' || val === 'true');
+    userExplicitSeatToggle = true;
+  } else {
+    foldSeatsCheckbox.checked = false;
+    userExplicitSeatToggle = false;
   }
   if (urlParams.has('boot')) {
     isTailgateOpen = urlParams.get('boot') === 'open' || urlParams.get('boot') === '1';
@@ -707,6 +712,7 @@ function attachEvents() {
     input.addEventListener('input', () => {
       clearActivePresets();
       manualAngleSliderValue = null;
+      userExplicitSeatToggle = false;
       evaluateFitment();
     });
   });
@@ -719,10 +725,12 @@ function attachEvents() {
       selectedCar = vehicles[0];
     }
     manualAngleSliderValue = null;
+    userExplicitSeatToggle = false;
     evaluateFitment();
   });
 
   foldSeatsCheckbox.addEventListener('change', () => {
+    userExplicitSeatToggle = true;
     manualAngleSliderValue = null;
     evaluateFitment();
   });
@@ -735,6 +743,7 @@ function attachEvents() {
       cargoWidthInput.value = btn.dataset.width;
       cargoHeightInput.value = btn.dataset.height;
       manualAngleSliderValue = null;
+      userExplicitSeatToggle = false;
       evaluateFitment();
     });
   });
@@ -1313,7 +1322,41 @@ function evaluateFitment() {
   const rawW = parseFloat(cargoWidthInput.value) || 0;
   const rawH = parseFloat(cargoHeightInput.value) || 0;
 
-  const seatsFolded = foldSeatsCheckbox.checked;
+  // Intelligent Automatic Seat Folding:
+  // Default state is rear seats UP/in place. Only fold if the item requires it!
+  let seatsFolded = foldSeatsCheckbox.checked;
+
+  if (!userExplicitSeatToggle && rawL > 0 && rawW > 0 && rawH > 0) {
+    if (activeAngleMode === 'passenger' || activeAngleMode === 'center') {
+      // Through-loading modes require folding the rear seats
+      seatsFolded = true;
+      foldSeatsCheckbox.checked = true;
+    } else {
+      // 1. Check if the item fits with rear seats up / in place
+      const outcomeSeatsUp = solveAllFitmentAngles(selectedCar, rawL, rawW, rawH, false);
+      if (outcomeSeatsUp.optimal.status !== 'colliding') {
+        // Fits comfortably or angled with rear seats up!
+        seatsFolded = false;
+        foldSeatsCheckbox.checked = false;
+      } else {
+        // 2. Doesn't fit seats up; check if folding the rear seats allows it to fit
+        const outcomeSeatsFolded = solveAllFitmentAngles(selectedCar, rawL, rawW, rawH, true);
+        if (outcomeSeatsFolded.optimal.status !== 'colliding') {
+          // Fits with rear seats folded flat!
+          seatsFolded = true;
+          foldSeatsCheckbox.checked = true;
+        } else {
+          // Exceeds boot even when folded; retain seats up by default
+          seatsFolded = false;
+          foldSeatsCheckbox.checked = false;
+        }
+      }
+    }
+  } else if (activeAngleMode === 'passenger' || activeAngleMode === 'center') {
+    seatsFolded = true;
+    foldSeatsCheckbox.checked = true;
+  }
+
   const floorLength = seatsFolded ? selectedCar.floor_length_seats_folded : selectedCar.floor_length_seats_up;
   const archWidth = selectedCar.wheel_arch_width;
   const roofHeight = selectedCar.roof_height;
@@ -1686,17 +1729,29 @@ function evaluateFitment() {
   // Update UI Elements with friendly, human-first copy
   if (activeResult.status === 'comfortable') {
     resultBanner.className = 'result-banner fits-comfortable';
-    resultBanner.textContent = activeResult.mode === 'passenger'
-      ? `🎉 Yes, It Fits (Resting On Reclined Seat, ~${Math.round(activeResult.angle || 5.5)}° Incline)!`
-      : (activeResult.mode === 'center' ? '🎉 Yes, It Fits (Through Front Seats)!' : '🎉 Yes, It Fits Comfortably!');
+    if (activeResult.mode === 'passenger') {
+      resultBanner.textContent = `🎉 Yes, It Fits (Resting On Reclined Seat, ~${Math.round(activeResult.angle || 5.5)}° Incline)!`;
+    } else if (activeResult.mode === 'center') {
+      resultBanner.textContent = '🎉 Yes, It Fits (Through Front Seats)!';
+    } else if (seatsFolded) {
+      resultBanner.textContent = '🎉 Yes, It Fits (Seats Folded Flat)!';
+    } else {
+      resultBanner.textContent = '🎉 Yes, It Fits (Seats In Place)!';
+    }
   } else if (activeResult.status === 'tight') {
     resultBanner.className = 'result-banner fits-tight';
-    resultBanner.textContent = activeResult.mode === 'passenger'
-      ? `⚠️ Fits (Resting On Reclined Seat, ~${Math.round(activeResult.angle || 5.5)}° Incline) – Snug Fit!`
-      : '⚠️ Tight Squeeze – But It Fits!';
+    if (activeResult.mode === 'passenger') {
+      resultBanner.textContent = `⚠️ Fits (Resting On Reclined Seat, ~${Math.round(activeResult.angle || 5.5)}° Incline) – Snug Fit!`;
+    } else if (seatsFolded) {
+      resultBanner.textContent = '⚠️ Tight Squeeze (Seats Folded) – But It Fits!';
+    } else {
+      resultBanner.textContent = '⚠️ Tight Squeeze (Seats In Place) – But It Fits!';
+    }
   } else if (activeResult.status === 'angled') {
     resultBanner.className = 'result-banner fits-angled';
-    resultBanner.textContent = `📐 Fits With A Tilt (~${Math.round(activeResult.angle)}°)`;
+    resultBanner.textContent = seatsFolded
+      ? `📐 Fits With A Tilt (~${Math.round(activeResult.angle)}°, Seats Folded)`
+      : `📐 Fits With A Tilt (~${Math.round(activeResult.angle)}°, Seats In Place)`;
   } else {
     const canFitFolded = !seatsFolded && (
       (parseFloat(cargoLengthInput.value) || 0) <= selectedCar.floor_length_seats_folded
@@ -1736,12 +1791,16 @@ function evaluateFitment() {
         chipStowed.textContent = `🛋️ Passenger Seat: Reclined (~${Math.round(activeResult.angle || 5.5)}° Incline, +${Math.max(0, Math.round(activeResult.margin))} cm room)`;
       } else if (activeResult.mode === 'center') {
         chipStowed.textContent = `↔ Center: Through Seats (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
+      } else if (seatsFolded) {
+        chipStowed.textContent = `💺 Rear Seats: Folded flat (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
       } else {
-        chipStowed.textContent = `✓ Boot Space: Fits flat (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
+        chipStowed.textContent = `💺 Rear Seats: In place (+${Math.max(0, Math.round(activeResult.margin))} cm room)`;
       }
     } else if (activeResult.status === 'angled') {
       chipStowed.className = 'strategy-chip angled';
-      chipStowed.textContent = `✓ Boot Space: Fits tilted ~${Math.round(activeResult.angle)}°`;
+      chipStowed.textContent = seatsFolded
+        ? `✓ Boot Space: Fits tilted ~${Math.round(activeResult.angle)}° (seats folded)`
+        : `✓ Boot Space: Fits tilted ~${Math.round(activeResult.angle)}° (seats in place)`;
     } else {
       chipStowed.className = 'strategy-chip colliding';
       chipStowed.textContent = (!seatsFolded && (parseFloat(cargoLengthInput.value) || 0) <= selectedCar.floor_length_seats_folded)

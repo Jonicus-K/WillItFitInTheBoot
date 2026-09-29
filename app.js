@@ -2496,12 +2496,17 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
  * Creates an upright semi-cylindrical wheel arch tub for the interior cargo bay.
  * Arches smoothly over the rear wheel in the XY plane with flat bottom on the cargo floor.
  */
-function createRoundedWheelArchTub(radius = 22, depth = 16, isGhost = false) {
+function createRoundedWheelArchTub(tubLen = 38, tubHeight = 12, depth = 16, isGhost = false) {
   const tubShape = new THREE.Shape();
-  // Semicircular arch sitting on floor at Y=0, curving upwards in +Y to peak at (0, radius)
-  tubShape.moveTo(-radius, 0);
-  tubShape.absarc(0, 0, radius, Math.PI, 0, true);
-  tubShape.lineTo(radius, 0);
+  // Elongated rounded wheel housing sitting on floor at Y=0, curving smoothly over rear wheel
+  const halfL = tubLen / 2;
+  const cornerR = Math.min(5, tubHeight * 0.45);
+  tubShape.moveTo(-halfL, 0);
+  tubShape.lineTo(-halfL, tubHeight - cornerR);
+  tubShape.quadraticCurveTo(-halfL, tubHeight, -halfL + cornerR, tubHeight);
+  tubShape.lineTo(halfL - cornerR, tubHeight);
+  tubShape.quadraticCurveTo(halfL, tubHeight, halfL, tubHeight - cornerR);
+  tubShape.lineTo(halfL, 0);
   tubShape.closePath();
 
   const tubGeo = new THREE.ExtrudeGeometry(tubShape, {
@@ -2597,11 +2602,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const cowlY = beltY + 3;
 
   // Boot sill load lip (distance from ground to cargo floor):
-  // For Saloons, the trunk deck/shelf sits at beltY (not roofTopY), so sillY is beltY minus trunk aperture height
-  // For Hatchback/Estate/SUV: car overall height minus interior boot height minus roof structure (~6 cm)
-  const sillY = isSaloon
-    ? Math.round(beltY - car.aperture_height - 2)
-    : Math.max(58, Math.round(roofTopY - car.roof_height - 6));
+  // Boot sill load lip (distance from ground to cargo floor):
+  // Authentic modern automotive loading heights:
+  // - Hatchbacks / Estates / Saloons: ~50-55 cm loading sill (convenient loading height, level with folded seats)
+  // - SUVs: ~58-63 cm loading sill (accommodating elevated ground clearance)
+  const sillY = isSUV
+    ? Math.max(56, Math.round(beltY - 42))
+    : (isEstate ? Math.max(48, Math.round(beltY - 38)) : Math.max(48, Math.round(beltY - 35)));
   const cabinFloorY = rockerY + 8;
   const seatCushionY = Math.round(beltY - 32); // Authentic ergonomic seat height (~56cm above ground)
 
@@ -3829,7 +3836,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
         bevelSegments: 1
       });
       const estateQMesh = new THREE.Mesh(estateQGeo, bodyPaintMat);
-      estateQMesh.position.set(estateQMidX, winMidY, winMidZ - (side * 1.4));
+      estateQMesh.position.set(estateQMidX, winMidY, winMidZ - 1.4);
       estateQMesh.rotation.x = -side * tumbleAngle;
       addCadEdges(estateQMesh, 0x38bdf8);
       car3DGroup.add(estateQMesh);
@@ -3881,7 +3888,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
         bevelSegments: 2
       });
       const saloonQMesh = new THREE.Mesh(saloonQGeo, bodyPaintMat);
-      saloonQMesh.position.set(saloonQMidX, winMidY, winMidZ - (side * 1.4));
+      saloonQMesh.position.set(saloonQMidX, winMidY, winMidZ - 1.4);
       saloonQMesh.rotation.x = -side * tumbleAngle;
       addCadEdges(saloonQMesh, 0x38bdf8);
       car3DGroup.add(saloonQMesh);
@@ -3920,7 +3927,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
         bevelSegments: 1
       });
       const suvQMesh = new THREE.Mesh(suvQGeo, bodyPaintMat);
-      suvQMesh.position.set(suvQMidX, winMidY, winMidZ - (side * 1.4));
+      suvQMesh.position.set(suvQMidX, winMidY, winMidZ - 1.4);
       suvQMesh.rotation.x = -side * tumbleAngle;
       addCadEdges(suvQMesh, 0x38bdf8);
       car3DGroup.add(suvQMesh);
@@ -4265,15 +4272,132 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const hatchWidth = (shoulderZ * 2) - 2;
 
   if (isSaloon) {
-    // SALOON NOTCHBACK SPECIFICS:
+    // SALOON NOTCHBACK REAR WINDSCREEN ASSEMBLY:
     const rearWinLen = Math.hypot(deckFrontX - roofRearX, roofRearY - beltY);
     const rearWinAngle = Math.atan2(roofRearY - beltY, deckFrontX - roofRearX);
-    const saloonWinW = Math.min(apWidth + 6, roofWidth - 6);
-    const rearWinGeo = new THREE.BoxGeometry(rearWinLen - 4, 1.8, saloonWinW);
-    const rearWin = new THREE.Mesh(rearWinGeo, glassMat);
-    rearWin.position.set((roofRearX + deckFrontX) / 2, (roofRearY + beltY) / 2, 0);
-    rearWin.rotation.z = -rearWinAngle;
-    car3DGroup.add(rearWin);
+
+    const saloonWinGroup = new THREE.Group();
+    saloonWinGroup.position.set(roofRearX, roofRearY, 0);
+    saloonWinGroup.rotation.z = -rearWinAngle;
+
+    // Saloon Window Frame Dimensions (smoothly tapering from roof cantrails to trunk deck shoulder):
+    const saloonTopW = roofWidth - 2;
+    const saloonBotW = (shoulderZ * 2) - 4;
+    const halfTopW = saloonTopW / 2;
+    const halfBotW = saloonBotW / 2;
+
+    const glassTopW = roofWidth - 8;
+    const glassBotW = (shoulderZ * 2) - 12;
+    const halfGlassTopW = glassTopW / 2;
+    const halfGlassBotW = glassBotW / 2;
+
+    // A. Transverse Header Beam under the roof framing top of rear windscreen
+    const headerGeo = new THREE.BoxGeometry(2.4, 2.4, saloonTopW);
+    const headerMesh = new THREE.Mesh(headerGeo, bodyPaintMat);
+    headerMesh.position.set(1.2, 0, 0);
+    addCadEdges(headerMesh, 0x38bdf8);
+    saloonWinGroup.add(headerMesh);
+
+    // B. Left & Right Tapered Structural Cantrails / Pillars Framing Rear Window (Flushes to C-Pillars)
+    [-1, 1].forEach(side => {
+      const zIT = side * halfGlassTopW;
+      const zOT = side * halfTopW;
+      const zIB = side * halfGlassBotW;
+      const zOB = side * halfBotW;
+      const yTop = 1.2;
+      const yBot = -1.2;
+
+      const verts = new Float32Array([
+        0, yTop, zIT,          // 0: roof, upper, inner
+        0, yTop, zOT,          // 1: roof, upper, outer
+        0, yBot, zOT,          // 2: roof, lower, outer
+        0, yBot, zIT,          // 3: roof, lower, inner
+        rearWinLen, yTop, zIB, // 4: deck, upper, inner
+        rearWinLen, yTop, zOB, // 5: deck, upper, outer
+        rearWinLen, yBot, zOB, // 6: deck, lower, outer
+        rearWinLen, yBot, zIB  // 7: deck, lower, inner
+      ]);
+
+      const quadToTris = (a, b, c, d) => [a, b, c, a, c, d];
+      let indices = [];
+      if (side === 1) {
+        indices = [
+          ...quadToTris(0, 1, 5, 4), // Top (+Y)
+          ...quadToTris(3, 7, 6, 2), // Bottom (-Y)
+          ...quadToTris(1, 2, 6, 5), // Outer (+Z)
+          ...quadToTris(0, 4, 7, 3), // Inner (-Z)
+          ...quadToTris(0, 3, 2, 1), // Roof (-X)
+          ...quadToTris(4, 5, 6, 7)  // Deck (+X)
+        ];
+      } else {
+        indices = [
+          ...quadToTris(0, 4, 5, 1), // Top (+Y)
+          ...quadToTris(3, 2, 6, 7), // Bottom (-Y)
+          ...quadToTris(1, 5, 6, 2), // Outer (-Z)
+          ...quadToTris(0, 3, 7, 4), // Inner (+Z)
+          ...quadToTris(0, 1, 2, 3), // Roof (-X)
+          ...quadToTris(4, 7, 6, 5)  // Deck (+X)
+        ];
+      }
+
+      const cantrailGeo = new THREE.BufferGeometry();
+      cantrailGeo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+      cantrailGeo.setIndex(indices);
+      cantrailGeo.computeVertexNormals();
+
+      const cantrailMesh = new THREE.Mesh(cantrailGeo, bodyPaintMat);
+      addCadEdges(cantrailMesh, 0x38bdf8);
+      saloonWinGroup.add(cantrailMesh);
+    });
+
+    // C. Sculpted, Double-Curved Rear Windshield Glass matching the saloon fastback taper
+    const numRows = 6;
+    const numCols = 12;
+    const glassStart = 2.0;
+    const glassSpan = rearWinLen - 3.5;
+    const glassPositions = [];
+    const glassUvs = [];
+    const glassIndices = [];
+
+    for (let r = 0; r <= numRows; r++) {
+      const tr = r / numRows;
+      const xVal = glassStart + (tr * glassSpan);
+      const tTotal = xVal / rearWinLen;
+      const curHalfW = (halfGlassTopW * (1 - tTotal)) + (halfGlassBotW * tTotal);
+
+      for (let c = 0; c <= numCols; c++) {
+        const tc = (c / numCols) * 2 - 1; // -1 to +1
+        const zVal = tc * curHalfW;
+        // Subtle aerodynamic convex surface curve (1.5 cm outward bow)
+        const bow = (1 - tc * tc) * 1.5;
+        glassPositions.push(xVal, bow + 0.3, zVal);
+        glassUvs.push(c / numCols, tr);
+      }
+    }
+
+    for (let r = 0; r < numRows; r++) {
+      for (let c = 0; c < numCols; c++) {
+        const p1 = r * (numCols + 1) + c;
+        const p2 = p1 + 1;
+        const p3 = (r + 1) * (numCols + 1) + c;
+        const p4 = p3 + 1;
+        glassIndices.push(p1, p2, p3);
+        glassIndices.push(p2, p4, p3);
+      }
+    }
+
+    const rearGlassGeo = new THREE.BufferGeometry();
+    rearGlassGeo.setAttribute('position', new THREE.Float32BufferAttribute(glassPositions, 3));
+    rearGlassGeo.setAttribute('uv', new THREE.Float32BufferAttribute(glassUvs, 2));
+    rearGlassGeo.setIndex(glassIndices);
+    rearGlassGeo.computeVertexNormals();
+
+    const rearGlassMesh = new THREE.Mesh(rearGlassGeo, glassMat);
+    rearGlassMesh.material.side = THREE.DoubleSide;
+    addCadEdges(rearGlassMesh, 0x38bdf8);
+    saloonWinGroup.add(rearGlassMesh);
+
+    car3DGroup.add(saloonWinGroup);
 
     const parcelGeo = new THREE.BoxGeometry(32, 2.5, (shoulderZ * 2) - 4);
     const parcelShelf = new THREE.Mesh(parcelGeo, trimMat);
@@ -4854,12 +4978,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const innerArchZ = archW / 2;
   const outerArchZ = halfTailgateW;
   const tubThickness = Math.max(8, outerArchZ - innerArchZ);
-  const tubRadius = Math.max(16, Math.min(22, Math.round(wheelArchR * 0.60)));
+  const tubHeight = Math.max(9, Math.min(13, Math.round((wheelY + wheelArchR) - (sillY + 1.25))));
+  const tubLen = Math.max(34, Math.round(wheelArchR * 1.15));
 
-  const leftTub = createRoundedWheelArchTub(tubRadius, tubThickness, isGhost);
+  const leftTub = createRoundedWheelArchTub(tubLen, tubHeight, tubThickness, isGhost);
   leftTub.position.set(rearWheelX, sillY + 1.25, innerArchZ);
 
-  const rightTub = createRoundedWheelArchTub(tubRadius, tubThickness, isGhost);
+  const rightTub = createRoundedWheelArchTub(tubLen, tubHeight, tubThickness, isGhost);
   rightTub.position.set(rearWheelX, sillY + 1.25, -outerArchZ);
 
   car3DGroup.add(leftTub);
@@ -4874,8 +4999,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
   });
 
   [-1, 1].forEach(side => {
-    // 1. Boot Floor Side Tray (behind wheel arches from rearWheelX + tubRadius to rearSillX)
-    const trayLen = Math.max(4, rearSillX - (rearWheelX + tubRadius));
+    // 1. Boot Floor Side Tray (behind wheel arches from rearWheelX + (tubLen / 2) to rearSillX)
+    const trayLen = Math.max(4, rearSillX - (rearWheelX + (tubLen / 2)));
     const trayWidth = Math.max(2, halfTailgateW - (archW / 2));
     const trayCenterZ = side * ((archW / 2) + (trayWidth / 2));
     const trayGeo = new THREE.BoxGeometry(trayLen, 2.5, trayWidth);

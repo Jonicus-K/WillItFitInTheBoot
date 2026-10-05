@@ -6,36 +6,68 @@
 
 const defaultCars = [
   {
-    id: "vw-golf-mk8",
-    name: "Volkswagen Golf (Mk8, 2020+)",
-    body_type: "hatchback",
-    overall_length: 428,
-    overall_width: 179,
-    overall_height: 145,
-    wheelbase: 263,
-    floor_length_seats_folded: 149,
-    floor_length_seats_up: 77,
-    wheel_arch_width: 100,
-    roof_height: 71,
-    aperture_width: 102,
-    aperture_height: 67,
-    rake_angle_deg: 29.4
+    id: "audi-a4-saloon",
+    name: "Audi A4 Saloon (B9, 2019+)",
+    body_type: "saloon",
+    overall_length: 476,
+    overall_width: 184,
+    overall_height: 143,
+    wheelbase: 282,
+    floor_length_seats_folded: 168,
+    floor_length_seats_up: 98,
+    wheel_arch_width: 95,
+    roof_height: 53,
+    aperture_width: 92,
+    aperture_height: 49,
+    rake_angle_deg: 46.5
   },
   {
-    id: "vw-golf-mk5",
-    name: "Volkswagen Golf (Mk5, 2003–2008)",
-    body_type: "hatchback",
-    overall_length: 420,
-    overall_width: 176,
-    overall_height: 148,
-    wheelbase: 258,
-    floor_length_seats_folded: 145,
-    floor_length_seats_up: 75,
-    wheel_arch_width: 101,
-    roof_height: 72,
-    aperture_width: 100,
-    aperture_height: 66,
-    rake_angle_deg: 29.0
+    id: "bmw-3-series-saloon-e90",
+    name: "BMW 3 Series Saloon (E90, 2005–2011)",
+    body_type: "saloon",
+    overall_length: 452,
+    overall_width: 182,
+    overall_height: 142,
+    wheelbase: 276,
+    floor_length_seats_folded: 165,
+    floor_length_seats_up: 98,
+    wheel_arch_width: 92,
+    roof_height: 50,
+    aperture_width: 88,
+    aperture_height: 46,
+    rake_angle_deg: 49.0
+  },
+  {
+    id: "bmw-3-series-saloon",
+    name: "BMW 3 Series Saloon (G20, 2019+)",
+    body_type: "saloon",
+    overall_length: 471,
+    overall_width: 183,
+    overall_height: 144,
+    wheelbase: 285,
+    floor_length_seats_folded: 170,
+    floor_length_seats_up: 100,
+    wheel_arch_width: 94,
+    roof_height: 52,
+    aperture_width: 90,
+    aperture_height: 48,
+    rake_angle_deg: 48.0
+  },
+  {
+    id: "bmw-3-series-touring",
+    name: "BMW 3 Series Touring (G21, 2019+)",
+    body_type: "estate",
+    overall_length: 471,
+    overall_width: 183,
+    overall_height: 144,
+    wheelbase: 285,
+    floor_length_seats_folded: 174,
+    floor_length_seats_up: 103,
+    wheel_arch_width: 102,
+    roof_height: 74,
+    aperture_width: 104,
+    aperture_height: 72,
+    rake_angle_deg: 26.0
   },
   {
     id: "ford-fiesta-mk7",
@@ -70,6 +102,38 @@ const defaultCars = [
     rake_angle_deg: 28.5
   },
   {
+    id: "ford-focus-estate",
+    name: "Ford Focus Estate (Mk4, 2018+)",
+    body_type: "estate",
+    overall_length: 467,
+    overall_width: 182,
+    overall_height: 148,
+    wheelbase: 270,
+    floor_length_seats_folded: 175,
+    floor_length_seats_up: 104,
+    wheel_arch_width: 115,
+    roof_height: 78,
+    aperture_width: 108,
+    aperture_height: 75,
+    rake_angle_deg: 18.0
+  },
+  {
+    id: "ford-puma",
+    name: "Ford Puma (2020+)",
+    body_type: "suv",
+    overall_length: 421,
+    overall_width: 181,
+    overall_height: 154,
+    wheelbase: 259,
+    floor_length_seats_folded: 148,
+    floor_length_seats_up: 81,
+    wheel_arch_width: 100,
+    roof_height: 74,
+    aperture_width: 100,
+    aperture_height: 71,
+    rake_angle_deg: 28.0
+  },
+  {
     id: "honda-civic-mk8",
     name: "Honda Civic (Mk8, 2006–2011)",
     body_type: "hatchback",
@@ -84,6 +148,182 @@ const defaultCars = [
     aperture_width: 103,
     aperture_height: 71,
     rake_angle_deg: 32.5
+  },
+  {
+    id: "hyundai-tucson-mk4",
+    name: "Hyundai Tucson (Mk4, 2020+)",
+    body_type: "suv",
+    overall_length: 450,
+    overall_width: 187,
+    overall_height: 165,
+    wheelbase: 268,
+    floor_length_seats_folded: 166,
+    floor_length_seats_up: 90,
+    wheel_arch_width: 104,
+    roof_height: 80,
+    aperture_width: 109,
+    aperture_height: 76,
+    rake_angle_deg: 27.0
+  },
+  {
+    id: "kia-sportage-mk5",
+    name: "Kia Sportage (Mk5, 2021+)",
+    body_type: "suv",
+    overall_length: 452,
+    overall_width: 187,
+    overall_height: 165,
+    wheelbase: 268,
+    floor_length_seats_folded: 168,
+    floor_length_seats_up: 92,
+    wheel_arch_width: 105,
+    roof_height: 81,
+    aperture_width: 110,
+    aperture_height: 77,
+    rake_angle_deg: 25.0
+  },
+  {
+    id: "mercedes-c-class-estate",
+    name: "Mercedes-Benz C-Class Estate (S206, 2021+)",
+    body_type: "estate",
+    overall_length: 475,
+    overall_width: 182,
+    overall_height: 145,
+    wheelbase: 287,
+    floor_length_seats_folded: 176,
+    floor_length_seats_up: 105,
+    wheel_arch_width: 105,
+    roof_height: 76,
+    aperture_width: 106,
+    aperture_height: 73,
+    rake_angle_deg: 25.0
+  },
+  {
+    id: "mini-cooper-5-door",
+    name: "Mini Cooper 5-Door (F55, 2014+)",
+    body_type: "hatchback",
+    overall_length: 404,
+    overall_width: 173,
+    overall_height: 143,
+    wheelbase: 257,
+    floor_length_seats_folded: 128,
+    floor_length_seats_up: 67,
+    wheel_arch_width: 92,
+    roof_height: 66,
+    aperture_width: 91,
+    aperture_height: 60,
+    rake_angle_deg: 28.0
+  },
+  {
+    id: "nissan-qashqai-mk1",
+    name: "Nissan Qashqai (Mk1, 2006–2013)",
+    body_type: "suv",
+    overall_length: 431,
+    overall_width: 178,
+    overall_height: 161,
+    wheelbase: 263,
+    floor_length_seats_folded: 151,
+    floor_length_seats_up: 80,
+    wheel_arch_width: 100,
+    roof_height: 77,
+    aperture_width: 104,
+    aperture_height: 72,
+    rake_angle_deg: 27.5
+  },
+  {
+    id: "nissan-qashqai-mk3",
+    name: "Nissan Qashqai (Mk3, 2021+)",
+    body_type: "suv",
+    overall_length: 442,
+    overall_width: 184,
+    overall_height: 162,
+    wheelbase: 266,
+    floor_length_seats_folded: 159,
+    floor_length_seats_up: 86,
+    wheel_arch_width: 105,
+    roof_height: 80,
+    aperture_width: 108,
+    aperture_height: 75,
+    rake_angle_deg: 26.5
+  },
+  {
+    id: "skoda-octavia-estate-mk2",
+    name: "Škoda Octavia Estate (Mk2, 2004–2013)",
+    body_type: "estate",
+    overall_length: 457,
+    overall_width: 177,
+    overall_height: 147,
+    wheelbase: 258,
+    floor_length_seats_folded: 182,
+    floor_length_seats_up: 106,
+    wheel_arch_width: 101,
+    roof_height: 80,
+    aperture_width: 104,
+    aperture_height: 76,
+    rake_angle_deg: 17.0
+  },
+  {
+    id: "skoda-octavia-estate",
+    name: "Škoda Octavia Estate (Mk4, 2020+)",
+    body_type: "estate",
+    overall_length: 469,
+    overall_width: 183,
+    overall_height: 147,
+    wheelbase: 268,
+    floor_length_seats_folded: 188,
+    floor_length_seats_up: 109,
+    wheel_arch_width: 101,
+    roof_height: 82,
+    aperture_width: 107,
+    aperture_height: 78,
+    rake_angle_deg: 16.5
+  },
+  {
+    id: "tesla-model-3",
+    name: "Tesla Model 3 (2019+)",
+    body_type: "saloon",
+    overall_length: 472,
+    overall_width: 185,
+    overall_height: 144,
+    wheelbase: 288,
+    floor_length_seats_folded: 190,
+    floor_length_seats_up: 107,
+    wheel_arch_width: 94,
+    roof_height: 50,
+    aperture_width: 88,
+    aperture_height: 46,
+    rake_angle_deg: 47.0
+  },
+  {
+    id: "tesla-model-y",
+    name: "Tesla Model Y (2021+)",
+    body_type: "suv",
+    overall_length: 475,
+    overall_width: 192,
+    overall_height: 162,
+    wheelbase: 289,
+    floor_length_seats_folded: 195,
+    floor_length_seats_up: 108,
+    wheel_arch_width: 95,
+    roof_height: 72,
+    aperture_width: 106,
+    aperture_height: 70,
+    rake_angle_deg: 35.0
+  },
+  {
+    id: "toyota-yaris-mk4",
+    name: "Toyota Yaris (Mk4, 2020+)",
+    body_type: "hatchback",
+    overall_length: 394,
+    overall_width: 175,
+    overall_height: 150,
+    wheelbase: 256,
+    floor_length_seats_folded: 124,
+    floor_length_seats_up: 64,
+    wheel_arch_width: 99,
+    roof_height: 68,
+    aperture_width: 98,
+    aperture_height: 65,
+    rake_angle_deg: 31.0
   },
   {
     id: "vauxhall-astra-h",
@@ -118,132 +358,36 @@ const defaultCars = [
     rake_angle_deg: 32.0
   },
   {
-    id: "toyota-yaris-mk4",
-    name: "Toyota Yaris (Mk4, 2020+)",
+    id: "vw-golf-mk5",
+    name: "Volkswagen Golf (Mk5, 2003–2008)",
     body_type: "hatchback",
-    overall_length: 394,
-    overall_width: 175,
-    overall_height: 150,
-    wheelbase: 256,
-    floor_length_seats_folded: 124,
-    floor_length_seats_up: 64,
-    wheel_arch_width: 99,
-    roof_height: 68,
-    aperture_width: 98,
-    aperture_height: 65,
-    rake_angle_deg: 31.0
-  },
-  {
-    id: "mini-cooper-5-door",
-    name: "Mini Cooper 5-Door (F55, 2014+)",
-    body_type: "hatchback",
-    overall_length: 404,
-    overall_width: 173,
-    overall_height: 143,
-    wheelbase: 257,
-    floor_length_seats_folded: 128,
-    floor_length_seats_up: 67,
-    wheel_arch_width: 92,
-    roof_height: 66,
-    aperture_width: 91,
-    aperture_height: 60,
-    rake_angle_deg: 28.0
-  },
-  {
-    id: "ford-puma",
-    name: "Ford Puma (2020+)",
-    body_type: "suv",
-    overall_length: 421,
-    overall_width: 181,
-    overall_height: 154,
-    wheelbase: 259,
-    floor_length_seats_folded: 148,
-    floor_length_seats_up: 81,
-    wheel_arch_width: 100,
-    roof_height: 74,
-    aperture_width: 100,
-    aperture_height: 71,
-    rake_angle_deg: 28.0
-  },
-  {
-    id: "nissan-qashqai-mk3",
-    name: "Nissan Qashqai (Mk3, 2021+)",
-    body_type: "suv",
-    overall_length: 442,
-    overall_width: 184,
-    overall_height: 162,
-    wheelbase: 266,
-    floor_length_seats_folded: 159,
-    floor_length_seats_up: 86,
-    wheel_arch_width: 105,
-    roof_height: 80,
-    aperture_width: 108,
-    aperture_height: 75,
-    rake_angle_deg: 26.5
-  },
-  {
-    id: "nissan-qashqai-mk1",
-    name: "Nissan Qashqai (Mk1, 2006–2013)",
-    body_type: "suv",
-    overall_length: 431,
-    overall_width: 178,
-    overall_height: 161,
-    wheelbase: 263,
-    floor_length_seats_folded: 151,
-    floor_length_seats_up: 80,
-    wheel_arch_width: 100,
-    roof_height: 77,
-    aperture_width: 104,
-    aperture_height: 72,
-    rake_angle_deg: 27.5
-  },
-  {
-    id: "kia-sportage-mk5",
-    name: "Kia Sportage (Mk5, 2021+)",
-    body_type: "suv",
-    overall_length: 452,
-    overall_width: 187,
-    overall_height: 165,
-    wheelbase: 268,
-    floor_length_seats_folded: 168,
-    floor_length_seats_up: 92,
-    wheel_arch_width: 105,
-    roof_height: 81,
-    aperture_width: 110,
-    aperture_height: 77,
-    rake_angle_deg: 25.0
-  },
-  {
-    id: "hyundai-tucson-mk4",
-    name: "Hyundai Tucson (Mk4, 2020+)",
-    body_type: "suv",
-    overall_length: 450,
-    overall_width: 187,
-    overall_height: 165,
-    wheelbase: 268,
-    floor_length_seats_folded: 166,
-    floor_length_seats_up: 90,
-    wheel_arch_width: 104,
-    roof_height: 80,
-    aperture_width: 109,
-    aperture_height: 76,
-    rake_angle_deg: 27.0
-  },
-  {
-    id: "volvo-xc40",
-    name: "Volvo XC40 (2018+)",
-    body_type: "suv",
-    overall_length: 443,
-    overall_width: 186,
-    overall_height: 165,
-    wheelbase: 270,
-    floor_length_seats_folded: 164,
-    floor_length_seats_up: 89,
+    overall_length: 420,
+    overall_width: 176,
+    overall_height: 148,
+    wheelbase: 258,
+    floor_length_seats_folded: 145,
+    floor_length_seats_up: 75,
     wheel_arch_width: 101,
-    roof_height: 75,
-    aperture_width: 104,
-    aperture_height: 74,
-    rake_angle_deg: 22.0
+    roof_height: 72,
+    aperture_width: 100,
+    aperture_height: 66,
+    rake_angle_deg: 29.0
+  },
+  {
+    id: "vw-golf-mk8",
+    name: "Volkswagen Golf (Mk8, 2020+)",
+    body_type: "hatchback",
+    overall_length: 428,
+    overall_width: 179,
+    overall_height: 145,
+    wheelbase: 263,
+    floor_length_seats_folded: 149,
+    floor_length_seats_up: 77,
+    wheel_arch_width: 100,
+    roof_height: 71,
+    aperture_width: 102,
+    aperture_height: 67,
+    rake_angle_deg: 29.4
   },
   {
     id: "vw-tiguan-mk3",
@@ -262,164 +406,20 @@ const defaultCars = [
     rake_angle_deg: 24.0
   },
   {
-    id: "tesla-model-y",
-    name: "Tesla Model Y (2021+)",
+    id: "volvo-xc40",
+    name: "Volvo XC40 (2018+)",
     body_type: "suv",
-    overall_length: 475,
-    overall_width: 192,
-    overall_height: 162,
-    wheelbase: 289,
-    floor_length_seats_folded: 195,
-    floor_length_seats_up: 108,
-    wheel_arch_width: 95,
-    roof_height: 72,
-    aperture_width: 106,
-    aperture_height: 70,
-    rake_angle_deg: 35.0
-  },
-  {
-    id: "ford-focus-estate",
-    name: "Ford Focus Estate (Mk4, 2018+)",
-    body_type: "estate",
-    overall_length: 467,
-    overall_width: 182,
-    overall_height: 148,
+    overall_length: 443,
+    overall_width: 186,
+    overall_height: 165,
     wheelbase: 270,
-    floor_length_seats_folded: 175,
-    floor_length_seats_up: 104,
-    wheel_arch_width: 115,
-    roof_height: 78,
-    aperture_width: 108,
-    aperture_height: 75,
-    rake_angle_deg: 18.0
-  },
-  {
-    id: "skoda-octavia-estate",
-    name: "Škoda Octavia Estate (Mk4, 2020+)",
-    body_type: "estate",
-    overall_length: 469,
-    overall_width: 183,
-    overall_height: 147,
-    wheelbase: 268,
-    floor_length_seats_folded: 188,
-    floor_length_seats_up: 109,
+    floor_length_seats_folded: 164,
+    floor_length_seats_up: 89,
     wheel_arch_width: 101,
-    roof_height: 82,
-    aperture_width: 107,
-    aperture_height: 78,
-    rake_angle_deg: 16.5
-  },
-  {
-    id: "skoda-octavia-estate-mk2",
-    "name": "Škoda Octavia Estate (Mk2, 2004–2013)",
-    body_type: "estate",
-    overall_length: 457,
-    overall_width: 177,
-    overall_height: 147,
-    wheelbase: 258,
-    floor_length_seats_folded: 182,
-    floor_length_seats_up: 106,
-    wheel_arch_width: 101,
-    roof_height: 80,
+    roof_height: 75,
     aperture_width: 104,
-    aperture_height: 76,
-    rake_angle_deg: 17.0
-  },
-  {
-    id: "bmw-3-series-touring",
-    name: "BMW 3 Series Touring (G21, 2019+)",
-    body_type: "estate",
-    overall_length: 471,
-    overall_width: 183,
-    overall_height: 144,
-    wheelbase: 285,
-    floor_length_seats_folded: 174,
-    floor_length_seats_up: 103,
-    wheel_arch_width: 102,
-    roof_height: 74,
-    aperture_width: 104,
-    aperture_height: 72,
-    rake_angle_deg: 26.0
-  },
-  {
-    id: "mercedes-c-class-estate",
-    name: "Mercedes-Benz C-Class Estate (S206, 2021+)",
-    body_type: "estate",
-    overall_length: 475,
-    overall_width: 182,
-    overall_height: 145,
-    wheelbase: 287,
-    floor_length_seats_folded: 176,
-    floor_length_seats_up: 105,
-    wheel_arch_width: 105,
-    roof_height: 76,
-    aperture_width: 106,
-    aperture_height: 73,
-    rake_angle_deg: 25.0
-  },
-  {
-    id: "bmw-3-series-saloon",
-    name: "BMW 3 Series Saloon (G20, 2019+)",
-    body_type: "saloon",
-    overall_length: 471,
-    overall_width: 183,
-    overall_height: 144,
-    wheelbase: 285,
-    floor_length_seats_folded: 170,
-    floor_length_seats_up: 100,
-    wheel_arch_width: 94,
-    roof_height: 52,
-    aperture_width: 90,
-    aperture_height: 48,
-    rake_angle_deg: 48.0
-  },
-  {
-    id: "bmw-3-series-saloon-e90",
-    name: "BMW 3 Series Saloon (E90, 2005–2011)",
-    body_type: "saloon",
-    overall_length: 452,
-    overall_width: 182,
-    overall_height: 142,
-    wheelbase: 276,
-    floor_length_seats_folded: 165,
-    floor_length_seats_up: 98,
-    wheel_arch_width: 92,
-    roof_height: 50,
-    aperture_width: 88,
-    aperture_height: 46,
-    rake_angle_deg: 49.0
-  },
-  {
-    id: "audi-a4-saloon",
-    name: "Audi A4 Saloon (B9, 2019+)",
-    body_type: "saloon",
-    overall_length: 476,
-    overall_width: 184,
-    overall_height: 143,
-    wheelbase: 282,
-    floor_length_seats_folded: 168,
-    floor_length_seats_up: 98,
-    wheel_arch_width: 95,
-    roof_height: 53,
-    aperture_width: 92,
-    aperture_height: 49,
-    rake_angle_deg: 46.5
-  },
-  {
-    id: "tesla-model-3",
-    name: "Tesla Model 3 (2019+)",
-    body_type: "saloon",
-    overall_length: 472,
-    overall_width: 185,
-    overall_height: 144,
-    wheelbase: 288,
-    floor_length_seats_folded: 190,
-    floor_length_seats_up: 107,
-    wheel_arch_width: 94,
-    roof_height: 50,
-    aperture_width: 88,
-    aperture_height: 46,
-    rake_angle_deg: 47.0
+    aperture_height: 74,
+    rake_angle_deg: 22.0
   }
 ];
 
@@ -629,33 +629,41 @@ async function init() {
     vehicles = defaultCars.map((car, idx) => normalizeCar(car, idx));
   }
 
-  carSelect.innerHTML = vehicles
-    .map((car, idx) => `<option value="${idx}" ${idx === 0 ? 'selected' : ''}>${car.name}</option>`)
-    .join('');
-
-  selectedCar = vehicles[0];
+  // Sort vehicles in alphabetical order by name (case-insensitive & locale-aware)
+  vehicles.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'en', { sensitivity: 'base', numeric: true }));
 
   // URL parameter support for direct deep-linking & SEO landing pages
   const urlParams = new URLSearchParams(window.location.search);
   const paramCar = urlParams.get('car');
+  let selectedIdx = -1;
+
   if (paramCar) {
     const cleanParam = paramCar.toLowerCase().replace(/[^a-z0-9]/g, '');
-    let foundIdx = vehicles.findIndex(v => {
+    selectedIdx = vehicles.findIndex(v => {
       const cleanId = (v.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       return cleanId === cleanParam;
     });
-    if (foundIdx < 0) {
-      foundIdx = vehicles.findIndex(v => {
+    if (selectedIdx < 0) {
+      selectedIdx = vehicles.findIndex(v => {
         const cleanId = (v.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         const cleanName = (v.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         return cleanId.includes(cleanParam) || cleanParam.includes(cleanId) || cleanName.includes(cleanParam);
       });
     }
-    if (foundIdx >= 0) {
-      carSelect.value = String(foundIdx);
-      selectedCar = vehicles[foundIdx];
-    }
   }
+
+  // If no URL parameter matched, default to Volkswagen Golf (Mk8) or fallback to first car
+  if (selectedIdx < 0) {
+    selectedIdx = vehicles.findIndex(v => v.id === 'vw-golf-mk8');
+    if (selectedIdx < 0) selectedIdx = 0;
+  }
+
+  carSelect.innerHTML = vehicles
+    .map((car, idx) => `<option value="${idx}" ${idx === selectedIdx ? 'selected' : ''}>${car.name}</option>`)
+    .join('');
+
+  carSelect.value = String(selectedIdx);
+  selectedCar = vehicles[selectedIdx];
 
   const paramItem = urlParams.get('item');
   if (paramItem) {

@@ -537,6 +537,48 @@ const camButtons = document.querySelectorAll('.cam-btn[data-view]');
 const btnXRayToggle = document.getElementById('btn-xray-toggle');
 const btnBootToggle = document.getElementById('btn-boot-toggle');
 
+
+// Item Quantity Multiplier (1x, 2x, 3x)
+let itemQuantity = 1;
+const qtyButtons = document.querySelectorAll('.qty-btn');
+
+// Showroom 3D Paint Color
+let currentCarPaintColor = '#1e293b'; // Slate Shadow default
+const paintSwatches = document.querySelectorAll('.paint-swatch');
+
+// Volume Capacity Meter DOM Elements
+const volumeCapacityCard = document.getElementById('volume-capacity-card');
+const cargoVolumeVal = document.getElementById('cargo-volume-val');
+const bootVolumeVal = document.getElementById('boot-volume-val');
+const volumePercentBadge = document.getElementById('volume-percent-badge');
+const volumeMeterBar = document.getElementById('volume-meter-bar');
+const volumeFooterTip = document.getElementById('volume-footer-tip');
+
+// Safety Transport Advisory DOM Elements
+const safetyAdvisoryCard = document.getElementById('safety-advisory-card');
+const advisoryIcon = document.getElementById('advisory-icon');
+const advisoryTitle = document.getElementById('advisory-title');
+const advisoryText = document.getElementById('advisory-text');
+
+// Compare Modal DOM Elements
+const btnOpenCompare = document.getElementById('btn-open-compare');
+const compareModal = document.getElementById('compare-modal');
+const compareModalBackdrop = document.getElementById('compare-modal-backdrop');
+const btnCloseCompareModal = document.getElementById('btn-close-compare-modal');
+const compareSelectA = document.getElementById('compare-select-a');
+const compareSelectB = document.getElementById('compare-select-b');
+const compareCardsGrid = document.getElementById('compare-cards-grid');
+const compareWinnerBanner = document.getElementById('compare-winner-banner');
+const compareWinnerText = document.getElementById('compare-winner-text');
+
+// Custom Car Builder DOM Elements
+const btnOpenCustomCar = document.getElementById('btn-open-custom-car');
+const customCarModal = document.getElementById('custom-car-modal');
+const customCarBackdrop = document.getElementById('custom-car-backdrop');
+const btnCloseCustomCarModal = document.getElementById('btn-close-custom-car-modal');
+const btnCancelCustomCar = document.getElementById('btn-cancel-custom-car');
+const customCarForm = document.getElementById('custom-car-form');
+
 // Three.js State
 let scene, camera, renderer, controls;
 let car3DGroup = null;
@@ -673,6 +715,25 @@ async function init() {
 
   if (!vehicles || vehicles.length === 0) {
     vehicles = defaultCars.map((car, idx) => normalizeCar(car, idx));
+  }
+
+
+  // Load saved custom vehicles from localStorage
+  try {
+    const savedCustom = localStorage.getItem('wib_custom_cars');
+    if (savedCustom) {
+      const parsedCustom = JSON.parse(savedCustom);
+      if (Array.isArray(parsedCustom) && parsedCustom.length > 0) {
+        const normalizedCustom = parsedCustom.map((c, i) => {
+          const norm = normalizeCar(c, i);
+          norm.is_custom = true;
+          return norm;
+        });
+        vehicles = [...normalizedCustom, ...vehicles];
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading saved custom cars from localStorage:', e);
   }
 
   // Sort vehicles in alphabetical order by name (case-insensitive & locale-aware)
@@ -1244,7 +1305,440 @@ function drawFitmentPass(canvas) {
   }
 }
 
+
+/* ==========================================================================
+   ADVANCED FEATURES: VOLUME METER, ADVISORIES, COMPARE & CUSTOM CAR
+   ========================================================================== */
+
+function getCarBootLitres(car, seatsFolded) {
+  if (!car) return 0;
+  if (seatsFolded) {
+    return Math.round((car.floor_length_seats_folded * car.wheel_arch_width * (car.roof_height * 0.85)) / 1000);
+  } else {
+    return Math.round((car.floor_length_seats_up * car.wheel_arch_width * (car.roof_height * 0.70)) / 1000);
+  }
+}
+
+function updateVolumeCapacityMeter(rawL, rawW, rawH, seatsFolded) {
+  if (!volumeCapacityCard) return;
+  if (rawL <= 0 || rawW <= 0 || rawH <= 0 || !selectedCar) {
+    volumeCapacityCard.style.display = 'none';
+    return;
+  }
+  volumeCapacityCard.style.display = 'block';
+
+  const singleLitres = Math.round((rawL * rawW * rawH) / 1000);
+  const totalCargoLitres = singleLitres * itemQuantity;
+  const bootLitres = getCarBootLitres(selectedCar, seatsFolded);
+
+  const pct = bootLitres > 0 ? Math.round((totalCargoLitres / bootLitres) * 100) : 0;
+  const clampedPct = Math.min(100, Math.max(0, pct));
+
+  if (cargoVolumeVal) {
+    cargoVolumeVal.textContent = itemQuantity > 1
+      ? `${totalCargoLitres} L (${itemQuantity}× ${singleLitres}L)`
+      : `${totalCargoLitres} L`;
+  }
+  if (bootVolumeVal) {
+    bootVolumeVal.textContent = `${bootLitres} L (${seatsFolded ? 'seats folded' : 'seats up'})`;
+  }
+
+  if (volumePercentBadge) {
+    volumePercentBadge.textContent = pct > 100 ? `${pct}% (Exceeds Volume)` : `${pct}% of boot`;
+    volumePercentBadge.className = 'volume-percent-badge ' + (pct > 100 ? 'overflow' : pct > 75 ? 'warn' : 'ok');
+  }
+
+  if (volumeMeterBar) {
+    volumeMeterBar.style.width = `${clampedPct}%`;
+    if (pct > 100) {
+      volumeMeterBar.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+    } else if (pct > 75) {
+      volumeMeterBar.style.background = 'linear-gradient(90deg, #10b981, #f59e0b)';
+    } else {
+      volumeMeterBar.style.background = 'linear-gradient(90deg, #3b82f6, #10b981)';
+    }
+  }
+
+  if (volumeFooterTip) {
+    const diff = bootLitres - totalCargoLitres;
+    if (diff > 0) {
+      volumeFooterTip.textContent = `~${diff} L remaining for bags, jackets & essentials`;
+    } else if (diff === 0) {
+      volumeFooterTip.textContent = `Exact 100% full capacity utilization`;
+    } else {
+      volumeFooterTip.textContent = `Cargo exceeds theoretical boot volume by ${Math.abs(diff)} L`;
+    }
+  }
+}
+
+function updateSafetyAdvisory(rawL, rawW, rawH) {
+  if (!safetyAdvisoryCard) return;
+  if (rawL <= 0 || rawW <= 0 || rawH <= 0) {
+    safetyAdvisoryCard.style.display = 'none';
+    return;
+  }
+
+  const activePreset = document.querySelector('.preset-btn.active');
+  const presetName = activePreset ? (activePreset.dataset.name || activePreset.textContent || '').toLowerCase() : '';
+
+  let advisory = null;
+
+  if (presetName.includes('tv') || (rawL >= 120 && rawH >= 65 && rawW <= 25)) {
+    advisory = {
+      icon: '📺',
+      title: 'Transporting Large Flat-Panel TVs',
+      text: 'Avoid laying OLED/LED screens completely flat if possible. Road vibration causes unbacked large glass panels to crack under tension. Transport standing upright or wedged at an angle supported with blankets.'
+    };
+  } else if (presetName.includes('wash') || (rawW >= 55 && rawH >= 80 && rawL >= 55)) {
+    advisory = {
+      icon: '⚡',
+      title: 'Washing Machine Transport Safety',
+      text: 'Always install drum transit locking bolts before moving to prevent drum suspension damage. Empty residual pump filter water first. If laid on side, keep soap tray facing UP to protect electronics.'
+    };
+  } else if (presetName.includes('bike') || presetName.includes('bicycle') || (rawL >= 150 && rawH >= 85)) {
+    advisory = {
+      icon: '🚲',
+      title: 'Bicycle Derailleur & Chain Protection',
+      text: 'Always load bicycle with drivetrain (chain and gears) facing UP. Resting the rear derailleur on the car floor bends the hanger, ruining gear shifting. Protect boot fabric with a tarp.'
+    };
+  } else if (presetName.includes('ikea') || presetName.includes('flat-pack') || (rawL >= 180 && rawW <= 45)) {
+    advisory = {
+      icon: '⚠️',
+      title: 'Long Cargo Missile Hazard Advisory',
+      text: 'When transporting long furniture flatpacks that bridge into the front cabin, tether them firmly using the boot floor lashing D-rings. Loose long heavy boards can slide forward under emergency braking.'
+    };
+  } else if (presetName.includes('dog') || presetName.includes('crate') || presetName.includes('pet')) {
+    advisory = {
+      icon: '🐾',
+      title: 'Pet Crate Positioning & Airflow',
+      text: 'Place pet crate flush against the rear seat backrest for deceleration crash safety. Ensure luggage does not block side ventilation slots, and never leave pets in an unventilated vehicle.'
+    };
+  } else if (presetName.includes('stroller') || presetName.includes('pram')) {
+    advisory = {
+      icon: '👶',
+      title: 'Pram Wheels & Hatch Glass Clearance',
+      text: 'Engage wheel locks so the chassis does not roll against the rear hatch glass while driving. Remove quick-release rear wheels if vertical aperture clearance is tight.'
+    };
+  } else if (presetName.includes('suitcase') || presetName.includes('luggage') || itemQuantity > 1) {
+    advisory = {
+      icon: '🧳',
+      title: 'Multi-Item Weight Distribution',
+      text: 'Load the heaviest items lowest and furthest forward against the seatbacks. This preserves the car’s natural center of gravity and prevents cargo shifting during cornering.'
+    };
+  }
+
+  if (advisory) {
+    if (advisoryIcon) advisoryIcon.textContent = advisory.icon;
+    if (advisoryTitle) advisoryTitle.textContent = advisory.title;
+    if (advisoryText) advisoryText.textContent = advisory.text;
+    safetyAdvisoryCard.style.display = 'flex';
+  } else {
+    safetyAdvisoryCard.style.display = 'none';
+  }
+}
+
+function setCarPaintColor(hex) {
+  currentCarPaintColor = hex;
+  paintSwatches.forEach(swatch => {
+    swatch.classList.toggle('active', swatch.dataset.color.toLowerCase() === hex.toLowerCase());
+  });
+  if (car3DGroup) {
+    const targetColor = new THREE.Color(hex);
+    car3DGroup.traverse(child => {
+      if (child.isMesh && child.material && child.material.userData && child.material.userData.isBodyPaint) {
+        child.material.color.set(targetColor);
+      }
+    });
+  }
+}
+
+function openCompareModal() {
+  if (!compareModal) return;
+  compareModal.classList.add('open', 'active');
+  compareModal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+
+  const carAIdx = vehicles.findIndex(v => v.id === selectedCar.id);
+  let carBIdx = carAIdx === 0 ? 1 : 0;
+  const altIdx = vehicles.findIndex(v => v.id !== selectedCar.id && (v.body_type !== selectedCar.body_type || v.name.includes('BMW') || v.name.includes('Tesla')));
+  if (altIdx >= 0) carBIdx = altIdx;
+
+  if (compareSelectA) {
+    compareSelectA.innerHTML = vehicles.map((c, i) => `<option value="${i}" ${i === carAIdx ? 'selected' : ''}>${c.name}</option>`).join('');
+    compareSelectA.value = String(carAIdx >= 0 ? carAIdx : 0);
+  }
+  if (compareSelectB) {
+    compareSelectB.innerHTML = vehicles.map((c, i) => `<option value="${i}" ${i === carBIdx ? 'selected' : ''}>${c.name}</option>`).join('');
+    compareSelectB.value = String(carBIdx);
+  }
+
+  renderCompareModal();
+}
+
+function closeCompareModal() {
+  if (!compareModal) return;
+  compareModal.classList.remove('open', 'active');
+  compareModal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function renderCompareModal() {
+  if (!compareCardsGrid || !compareSelectA || !compareSelectB) return;
+
+  const idxA = parseInt(compareSelectA.value, 10) || 0;
+  const idxB = parseInt(compareSelectB.value, 10) || 0;
+
+  const carA = vehicles[idxA] || vehicles[0];
+  const carB = vehicles[idxB] || vehicles[1] || vehicles[0];
+
+  const inputL = parseFloat(cargoLengthInput.value) || 0;
+  const inputW = parseFloat(cargoWidthInput.value) || 0;
+  const inputH = parseFloat(cargoHeightInput.value) || 0;
+  const rawL = currentUnit === 'in' ? inputL * 2.54 : inputL;
+  const rawW = currentUnit === 'in' ? inputW * 2.54 : inputW;
+  const rawH = currentUnit === 'in' ? inputH * 2.54 : inputH;
+
+  const seatsFolded = foldSeatsCheckbox.checked;
+
+  const outcomeA = solveAllFitmentAngles(carA, rawL, rawW, rawH, seatsFolded);
+  const outcomeB = solveAllFitmentAngles(carB, rawL, rawW, rawH, seatsFolded);
+
+  const statusA = outcomeA.optimal.status;
+  const statusB = outcomeB.optimal.status;
+
+  const bootLitresA = getCarBootLitres(carA, seatsFolded);
+  const bootLitresB = getCarBootLitres(carB, seatsFolded);
+
+  const renderBadge = (status) => {
+    if (status === 'comfortable') return '<span class="status-badge fits-ok">✓ Fits Comfortably</span>';
+    if (status === 'tight') return '<span class="status-badge fits-tight">⚠️ Tight Fit</span>';
+    if (status === 'angled') return '<span class="status-badge fits-angled">📐 Fits Angled</span>';
+    return '<span class="status-badge fits-no">✕ Won\'t Fit</span>';
+  };
+
+  const renderCard = (car, outcome, bootLitres, isPrimary, carIdx) => {
+    const floorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
+
+    return `
+      <div class="compare-card ${isPrimary ? 'primary' : ''}">
+        <div class="compare-card-header">
+          <div class="compare-card-title-row">
+            <span class="compare-role-tag">${isPrimary ? 'Primary Selection' : 'Challenger'}</span>
+            <span class="compare-body-badge">${car.body_type.toUpperCase()}</span>
+          </div>
+          <h3 class="compare-car-name">${car.name}</h3>
+          <div class="compare-fit-status-row">
+            ${renderBadge(outcome.optimal.status)}
+            <span class="compare-litres-badge">${bootLitres} Litres</span>
+          </div>
+        </div>
+
+        <div class="compare-spec-rows">
+          <div class="compare-spec-row">
+            <span class="spec-label">Floor Length (${seatsFolded ? 'Folded' : 'Up'}):</span>
+            <strong class="spec-val">${floorLen} cm</strong>
+          </div>
+          <div class="compare-spec-row">
+            <span class="spec-label">Wheel Arch Width:</span>
+            <strong class="spec-val">${car.wheel_arch_width} cm</strong>
+          </div>
+          <div class="compare-spec-row">
+            <span class="spec-label">Interior Roof Height:</span>
+            <strong class="spec-val">${car.roof_height} cm</strong>
+          </div>
+          <div class="compare-spec-row">
+            <span class="spec-label">Tailgate Aperture:</span>
+            <strong class="spec-val">${car.aperture_width} × ${car.aperture_height} cm</strong>
+          </div>
+          <div class="compare-spec-row">
+            <span class="spec-label">Fitment Strategy:</span>
+            <strong class="spec-val">${outcome.optimal.heading}</strong>
+          </div>
+        </div>
+
+        <button type="button" class="btn-compare-select-car pass-action-btn ${isPrimary ? 'primary' : ''}" data-car-idx="${carIdx}">
+          ${isPrimary ? '✓ Currently Loaded' : 'Switch To This Car'}
+        </button>
+      </div>
+    `;
+  };
+
+  compareCardsGrid.innerHTML = `
+    ${renderCard(carA, outcomeA, bootLitresA, carA.id === selectedCar.id, idxA)}
+    ${renderCard(carB, outcomeB, bootLitresB, carB.id === selectedCar.id, idxB)}
+  `;
+
+  compareCardsGrid.querySelectorAll('.btn-compare-select-car').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetIdx = parseInt(btn.dataset.carIdx, 10);
+      if (!isNaN(targetIdx) && vehicles[targetIdx]) {
+        selectedCar = vehicles[targetIdx];
+        carSelect.value = String(targetIdx);
+        closeCompareModal();
+        evaluateFitment();
+        showToast(`Loaded ${selectedCar.name}`);
+      }
+    });
+  });
+
+  if (compareWinnerText) {
+    const aFits = statusA !== 'colliding';
+    const bFits = statusB !== 'colliding';
+
+    if (aFits && !bFits) {
+      compareWinnerText.innerHTML = `<strong>${carA.name} Wins:</strong> Successfully fits your cargo, whereas ${carB.name} cannot fit it without overhang.`;
+    } else if (!aFits && bFits) {
+      compareWinnerText.innerHTML = `<strong>${carB.name} Wins:</strong> Successfully accommodates this item! ${carA.name} is too small.`;
+    } else if (aFits && bFits) {
+      const volDiff = bootLitresA - bootLitresB;
+      const floorDiff = (seatsFolded ? carA.floor_length_seats_folded : carA.floor_length_seats_up) - 
+                        (seatsFolded ? carB.floor_length_seats_folded : carB.floor_length_seats_up);
+      if (volDiff > 0) {
+        compareWinnerText.innerHTML = `<strong>Both vehicles fit!</strong> ${carA.name} offers <strong>+${volDiff} L</strong> more boot capacity and <strong>${floorDiff >= 0 ? '+' : ''}${floorDiff} cm</strong> floor length.`;
+      } else if (volDiff < 0) {
+        compareWinnerText.innerHTML = `<strong>Both vehicles fit!</strong> ${carB.name} offers <strong>+${Math.abs(volDiff)} L</strong> more boot capacity and <strong>${-floorDiff >= 0 ? '+' : ''}${-floorDiff} cm</strong> floor length.`;
+      } else {
+        compareWinnerText.innerHTML = `<strong>Both vehicles fit equally well!</strong> Identical calculated boot capacity.`;
+      }
+    } else {
+      compareWinnerText.innerHTML = `<strong>Neither vehicle fits this cargo</strong> in current seats configuration. Try checking with seats folded flat or test another vehicle.`;
+    }
+  }
+}
+
+function openCustomCarModal() {
+  if (!customCarModal) return;
+  customCarModal.classList.add('open', 'active');
+  customCarModal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  const nameInput = document.getElementById('custom-car-name');
+  if (nameInput) setTimeout(() => nameInput.focus(), 100);
+}
+
+function closeCustomCarModal() {
+  if (!customCarModal) return;
+  customCarModal.classList.remove('open', 'active');
+  customCarModal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function handleCustomCarSubmit(e) {
+  e.preventDefault();
+  const nameInput = document.getElementById('custom-car-name');
+  const bodyInput = document.getElementById('custom-car-body');
+  const floorUpInput = document.getElementById('custom-floor-up');
+  const floorFoldedInput = document.getElementById('custom-floor-folded');
+  const archWidthInput = document.getElementById('custom-arch-width');
+  const roofHeightInput = document.getElementById('custom-roof-height');
+  const apWidthInput = document.getElementById('custom-ap-width');
+  const apHeightInput = document.getElementById('custom-ap-height');
+
+  const name = (nameInput.value || '').trim() || 'Custom Vehicle';
+  const body_type = bodyInput.value || 'hatchback';
+  const floor_length_seats_up = parseFloat(floorUpInput.value) || 78;
+  const floor_length_seats_folded = parseFloat(floorFoldedInput.value) || 150;
+  const wheel_arch_width = parseFloat(archWidthInput.value) || 101;
+  const roof_height = parseFloat(roofHeightInput.value) || 72;
+  const aperture_width = parseFloat(apWidthInput.value) || 102;
+  const aperture_height = parseFloat(apHeightInput.value) || 68;
+
+  const id = `custom-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
+
+  const customCar = {
+    id,
+    name: `${name} (Custom)`,
+    body_type,
+    overall_length: Math.max(420, floor_length_seats_folded + 270),
+    overall_width: wheel_arch_width + 80,
+    overall_height: roof_height + 75,
+    wheelbase: Math.max(250, floor_length_seats_folded + 105),
+    floor_length_seats_up,
+    floor_length_seats_folded,
+    wheel_arch_width,
+    roof_height,
+    aperture_width,
+    aperture_height,
+    rake_angle_deg: body_type === 'estate' ? 22 : body_type === 'suv' ? 26 : body_type === 'saloon' ? 47 : 29.5,
+    is_custom: true
+  };
+
+  try {
+    let saved = [];
+    const existing = localStorage.getItem('wib_custom_cars');
+    if (existing) saved = JSON.parse(existing);
+    if (!Array.isArray(saved)) saved = [];
+    saved.unshift(customCar);
+    localStorage.setItem('wib_custom_cars', JSON.stringify(saved));
+  } catch (err) {
+    console.warn('Failed saving custom car to localStorage:', err);
+  }
+
+  vehicles.unshift(customCar);
+
+  populateCarSelect(activeCarBodyFilter, activeCarSearchQuery);
+  const newIdx = vehicles.findIndex(v => v.id === id);
+  carSelect.value = String(newIdx >= 0 ? newIdx : 0);
+  selectedCar = customCar;
+
+  closeCustomCarModal();
+  customCarForm.reset();
+  evaluateFitment();
+  showToast(`🎉 Custom car "${customCar.name}" added & loaded!`);
+}
+
 function attachEvents() {
+
+  // Multi-Item Quantity Multiplier (1x, 2x, 3x)
+  qtyButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      qtyButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      itemQuantity = parseInt(btn.dataset.qty, 10) || 1;
+      evaluateFitment();
+    });
+  });
+
+  // 3D Vehicle Paint Color Swatches
+  paintSwatches.forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      setCarPaintColor(swatch.dataset.color);
+    });
+  });
+
+  // Car vs Car Comparison Modal
+  if (btnOpenCompare) {
+    btnOpenCompare.addEventListener('click', openCompareModal);
+  }
+  if (btnCloseCompareModal) {
+    btnCloseCompareModal.addEventListener('click', closeCompareModal);
+  }
+  if (compareModalBackdrop) {
+    compareModalBackdrop.addEventListener('click', closeCompareModal);
+  }
+  if (compareSelectA) {
+    compareSelectA.addEventListener('change', renderCompareModal);
+  }
+  if (compareSelectB) {
+    compareSelectB.addEventListener('change', renderCompareModal);
+  }
+
+  // Custom Car Builder Modal
+  if (btnOpenCustomCar) {
+    btnOpenCustomCar.addEventListener('click', openCustomCarModal);
+  }
+  if (btnCloseCustomCarModal) {
+    btnCloseCustomCarModal.addEventListener('click', closeCustomCarModal);
+  }
+  if (btnCancelCustomCar) {
+    btnCancelCustomCar.addEventListener('click', closeCustomCarModal);
+  }
+  if (customCarBackdrop) {
+    customCarBackdrop.addEventListener('click', closeCustomCarModal);
+  }
+  if (customCarForm) {
+    customCarForm.addEventListener('submit', handleCustomCarSubmit);
+  }
+
   // Unit Toggle (cm / in)
   unitButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1381,6 +1875,8 @@ function attachEvents() {
     if (e.key === 'Escape') {
       closeFleetModal();
       closePassModal();
+      closeCompareModal();
+      closeCustomCarModal();
     }
   });
 
@@ -2517,6 +3013,66 @@ function evaluateFitment() {
     }
   }
 
+  // Evaluate multi-item arrangements if itemQuantity > 1
+  let multiPackFits = true;
+  let multiPackArrangement = 'single';
+
+  if (itemQuantity > 1 && activeResult.status !== 'colliding') {
+    const rot = activeResult.rot || { l: rawL, w: rawW, h: rawH };
+    const sbsWidth = rot.w * itemQuantity + (itemQuantity - 1) * 1.5;
+    const sbsFits = sbsWidth <= archWidth && rot.l <= floorLength && rot.h <= roofHeight;
+
+    const stackedHeight = rot.h * itemQuantity + (itemQuantity - 1) * 1.5;
+    const stackedFits = stackedHeight <= roofHeight && rot.w <= archWidth && rot.l <= floorLength;
+
+    const ftbLength = rot.l * itemQuantity + (itemQuantity - 1) * 2;
+    const ftbFits = ftbLength <= floorLength && rot.w <= archWidth && rot.h <= roofHeight;
+
+    let sbsStackedFits = false;
+    if (itemQuantity === 3) {
+      sbsStackedFits = (rot.w * 2 + 1.5 <= archWidth) && (rot.h * 2 + 1.5 <= roofHeight) && (rot.l <= floorLength);
+    }
+
+    if (sbsFits) {
+      multiPackArrangement = 'side_by_side';
+    } else if (stackedFits) {
+      multiPackArrangement = 'stacked';
+    } else if (ftbFits) {
+      multiPackArrangement = 'front_to_back';
+    } else if (sbsStackedFits) {
+      multiPackArrangement = 'side_stacked';
+    } else {
+      multiPackFits = false;
+    }
+
+    if (!multiPackFits) {
+      activeResult = {
+        ...activeResult,
+        status: 'tight',
+        heading: `${itemQuantity}× Items: Tight Fit / Volume Limit`,
+        instruction: `A single unit fits, but packing ${itemQuantity}× units exceeds boot boundaries (${sbsWidth > archWidth ? 'too wide for wheel arches' : stackedHeight > roofHeight ? 'exceeds roof height' : 'exceeds floor length'}). Consider folding rear seats or multiple trips.`
+      };
+      if (resultBanner) {
+        resultBanner.className = 'result-banner fits-tight';
+        resultBanner.textContent = `⚠️ 1 Unit Fits, But ${itemQuantity}× Items Exceed Boot Space!`;
+      }
+    } else {
+      let arrangeLabel = 'Side-by-Side';
+      if (multiPackArrangement === 'stacked') arrangeLabel = 'Stacked Vertically';
+      else if (multiPackArrangement === 'front_to_back') arrangeLabel = 'Front-to-Back';
+      else if (multiPackArrangement === 'side_stacked') arrangeLabel = '2 Side-by-Side + 1 On Top';
+
+      activeResult.instruction += ` (All ${itemQuantity}× items fit arranged ${arrangeLabel})`;
+      if (resultBanner && activeResult.status === 'comfortable') {
+        resultBanner.textContent = `🎉 Yes, All ${itemQuantity}× Items Fit (${arrangeLabel})!`;
+      }
+    }
+  }
+
+  // Update Boot Volume Capacity Meter & Safety Advisory
+  updateVolumeCapacityMeter(rawL, rawW, rawH, seatsFolded);
+  updateSafetyAdvisory(rawL, rawW, rawH);
+
   update3DStudio(selectedCar, seatsFolded, activeResult);
 
   // Update Fleet Prompt Banner text
@@ -3576,7 +4132,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const isGhost = xRayMode < 0.85;
 
   const bodyPaintMat = new THREE.MeshPhysicalMaterial({
-    color: 0x1b3252, // Handsome Metallic Slate Navy
+    color: new THREE.Color(currentCarPaintColor), // Dynamic 3D showroom paint
     metalness: 0.86,
     roughness: 0.24,
     clearcoat: 1.0,
@@ -3586,6 +4142,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     depthWrite: true,
     side: THREE.DoubleSide
   });
+  bodyPaintMat.userData = { isBodyPaint: true };
 
   const claddingMat = new THREE.MeshStandardMaterial({
     color: 0x090e17, // Matte charcoal protective SUV cladding
@@ -6184,11 +6741,71 @@ function update3DStudio(car, seatsFolded, fitResult) {
       opacity: 0.88
     });
 
-    cargo3DMesh = new THREE.Mesh(boxGeo, boxMat);
-    cargo3DMesh.add(new THREE.LineSegments(
-      new THREE.EdgesGeometry(boxGeo),
-      new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.6, linewidth: 2 })
-    ));
+    const createSingleBox = () => {
+      const b = new THREE.Mesh(boxGeo, boxMat);
+      b.add(new THREE.LineSegments(
+        new THREE.EdgesGeometry(boxGeo),
+        new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.6, linewidth: 2 })
+      ));
+      return b;
+    };
+
+    cargo3DMesh = new THREE.Group();
+
+    if (itemQuantity === 1) {
+      cargo3DMesh.add(createSingleBox());
+    } else if (itemQuantity === 2) {
+      const rotL = rot.l, rotW = rot.w, rotH = rot.h;
+      const canSide = (rotW * 2 + 2 <= car.wheel_arch_width);
+      const canStack = (rotH * 2 + 2 <= car.roof_height);
+      const canFtb = (rotL * 2 + 2 <= currentFloorLen);
+
+      const b1 = createSingleBox();
+      const b2 = createSingleBox();
+
+      if (canSide || (!canStack && !canFtb)) {
+        const offsetZ = (rotW / 2) + 0.8;
+        b1.position.set(0, 0, -offsetZ);
+        b2.position.set(0, 0, offsetZ);
+      } else if (canStack) {
+        b1.position.set(0, 0, 0);
+        b2.position.set(0, rotH + 0.8, 0);
+      } else {
+        const offsetX = (rotL / 2) + 1.0;
+        b1.position.set(-offsetX, 0, 0);
+        b2.position.set(offsetX, 0, 0);
+      }
+      cargo3DMesh.add(b1);
+      cargo3DMesh.add(b2);
+    } else if (itemQuantity === 3) {
+      const rotL = rot.l, rotW = rot.w, rotH = rot.h;
+      const canSide = (rotW * 3 + 4 <= car.wheel_arch_width);
+      const canStack = (rotH * 3 + 4 <= car.roof_height);
+
+      const b1 = createSingleBox();
+      const b2 = createSingleBox();
+      const b3 = createSingleBox();
+
+      if (canSide) {
+        const step = rotW + 1.0;
+        b1.position.set(0, 0, -step);
+        b2.position.set(0, 0, 0);
+        b3.position.set(0, 0, step);
+      } else if (canStack) {
+        const step = rotH + 1.0;
+        b1.position.set(0, 0, 0);
+        b2.position.set(0, step, 0);
+        b3.position.set(0, step * 2, 0);
+      } else {
+        const offsetZ = (rotW / 2) + 0.8;
+        b1.position.set(0, 0, -offsetZ);
+        b2.position.set(0, 0, offsetZ);
+        b3.position.set(0, rotH + 0.8, 0);
+      }
+      cargo3DMesh.add(b1);
+      cargo3DMesh.add(b2);
+      cargo3DMesh.add(b3);
+    }
 
     // Stowed positions and pivots
     cargoSimulationBaseGroup = new THREE.Group();

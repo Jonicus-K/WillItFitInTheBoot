@@ -132,9 +132,19 @@
           <div class="form-group">
             <div class="card-header-row">
               <h2 class="card-title">1. What are you loading?</h2>
-              <div class="unit-toggle" id="unit-toggle" role="group" aria-label="Measurement Units">
-                <button type="button" class="unit-btn active" data-unit="cm">cm</button>
-                <button type="button" class="unit-btn" data-unit="in">in</button>
+              <div class="header-toggles-row">
+                <div class="qty-toggle-wrap">
+                  <span class="qty-label">Qty:</span>
+                  <div class="qty-toggle" id="qty-toggle" role="group" aria-label="Item Quantity">
+                    <button type="button" class="qty-btn active" data-qty="1">1×</button>
+                    <button type="button" class="qty-btn" data-qty="2">2×</button>
+                    <button type="button" class="qty-btn" data-qty="3">3×</button>
+                  </div>
+                </div>
+                <div class="unit-toggle" id="unit-toggle" role="group" aria-label="Measurement Units">
+                  <button type="button" class="unit-btn active" data-unit="cm">cm</button>
+                  <button type="button" class="unit-btn" data-unit="in">in</button>
+                </div>
               </div>
             </div>
             
@@ -193,6 +203,9 @@
           <div class="form-group">
             <div class="card-header-row">
               <h2 class="card-title">2. Choose your car</h2>
+              <button type="button" class="btn-custom-car-trigger" id="btn-open-custom-car" title="Add a custom vehicle not in our list">
+                <span>➕ Add Custom Car</span>
+              </button>
             </div>
 
             <!-- Body Type Filter Chips -->
@@ -267,6 +280,36 @@
           <div id="result-banner" class="result-banner will-not-fit">Calculating...</div>
           <p id="result-explanation" class="result-explanation">Calculating fitment...</p>
 
+          <!-- Boot Volume & Capacity Utilization Meter -->
+          <div class="volume-capacity-card" id="volume-capacity-card">
+            <div class="volume-header-row">
+              <div class="volume-stat-left">
+                <span class="volume-label">Cargo Volume:</span>
+                <strong class="volume-value" id="cargo-volume-val">94 L</strong>
+                <span class="volume-percent-badge" id="volume-percent-badge">25% of boot</span>
+              </div>
+              <div class="volume-stat-right">
+                <span class="volume-label">Boot Capacity:</span>
+                <strong class="volume-value" id="boot-volume-val">381 L (seats up)</strong>
+              </div>
+            </div>
+            <div class="volume-meter-track">
+              <div class="volume-meter-bar" id="volume-meter-bar" style="width: 25%;"></div>
+            </div>
+            <div class="volume-footer-row">
+              <span class="volume-footer-tip" id="volume-footer-tip">~287 L remaining for bags &amp; groceries</span>
+            </div>
+          </div>
+
+          <!-- Smart Transport & Safety Advisory Card -->
+          <div class="safety-advisory-card" id="safety-advisory-card" style="display:none;">
+            <div class="advisory-icon" id="advisory-icon">💡</div>
+            <div class="advisory-content">
+              <strong class="advisory-title" id="advisory-title">Transport Advisory</strong>
+              <p class="advisory-text" id="advisory-text"></p>
+            </div>
+          </div>
+
           <!-- Fleet Finder Banner -->
           <div class="fleet-prompt-banner" id="fleet-prompt-banner">
             <div class="fleet-prompt-left">
@@ -295,6 +338,10 @@
                 <button type="button" class="export-pass-btn" id="btn-export-pass" title="Generate and download a shareable Fitment Pass certificate">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   <span>Fitment Pass</span>
+                </button>
+                <button type="button" class="compare-btn" id="btn-open-compare" title="Compare this vehicle side-by-side with another car">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+                  <span>Compare</span>
                 </button>
                 <button type="button" class="toggle-advanced-btn" id="btn-toggle-advanced" title="Customize tilt angles and loading modes">
                   ⚙️ Tilt Options ▾
@@ -351,6 +398,18 @@
           <!-- 3D Interactive Viewport -->
           <div id="view-3d-container" class="view-container active">
             <div class="viewport-3d-wrap">
+              <!-- Showroom Paint Swatch Palette -->
+              <div class="paint-swatch-bar" id="paint-swatch-bar" title="Change 3D Vehicle Paint Color">
+                <span class="swatch-label">Paint:</span>
+                <button type="button" class="paint-swatch active" data-color="#1e293b" title="Slate Shadow" style="background:#1e293b;"></button>
+                <button type="button" class="paint-swatch" data-color="#f8fafc" title="Pure White" style="background:#f8fafc;"></button>
+                <button type="button" class="paint-swatch" data-color="#090d16" title="Deep Onyx Black" style="background:#090d16;"></button>
+                <button type="button" class="paint-swatch" data-color="#94a3b8" title="Metallic Silver" style="background:#94a3b8;"></button>
+                <button type="button" class="paint-swatch" data-color="#2563eb" title="Royal Blue Metallic" style="background:#2563eb;"></button>
+                <button type="button" class="paint-swatch" data-color="#dc2626" title="Race Red" style="background:#dc2626;"></button>
+                <button type="button" class="paint-swatch" data-color="#059669" title="British Racing Green" style="background:#059669;"></button>
+              </div>
+
               <canvas id="three-canvas"></canvas>
               
               <!-- Floating Camera Toolbar -->
@@ -864,9 +923,111 @@
     </div>
   </div>
 
+  <!-- Modal: Side-by-Side Car vs Car Comparison -->
+  <div class="app-modal" id="compare-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="compare-modal-title">
+    <div class="modal-backdrop" id="compare-modal-backdrop"></div>
+    <div class="modal-dialog compare-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-badge">VEHICLE HEAD-TO-HEAD</div>
+          <h2 class="modal-title" id="compare-modal-title">Side-by-Side Boot Comparison</h2>
+          <p class="modal-subtitle" id="compare-modal-subtitle">Compare cargo fitment between any two vehicles</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="btn-close-compare-modal" aria-label="Close modal">✕</button>
+      </div>
+      <div class="modal-body compare-modal-body">
+        <!-- Dual Selectors -->
+        <div class="compare-selectors-grid">
+          <div class="compare-selector-box">
+            <span class="compare-box-label">Car A (Primary)</span>
+            <select id="compare-select-a" class="select-car compare-select"></select>
+          </div>
+          <div class="compare-vs-badge">VS</div>
+          <div class="compare-selector-box">
+            <span class="compare-box-label">Car B (Challenger)</span>
+            <select id="compare-select-b" class="select-car compare-select"></select>
+          </div>
+        </div>
+
+        <!-- Comparative Results Cards Grid -->
+        <div class="compare-cards-grid" id="compare-cards-grid">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <!-- Winner Advisory Banner -->
+        <div class="compare-winner-banner" id="compare-winner-banner">
+          <div class="winner-icon">🏆</div>
+          <div class="winner-text" id="compare-winner-text">Evaluating comparison...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Custom Vehicle Builder -->
+  <div class="app-modal" id="custom-car-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="custom-car-title">
+    <div class="modal-backdrop" id="custom-car-backdrop"></div>
+    <div class="modal-dialog custom-car-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-badge">CUSTOM VEHICLE BUILDER</div>
+          <h2 class="modal-title" id="custom-car-title">Add Your Car Dimensions</h2>
+          <p class="modal-subtitle">Model any vehicle not in our built-in registry</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="btn-close-custom-car-modal" aria-label="Close modal">✕</button>
+      </div>
+      <form id="custom-car-form" class="modal-body custom-car-modal-body">
+        <div class="custom-form-grid">
+          <div class="custom-field full-width">
+            <label for="custom-car-name">Vehicle Name / Model</label>
+            <input type="text" id="custom-car-name" placeholder="e.g. Peugeot 308 (2022+)" required autocomplete="off">
+          </div>
+          <div class="custom-field">
+            <label for="custom-car-body">Body Style</label>
+            <select id="custom-car-body" class="select-car">
+              <option value="hatchback">Hatchback</option>
+              <option value="suv">SUV / Crossover</option>
+              <option value="estate">Estate / Touring</option>
+              <option value="saloon">Saloon / Sedan</option>
+            </select>
+          </div>
+          <div class="custom-field">
+            <label for="custom-floor-up">Floor Length (Seats Up) [cm]</label>
+            <input type="number" id="custom-floor-up" value="78" min="30" max="250" required>
+          </div>
+          <div class="custom-field">
+            <label for="custom-floor-folded">Floor Length (Seats Folded) [cm]</label>
+            <input type="number" id="custom-floor-folded" value="150" min="50" max="300" required>
+          </div>
+          <div class="custom-field">
+            <label for="custom-arch-width">Width Between Arches [cm]</label>
+            <input type="number" id="custom-arch-width" value="101" min="60" max="200" required>
+          </div>
+          <div class="custom-field">
+            <label for="custom-roof-height">Interior Roof Height [cm]</label>
+            <input type="number" id="custom-roof-height" value="72" min="35" max="150" required>
+          </div>
+          <div class="custom-field">
+            <label for="custom-ap-width">Tailgate Opening Width [cm]</label>
+            <input type="number" id="custom-ap-width" value="102" min="50" max="200" required>
+          </div>
+          <div class="custom-field">
+            <label for="custom-ap-height">Tailgate Opening Height [cm]</label>
+            <input type="number" id="custom-ap-height" value="68" min="30" max="150" required>
+          </div>
+        </div>
+        <div class="custom-actions-row">
+          <button type="submit" class="pass-action-btn primary" id="btn-save-custom-car">
+            <span>💾 Save &amp; Test In 3D</span>
+          </button>
+          <button type="button" class="pass-action-btn" id="btn-cancel-custom-car">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-notification" class="toast-notification" aria-live="polite"></div>
 
-  <script src="app.js?v=81"></script>
+  <script src="app.js?v=82"></script>
 </body>
 </html>

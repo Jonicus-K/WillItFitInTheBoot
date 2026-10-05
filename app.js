@@ -446,6 +446,52 @@ const carSelect = document.getElementById('car-select');
 const foldSeatsCheckbox = document.getElementById('fold-seats');
 let userExplicitSeatToggle = false;
 
+// Measurement Units (cm vs in)
+let currentUnit = 'cm'; // 'cm' | 'in'
+const unitButtons = document.querySelectorAll('.unit-btn');
+const unitLabelL = document.getElementById('unit-label-l');
+const unitLabelW = document.getElementById('unit-label-w');
+const unitLabelH = document.getElementById('unit-label-h');
+
+// Preset Categories
+const presetCategoryButtons = document.querySelectorAll('.preset-cat-btn');
+let activePresetCategory = 'all';
+
+// Car Search & Body Filters
+const carPills = document.querySelectorAll('.car-pill');
+const carSearchInput = document.getElementById('car-search-input');
+const btnClearCarSearch = document.getElementById('btn-clear-car-search');
+const filterCountRow = document.getElementById('filter-count-row');
+const filterCountText = document.getElementById('filter-count-text');
+const btnResetFilters = document.getElementById('btn-reset-filters');
+let activeCarBodyFilter = 'all';
+let activeCarSearchQuery = '';
+
+// Fleet Matcher Modal
+const btnFleetCheck = document.getElementById('btn-fleet-check');
+const btnOpenFleetPrompt = document.getElementById('btn-open-fleet-prompt');
+const fleetPromptText = document.getElementById('fleet-prompt-text');
+const fleetModal = document.getElementById('fleet-modal');
+const fleetModalBackdrop = document.getElementById('fleet-modal-backdrop');
+const btnCloseFleetModal = document.getElementById('btn-close-fleet-modal');
+const fleetModalSubtitle = document.getElementById('fleet-modal-subtitle');
+const fleetStatUp = document.getElementById('fleet-stat-up');
+const fleetStatFolded = document.getElementById('fleet-stat-folded');
+const fleetStatWont = document.getElementById('fleet-stat-wont');
+const fleetTabs = document.querySelectorAll('.fleet-tab');
+const fleetCardsGrid = document.getElementById('fleet-cards-grid');
+let activeFleetFilter = 'all';
+
+// Fitment Pass Export Modal
+const btnExportPass = document.getElementById('btn-export-pass');
+const passModal = document.getElementById('pass-modal');
+const passModalBackdrop = document.getElementById('pass-modal-backdrop');
+const btnClosePassModal = document.getElementById('btn-close-pass-modal');
+const fitmentPassCanvas = document.getElementById('fitment-pass-canvas');
+const btnDownloadPass = document.getElementById('btn-download-pass');
+const btnCopyPass = document.getElementById('btn-copy-pass');
+const btnSharePass = document.getElementById('btn-share-pass');
+
 const resultBanner = document.getElementById('result-banner');
 const resultExplanation = document.getElementById('result-explanation');
 
@@ -665,6 +711,13 @@ async function init() {
   carSelect.value = String(selectedIdx);
   selectedCar = vehicles[selectedIdx];
 
+  if (urlParams.has('unit')) {
+    const u = urlParams.get('unit').toLowerCase();
+    if (u === 'in' || u === 'inch' || u === 'inches') {
+      switchUnit('in');
+    }
+  }
+
   const paramItem = urlParams.get('item');
   if (paramItem) {
     const p = paramItem.toLowerCase();
@@ -715,7 +768,622 @@ async function init() {
   evaluateFitment();
 }
 
+
+/* ==========================================================================
+   ENHANCED FEATURES: UNITS, CAR FILTERS, FLEET MATCHER & FITMENT PASS
+   ========================================================================== */
+
+function switchUnit(newUnit) {
+  if (newUnit === currentUnit) return;
+  const currentL = parseFloat(cargoLengthInput.value) || 0;
+  const currentW = parseFloat(cargoWidthInput.value) || 0;
+  const currentH = parseFloat(cargoHeightInput.value) || 0;
+
+  if (newUnit === 'in') {
+    // cm -> in
+    cargoLengthInput.value = (currentL / 2.54).toFixed(1);
+    cargoWidthInput.value = (currentW / 2.54).toFixed(1);
+    cargoHeightInput.value = (currentH / 2.54).toFixed(1);
+    cargoLengthInput.step = '0.5';
+    cargoWidthInput.step = '0.5';
+    cargoHeightInput.step = '0.5';
+  } else {
+    // in -> cm
+    cargoLengthInput.value = Math.round(currentL * 2.54);
+    cargoWidthInput.value = Math.round(currentW * 2.54);
+    cargoHeightInput.value = Math.round(currentH * 2.54);
+    cargoLengthInput.step = '1';
+    cargoWidthInput.step = '1';
+    cargoHeightInput.step = '1';
+  }
+
+  currentUnit = newUnit;
+
+  unitButtons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.unit === newUnit);
+  });
+
+  if (unitLabelL) unitLabelL.textContent = newUnit;
+  if (unitLabelW) unitLabelW.textContent = newUnit;
+  if (unitLabelH) unitLabelH.textContent = newUnit;
+
+  evaluateFitment();
+  showToast(`Switched units to ${newUnit === 'in' ? 'Inches' : 'Centimeters'}`);
+}
+
+function filterPresetCategories(cat) {
+  activePresetCategory = cat;
+  presetCategoryButtons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cat === cat);
+  });
+
+  presetButtons.forEach(btn => {
+    const itemCat = btn.dataset.cat;
+    if (cat === 'all' || itemCat === cat) {
+      btn.style.display = 'inline-flex';
+    } else {
+      btn.style.display = 'none';
+    }
+  });
+}
+
+function populateCarSelect(filterType = 'all', searchQuery = '') {
+  activeCarBodyFilter = filterType;
+  activeCarSearchQuery = searchQuery.trim().toLowerCase();
+
+  const filtered = vehicles.filter(car => {
+    const matchesBody = (activeCarBodyFilter === 'all') || (car.body_type.toLowerCase() === activeCarBodyFilter);
+    const matchesSearch = !activeCarSearchQuery ||
+      car.name.toLowerCase().includes(activeCarSearchQuery) ||
+      car.id.toLowerCase().includes(activeCarSearchQuery);
+    return matchesBody && matchesSearch;
+  });
+
+  if (filtered.length === 0) {
+    carSelect.innerHTML = '<option value="" disabled selected>No matching cars found</option>';
+    if (filterCountRow) filterCountRow.style.display = 'flex';
+    if (filterCountText) filterCountText.textContent = `0 of ${vehicles.length} cars match`;
+    return;
+  }
+
+  const currentId = selectedCar ? selectedCar.id : null;
+  let targetIdx = filtered.findIndex(v => v.id === currentId);
+  if (targetIdx < 0) targetIdx = 0;
+
+  const chosenCar = filtered[targetIdx];
+  const globalIdx = vehicles.findIndex(v => v.id === chosenCar.id);
+
+  carSelect.innerHTML = filtered.map(car => {
+    const gIdx = vehicles.findIndex(v => v.id === car.id);
+    const isSelected = gIdx === globalIdx;
+    return `<option value="${gIdx}" ${isSelected ? 'selected' : ''}>${car.name}</option>`;
+  }).join('');
+
+  carSelect.value = String(globalIdx);
+  selectedCar = vehicles[globalIdx];
+
+  if (filterCountRow && filterCountText) {
+    if (activeCarBodyFilter !== 'all' || activeCarSearchQuery) {
+      filterCountRow.style.display = 'flex';
+      filterCountText.textContent = `Showing ${filtered.length} of ${vehicles.length} cars`;
+    } else {
+      filterCountRow.style.display = 'none';
+    }
+  }
+
+  if (btnClearCarSearch) {
+    btnClearCarSearch.style.display = activeCarSearchQuery ? 'block' : 'none';
+  }
+
+  evaluateFitment();
+}
+
+function openFleetModal() {
+  if (!fleetModal) return;
+  renderFleetModal();
+  fleetModal.classList.add('open');
+  fleetModal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFleetModal() {
+  if (!fleetModal) return;
+  fleetModal.classList.remove('open');
+  fleetModal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function renderFleetModal() {
+  const inputL = parseFloat(cargoLengthInput.value) || 0;
+  const inputW = parseFloat(cargoWidthInput.value) || 0;
+  const inputH = parseFloat(cargoHeightInput.value) || 0;
+  const cmL = currentUnit === 'in' ? inputL * 2.54 : inputL;
+  const cmW = currentUnit === 'in' ? inputW * 2.54 : inputW;
+  const cmH = currentUnit === 'in' ? inputH * 2.54 : inputH;
+
+  const dimsLabel = currentUnit === 'in'
+    ? `${inputL} × ${inputW} × ${inputH} in (${Math.round(cmL)} × ${Math.round(cmW)} × ${Math.round(cmH)} cm)`
+    : `${Math.round(cmL)} × ${Math.round(cmW)} × ${Math.round(cmH)} cm (${(cmL / 2.54).toFixed(1)} × ${(cmW / 2.54).toFixed(1)} × ${(cmH / 2.54).toFixed(1)} in)`;
+
+  if (fleetModalSubtitle) {
+    fleetModalSubtitle.textContent = `Cargo: ${dimsLabel}`;
+  }
+
+  let countUp = 0;
+  let countFolded = 0;
+  let countWont = 0;
+
+  const fleetData = vehicles.map(car => {
+    const outcomeUp = solveAllFitmentAngles(car, cmL, cmW, cmH, false);
+    const fitsUp = outcomeUp.optimal.status !== 'colliding';
+    const outcomeFolded = solveAllFitmentAngles(car, cmL, cmW, cmH, true);
+    const fitsFolded = outcomeFolded.optimal.status !== 'colliding';
+
+    let category = 'wont_fit';
+    let label = "Won't Fit";
+    let reqFolded = false;
+
+    if (fitsUp) {
+      category = 'seats_up';
+      label = 'Fits (Seats Up)';
+      countUp++;
+    } else if (fitsFolded) {
+      category = 'seats_folded';
+      label = 'Seats Folded';
+      reqFolded = true;
+      countFolded++;
+    } else {
+      category = 'wont_fit';
+      label = 'Too Large';
+      reqFolded = true;
+      countWont++;
+    }
+
+    return {
+      car,
+      category,
+      label,
+      reqFolded,
+      floorUp: car.floor_length_seats_up,
+      floorFolded: car.floor_length_seats_folded,
+      archWidth: car.wheel_arch_width,
+      roofHeight: car.roof_height
+    };
+  });
+
+  if (fleetStatUp) fleetStatUp.textContent = countUp;
+  if (fleetStatFolded) fleetStatFolded.textContent = countFolded;
+  if (fleetStatWont) fleetStatWont.textContent = countWont;
+
+  fleetTabs.forEach(tab => {
+    const f = tab.dataset.fleetFilter;
+    if (f === 'all') tab.textContent = `All Cars (${vehicles.length})`;
+    else if (f === 'fits') tab.textContent = `Fits (${countUp + countFolded})`;
+    else if (f === 'seats_up') tab.textContent = `Seats Up (${countUp})`;
+    else if (f === 'seats_folded') tab.textContent = `Seats Folded (${countFolded})`;
+    else if (f === 'wont_fit') tab.textContent = `Won't Fit (${countWont})`;
+  });
+
+  const filtered = fleetData.filter(item => {
+    if (activeFleetFilter === 'all') return true;
+    if (activeFleetFilter === 'fits') return item.category === 'seats_up' || item.category === 'seats_folded';
+    return item.category === activeFleetFilter;
+  });
+
+  if (!fleetCardsGrid) return;
+
+  if (filtered.length === 0) {
+    fleetCardsGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 36px 16px; color: var(--text-muted); font-size: 0.9rem;">No vehicles found in this category for the current dimensions.</div>';
+    return;
+  }
+
+  fleetCardsGrid.innerHTML = filtered.map(item => {
+    const isCurrent = selectedCar && selectedCar.id === item.car.id;
+    const isUp = item.category === 'seats_up';
+    const isFolded = item.category === 'seats_folded';
+    const pillClass = `fleet-status-pill status-${item.category}`;
+    const icon = isUp ? '✓' : (isFolded ? '💺' : '✕');
+
+    return `
+      <div class="fleet-card" data-car-id="${item.car.id}" data-req-folded="${item.reqFolded}">
+        <div class="fleet-card-header">
+          <div class="fleet-card-top-row">
+            <span class="fleet-body-tag">${item.car.body_type}</span>
+            <span class="${pillClass}">${icon} ${item.label}</span>
+          </div>
+          <div class="fleet-card-name">${item.car.name} ${isCurrent ? '<span style="color:#38bdf8; font-size:0.75rem;">(Active)</span>' : ''}</div>
+        </div>
+        <div class="fleet-specs-mini">
+          <span>Floor: <strong>${item.floorUp} / ${item.floorFolded}cm</strong></span>
+          <span>Width: <strong>${item.archWidth}cm</strong></span>
+          <span>Roof: <strong>${item.roofHeight}cm</strong></span>
+          <span>Aperture: <strong>${item.car.aperture_width}×${item.car.aperture_height}cm</strong></span>
+        </div>
+        <button type="button" class="btn-select-fleet-car" data-car-id="${item.car.id}" data-req-folded="${item.reqFolded}">
+          ${isCurrent ? 'Currently Loaded' : 'Load This Car in 3D →'}
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  fleetCardsGrid.querySelectorAll('.btn-select-fleet-car').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const carId = btn.dataset.carId;
+      const reqFolded = btn.dataset.reqFolded === 'true';
+      const targetIdx = vehicles.findIndex(v => v.id === carId);
+      if (targetIdx >= 0) {
+        carSelect.value = String(targetIdx);
+        selectedCar = vehicles[targetIdx];
+        foldSeatsCheckbox.checked = reqFolded;
+        userExplicitSeatToggle = true;
+        manualAngleSliderValue = null;
+        closeFleetModal();
+        evaluateFitment();
+        showToast(`Loaded ${selectedCar.name}!`);
+      }
+    });
+  });
+}
+
+function openPassModal() {
+  if (!passModal || !fitmentPassCanvas) return;
+  drawFitmentPass(fitmentPassCanvas);
+  passModal.classList.add('open');
+  passModal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePassModal() {
+  if (!passModal) return;
+  passModal.classList.remove('open');
+  passModal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function drawFitmentPass(canvas) {
+  if (!selectedCar || !lastFitResult) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = 1200;
+  canvas.height = 675;
+
+  // Background Gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, 1200, 675);
+  bgGrad.addColorStop(0, '#060a12');
+  bgGrad.addColorStop(0.5, '#0b1329');
+  bgGrad.addColorStop(1, '#080d1a');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 1200, 675);
+
+  // Decorative border
+  ctx.strokeStyle = 'rgba(59, 130, 246, 0.25)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(24, 24, 1152, 627);
+
+  // Corner Accents
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(24, 54); ctx.lineTo(24, 24); ctx.lineTo(54, 24); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1146, 24); ctx.lineTo(1176, 24); ctx.lineTo(1176, 54); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(24, 621); ctx.lineTo(24, 651); ctx.lineTo(54, 651); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1146, 651); ctx.lineTo(1176, 651); ctx.lineTo(1176, 621); ctx.stroke();
+
+  // Header Logo / Title
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('WILL IT FIT IN THE BOOT?', 60, 68);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '500 12px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('3D SPATIAL FITMENT CERTIFICATE • willitfitintheboot.co.uk', 60, 88);
+
+  // Status Badge
+  const isFit = lastFitResult.status !== 'colliding';
+  const seatsFolded = foldSeatsCheckbox.checked;
+  let statusText = '✓ GUARANTEED FIT (SEATS UP)';
+  let statusColor = '#10b981';
+  let statusBg = 'rgba(16, 185, 129, 0.16)';
+  let statusBorder = 'rgba(16, 185, 129, 0.4)';
+
+  if (!isFit) {
+    statusText = '✕ DOES NOT FIT';
+    statusColor = '#ef4444';
+    statusBg = 'rgba(239, 68, 68, 0.16)';
+    statusBorder = 'rgba(239, 68, 68, 0.4)';
+  } else if (seatsFolded) {
+    statusText = '⚠ FITS (REAR SEATS FOLDED)';
+    statusColor = '#f59e0b';
+    statusBg = 'rgba(245, 158, 11, 0.16)';
+    statusBorder = 'rgba(245, 158, 11, 0.4)';
+  }
+
+  // Draw Status Pill
+  ctx.fillStyle = statusBg;
+  ctx.strokeStyle = statusBorder;
+  ctx.lineWidth = 1.5;
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(60, 114, 380, 42, 21);
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    ctx.fillRect(60, 114, 380, 42);
+    ctx.strokeRect(60, 114, 380, 42);
+  }
+
+  ctx.fillStyle = statusColor;
+  ctx.font = '800 15px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(statusText, 80, 140);
+
+  // Vehicle Info
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = '800 28px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(selectedCar.name, 60, 196);
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(`BODY TYPE: ${selectedCar.body_type.toUpperCase()} • CONFIGURATION: ${seatsFolded ? 'SEATS FOLDED FLAT' : 'SEATS IN PLACE'}`, 60, 222);
+
+  // Cargo Specs Box
+  const inputL = parseFloat(cargoLengthInput.value) || 0;
+  const inputW = parseFloat(cargoWidthInput.value) || 0;
+  const inputH = parseFloat(cargoHeightInput.value) || 0;
+  const cmL = currentUnit === 'in' ? inputL * 2.54 : inputL;
+  const cmW = currentUnit === 'in' ? inputW * 2.54 : inputW;
+  const cmH = currentUnit === 'in' ? inputH * 2.54 : inputH;
+
+  const inL = (cmL / 2.54).toFixed(1);
+  const inW = (cmW / 2.54).toFixed(1);
+  const inH = (cmH / 2.54).toFixed(1);
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(60, 250, 480, 105, 12);
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    ctx.fillRect(60, 250, 480, 105);
+    ctx.strokeRect(60, 250, 480, 105);
+  }
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 11px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('CARGO DIMENSIONS', 80, 276);
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = '800 22px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(`${Math.round(cmL)} × ${Math.round(cmW)} × ${Math.round(cmH)} cm`, 80, 308);
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '600 14px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(`(${inL} × ${inW} × ${inH} inches)`, 80, 334);
+
+  // 4 Gates Specs Box
+  const gates = [
+    { label: 'Tailgate Aperture', val: `${selectedCar.aperture_width} × ${selectedCar.aperture_height} cm` },
+    { label: 'Wheel Arch Width', val: `${selectedCar.wheel_arch_width} cm` },
+    { label: 'Usable Boot Floor', val: `${seatsFolded ? selectedCar.floor_length_seats_folded : selectedCar.floor_length_seats_up} cm` },
+    { label: 'Interior Roof Height', val: `${selectedCar.roof_height} cm` }
+  ];
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(60, 375, 480, 185, 12);
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    ctx.fillRect(60, 375, 480, 185);
+    ctx.strokeRect(60, 375, 480, 185);
+  }
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 11px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('VEHICLE BOOT CONSTRAINTS', 80, 401);
+
+  gates.forEach((g, idx) => {
+    const y = 431 + idx * 30;
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '500 13px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText(g.label, 80, y);
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(g.val, 510, y);
+    ctx.textAlign = 'left';
+  });
+
+  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  ctx.fillStyle = '#475569';
+  ctx.font = '500 11px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(`Verified on ${today} • Manufacturer CAD Specifications`, 60, 605);
+
+  // Draw 3D Snapshot
+  if (renderer && renderer.domElement) {
+    try {
+      const snapUrl = renderer.domElement.toDataURL('image/png');
+      const snapImg = new Image();
+      snapImg.onload = () => {
+        ctx.save();
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(570, 114, 570, 446, 16);
+          ctx.fill();
+          ctx.stroke();
+          ctx.clip();
+        } else {
+          ctx.fillRect(570, 114, 570, 446);
+          ctx.strokeRect(570, 114, 570, 446);
+        }
+        ctx.drawImage(snapImg, 570, 114, 570, 446);
+        ctx.restore();
+
+        // 3D Badge Overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(586, 130, 160, 26, 6);
+          ctx.fill();
+        } else {
+          ctx.fillRect(586, 130, 160, 26);
+        }
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '700 10px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('3D SPATIAL SIMULATION', 598, 147);
+      };
+      snapImg.src = snapUrl;
+    } catch (e) {
+      console.warn('Could not export 3D image to pass:', e);
+    }
+  }
+}
+
 function attachEvents() {
+  // Unit Toggle (cm / in)
+  unitButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchUnit(btn.dataset.unit);
+    });
+  });
+
+  // Preset Category Tabs
+  presetCategoryButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterPresetCategories(btn.dataset.cat);
+    });
+  });
+
+  // Car Body-Type Filter Chips
+  carPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      carPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      populateCarSelect(pill.dataset.body, carSearchInput ? carSearchInput.value : '');
+    });
+  });
+
+  // Car Search Input
+  if (carSearchInput) {
+    carSearchInput.addEventListener('input', (e) => {
+      populateCarSelect(activeCarBodyFilter, e.target.value);
+    });
+  }
+
+  if (btnClearCarSearch) {
+    btnClearCarSearch.addEventListener('click', () => {
+      if (carSearchInput) carSearchInput.value = '';
+      populateCarSelect(activeCarBodyFilter, '');
+      if (carSearchInput) carSearchInput.focus();
+    });
+  }
+
+  if (btnResetFilters) {
+    btnResetFilters.addEventListener('click', () => {
+      if (carSearchInput) carSearchInput.value = '';
+      carPills.forEach(p => p.classList.toggle('active', p.dataset.body === 'all'));
+      populateCarSelect('all', '');
+    });
+  }
+
+  // Fleet Matcher Modal Events
+  if (btnFleetCheck) {
+    btnFleetCheck.addEventListener('click', openFleetModal);
+  }
+  if (btnOpenFleetPrompt) {
+    btnOpenFleetPrompt.addEventListener('click', openFleetModal);
+  }
+  if (btnCloseFleetModal) {
+    btnCloseFleetModal.addEventListener('click', closeFleetModal);
+  }
+  if (fleetModalBackdrop) {
+    fleetModalBackdrop.addEventListener('click', closeFleetModal);
+  }
+
+  fleetTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      fleetTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeFleetFilter = tab.dataset.fleetFilter;
+      renderFleetModal();
+    });
+  });
+
+  // Fitment Pass Export Modal Events
+  if (btnExportPass) {
+    btnExportPass.addEventListener('click', openPassModal);
+  }
+  if (btnClosePassModal) {
+    btnClosePassModal.addEventListener('click', closePassModal);
+  }
+  if (passModalBackdrop) {
+    passModalBackdrop.addEventListener('click', closePassModal);
+  }
+
+  if (btnDownloadPass && fitmentPassCanvas) {
+    btnDownloadPass.addEventListener('click', () => {
+      const link = document.createElement('a');
+      const safeCar = (selectedCar.name || 'car').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      link.download = `will-it-fit-pass-${safeCar}.png`;
+      link.href = fitmentPassCanvas.toDataURL('image/png');
+      link.click();
+      showToast('Fitment Pass downloaded!');
+    });
+  }
+
+  if (btnCopyPass && fitmentPassCanvas) {
+    btnCopyPass.addEventListener('click', () => {
+      fitmentPassCanvas.toBlob(blob => {
+        if (!blob) return;
+        if (navigator.clipboard && navigator.clipboard.write) {
+          navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+            .then(() => showToast('Fitment Pass copied to clipboard!'))
+            .catch(() => showToast('Could not copy image automatically. Use Download button.'));
+        } else {
+          showToast('Clipboard image copying not supported on this browser.');
+        }
+      });
+    });
+  }
+
+  if (btnSharePass && fitmentPassCanvas) {
+    btnSharePass.addEventListener('click', () => {
+      fitmentPassCanvas.toBlob(blob => {
+        if (blob && navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'pass.png', { type: 'image/png' })] })) {
+          const file = new File([blob], 'fitment-pass.png', { type: 'image/png' });
+          navigator.share({
+            title: `Will It Fit In The Boot? — ${selectedCar.name}`,
+            text: `Checking if my cargo fits in the ${selectedCar.name}!`,
+            files: [file]
+          }).catch(() => {});
+        } else if (navigator.share) {
+          navigator.share({
+            title: `Will It Fit In The Boot? — ${selectedCar.name}`,
+            text: `Check fitment for ${selectedCar.name} on willitfitintheboot.co.uk`,
+            url: window.location.href
+          }).catch(() => {});
+        } else {
+          navigator.clipboard.writeText(window.location.href).then(() => {
+            showToast('Page link copied to clipboard!');
+          });
+        }
+      });
+    });
+  }
+
+  // Close modals on Esc key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeFleetModal();
+      closePassModal();
+    }
+  });
+
   [cargoLengthInput, cargoWidthInput, cargoHeightInput].forEach(input => {
     input.addEventListener('input', () => {
       clearActivePresets();
@@ -747,9 +1415,19 @@ function attachEvents() {
     btn.addEventListener('click', () => {
       clearActivePresets();
       btn.classList.add('active');
-      cargoLengthInput.value = btn.dataset.length;
-      cargoWidthInput.value = btn.dataset.width;
-      cargoHeightInput.value = btn.dataset.height;
+      const cmL = parseFloat(btn.dataset.length) || 70;
+      const cmW = parseFloat(btn.dataset.width) || 48;
+      const cmH = parseFloat(btn.dataset.height) || 28;
+
+      if (currentUnit === 'in') {
+        cargoLengthInput.value = (cmL / 2.54).toFixed(1);
+        cargoWidthInput.value = (cmW / 2.54).toFixed(1);
+        cargoHeightInput.value = (cmH / 2.54).toFixed(1);
+      } else {
+        cargoLengthInput.value = cmL;
+        cargoWidthInput.value = cmW;
+        cargoHeightInput.value = cmH;
+      }
       manualAngleSliderValue = null;
       userExplicitSeatToggle = false;
       evaluateFitment();
@@ -1326,9 +2004,14 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
 function evaluateFitment() {
   if (!selectedCar) return;
 
-  const rawL = parseFloat(cargoLengthInput.value) || 0;
-  const rawW = parseFloat(cargoWidthInput.value) || 0;
-  const rawH = parseFloat(cargoHeightInput.value) || 0;
+  const inputL = parseFloat(cargoLengthInput.value) || 0;
+  const inputW = parseFloat(cargoWidthInput.value) || 0;
+  const inputH = parseFloat(cargoHeightInput.value) || 0;
+
+  // Convert to centimeters internally for math solvers and 3D studio
+  const rawL = currentUnit === 'in' ? inputL * 2.54 : inputL;
+  const rawW = currentUnit === 'in' ? inputW * 2.54 : inputW;
+  const rawH = currentUnit === 'in' ? inputH * 2.54 : inputH;
 
   // Intelligent Automatic Seat Folding:
   // Default state is rear seats UP/in place. Only fold if the item requires it!
@@ -1367,10 +2050,33 @@ function evaluateFitment() {
   const rakeRad = (selectedCar.rake_angle_deg * Math.PI) / 180;
   const tanRake = Math.tan(rakeRad);
 
-  if (specFloor) specFloor.textContent = `${floorLength} cm (${seatsFolded ? 'seats folded' : 'seats up'})`;
-  if (specArches) specArches.textContent = `${archWidth} cm`;
-  if (specRoof) specRoof.textContent = `${roofHeight} cm`;
-  if (specAperture) specAperture.textContent = `${apWidth} × ${apHeight} cm`;
+  const floorIn = (floorLength / 2.54).toFixed(1);
+  const archIn = (archWidth / 2.54).toFixed(1);
+  const roofIn = (roofHeight / 2.54).toFixed(1);
+  const apWIn = (apWidth / 2.54).toFixed(1);
+  const apHIn = (apHeight / 2.54).toFixed(1);
+
+  if (specFloor) {
+    const configLabel = seatsFolded ? 'seats folded' : 'seats up';
+    specFloor.textContent = currentUnit === 'in'
+      ? `${floorIn} in / ${floorLength} cm (${configLabel})`
+      : `${floorLength} cm (${floorIn} in, ${configLabel})`;
+  }
+  if (specArches) {
+    specArches.textContent = currentUnit === 'in'
+      ? `${archIn} in (${archWidth} cm)`
+      : `${archWidth} cm (${archIn} in)`;
+  }
+  if (specRoof) {
+    specRoof.textContent = currentUnit === 'in'
+      ? `${roofIn} in (${roofHeight} cm)`
+      : `${roofHeight} cm (${roofIn} in)`;
+  }
+  if (specAperture) {
+    specAperture.textContent = currentUnit === 'in'
+      ? `${apWIn} × ${apHIn} in`
+      : `${apWidth} × ${apHeight} cm`;
+  }
   if (specsCarName) specsCarName.textContent = selectedCar.name;
   if (hudBodyType) hudBodyType.textContent = selectedCar.body_type.toUpperCase();
 
@@ -1812,6 +2518,17 @@ function evaluateFitment() {
   }
 
   update3DStudio(selectedCar, seatsFolded, activeResult);
+
+  // Update Fleet Prompt Banner text
+  if (fleetPromptText) {
+    if (activeResult.status === 'colliding') {
+      fleetPromptText.textContent = `Doesn't fit in your ${selectedCar.name}? See which cars in the garage CAN fit this`;
+    } else if (seatsFolded) {
+      fleetPromptText.textContent = `Fits with seats folded. See which cars can carry this with all seats UP`;
+    } else {
+      fleetPromptText.textContent = `Fits flat! Check how this item fits across all 26 cars`;
+    }
+  }
 }
 
 /* ==========================================================================
@@ -1848,7 +2565,7 @@ function initThreeStudio() {
   // Zoomed out to comfortably frame the complete car & open boot on initial load
   camera.position.set(245, 160, 245);
 
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
   renderer.setSize(width, height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 

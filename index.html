@@ -111,7 +111,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=31">
+  <link rel="stylesheet" href="style.css?v=32">
   <!-- Three.js & OrbitControls via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -149,29 +149,40 @@
             </div>
             
             <div class="presets-container">
-              <div class="presets-nav-row">
+              <div class="presets-header-row">
                 <span class="presets-label">Popular items</span>
-                <div class="preset-categories" id="preset-categories">
-                  <button type="button" class="preset-cat-btn active" data-cat="all">All</button>
-                  <button type="button" class="preset-cat-btn" data-cat="travel">Travel &amp; Family</button>
-                  <button type="button" class="preset-cat-btn" data-cat="home">Home &amp; DIY</button>
-                  <button type="button" class="preset-cat-btn" data-cat="tech">TVs &amp; Tech</button>
-                </div>
+                <button type="button" class="btn-more-presets" id="btn-toggle-presets" title="Toggle extended item library">
+                  <span id="btn-more-presets-text">+ 7 more items ▾</span>
+                </button>
               </div>
+
+              <!-- Primary Quick-Picks (6 Most Common) -->
               <div class="presets-grid" id="presets-grid">
                 <button type="button" class="preset-btn active" data-cat="travel" data-name="Large Suitcase" data-length="70" data-width="48" data-height="28">🧳 Suitcase</button>
-                <button type="button" class="preset-btn" data-cat="travel" data-name="2x Large Suitcases" data-length="70" data-width="96" data-height="28">🧳 2× Suitcases</button>
                 <button type="button" class="preset-btn" data-cat="travel" data-name="Baby Stroller / Pram" data-length="85" data-width="60" data-height="40">🍼 Baby Pram</button>
-                <button type="button" class="preset-btn" data-cat="travel" data-name="Golf Bag &amp; Clubs" data-length="122" data-width="32" data-height="30">⛳ Golf Bag</button>
-                <button type="button" class="preset-btn" data-cat="travel" data-name="Medium Dog Crate" data-length="91" data-width="58" data-height="64">🐕 Dog Crate</button>
                 <button type="button" class="preset-btn" data-cat="travel" data-name="Adult Bicycle" data-length="175" data-width="65" data-height="105">🚲 Bicycle</button>
-                <button type="button" class="preset-btn" data-cat="tech" data-name="55-inch TV Box" data-length="140" data-width="85" data-height="16">📺 55" TV Box</button>
                 <button type="button" class="preset-btn" data-cat="tech" data-name="65-inch TV Box" data-length="160" data-width="98" data-height="18">📺 65" TV Box</button>
-                <button type="button" class="preset-btn" data-cat="tech" data-name="75-inch TV Box" data-length="185" data-width="112" data-height="20">📺 75" TV Box</button>
                 <button type="button" class="preset-btn" data-cat="home" data-name="Washing Machine" data-length="60" data-width="60" data-height="85">🧺 Washer / Dryer</button>
-                <button type="button" class="preset-btn" data-cat="home" data-name="IKEA Billy Bookcase" data-length="205" data-width="30" data-height="13">📚 IKEA Bookcase</button>
-                <button type="button" class="preset-btn" data-cat="home" data-name="IKEA Kallax 2x4" data-length="150" data-width="42" data-height="18">📦 IKEA Kallax</button>
-                <button type="button" class="preset-btn" data-cat="home" data-name="Flat-pack Desk" data-length="135" data-width="65" data-height="12">🪑 Flat-pack Desk</button>
+                <button type="button" class="preset-btn" data-cat="home" data-name="IKEA Billy Bookcase" data-length="205" data-width="30" data-height="13">📚 Bookcase</button>
+              </div>
+
+              <!-- Collapsible Extended Items Drawer -->
+              <div class="presets-more-drawer collapsed" id="presets-more-drawer">
+                <div class="preset-categories" id="preset-categories">
+                  <button type="button" class="preset-cat-btn active" data-cat="all">All</button>
+                  <button type="button" class="preset-cat-btn" data-cat="travel">Travel</button>
+                  <button type="button" class="preset-cat-btn" data-cat="home">Home</button>
+                  <button type="button" class="preset-cat-btn" data-cat="tech">Tech</button>
+                </div>
+                <div class="presets-grid secondary">
+                  <button type="button" class="preset-btn" data-cat="travel" data-name="2x Large Suitcases" data-length="70" data-width="96" data-height="28">🧳 2× Suitcases</button>
+                  <button type="button" class="preset-btn" data-cat="travel" data-name="Golf Bag &amp; Clubs" data-length="122" data-width="32" data-height="30">⛳ Golf Bag</button>
+                  <button type="button" class="preset-btn" data-cat="travel" data-name="Medium Dog Crate" data-length="91" data-width="58" data-height="64">🐕 Dog Crate</button>
+                  <button type="button" class="preset-btn" data-cat="tech" data-name="55-inch TV Box" data-length="140" data-width="85" data-height="16">📺 55" TV Box</button>
+                  <button type="button" class="preset-btn" data-cat="tech" data-name="75-inch TV Box" data-length="185" data-width="112" data-height="20">📺 75" TV Box</button>
+                  <button type="button" class="preset-btn" data-cat="home" data-name="IKEA Kallax 2x4" data-length="150" data-width="42" data-height="18">📦 IKEA Kallax</button>
+                  <button type="button" class="preset-btn" data-cat="home" data-name="Flat-pack Desk" data-length="135" data-width="65" data-height="12">🪑 Flat-pack Desk</button>
+                </div>
               </div>
             </div>
 
@@ -203,18 +214,16 @@
           <div class="form-group">
             <div class="card-header-row">
               <h2 class="card-title">2. Choose your car</h2>
-              <button type="button" class="btn-custom-car-trigger" id="btn-open-custom-car" title="Add a custom vehicle not in our list">
-                <span>➕ Add Custom Car</span>
-              </button>
             </div>
 
-            <!-- Body Type Filter Chips -->
+            <!-- Body Type Filter Chips with Integrated Custom Car Trigger -->
             <div class="car-filter-chips" id="car-filter-chips">
               <button type="button" class="car-pill active" data-body="all">All (26)</button>
               <button type="button" class="car-pill" data-body="hatchback">Hatchback (8)</button>
               <button type="button" class="car-pill" data-body="suv">SUV (8)</button>
               <button type="button" class="car-pill" data-body="estate">Estate (5)</button>
               <button type="button" class="car-pill" data-body="saloon">Saloon (5)</button>
+              <button type="button" class="car-pill custom-car-pill" id="btn-open-custom-car" title="Add a custom vehicle not in our list">➕ Custom</button>
             </div>
 
             <!-- Fast Car Search -->
@@ -319,37 +328,35 @@
             <button type="button" class="fleet-prompt-btn" id="btn-open-fleet-prompt">Check All 26 Cars →</button>
           </div>
 
-          <!-- Loading Strategy & Quick Actions -->
+          <!-- Loading Strategy & Unified Actions Toolbar -->
           <div class="angle-strategy-card" id="angle-strategy-card">
             <div class="strategy-header">
               <div class="strategy-chips-row" id="strategy-chips-row">
-                <span class="strategy-chip" id="chip-ingress">🚪 Boot Entrance: Clears</span>
-                <span class="strategy-chip" id="chip-stowed">📦 Inside Boot: Fits Flat</span>
+                <span class="strategy-chip" id="chip-ingress">🚪 Opening: Clears</span>
+                <span class="strategy-chip" id="chip-stowed">📦 Boot: Fits Flat</span>
               </div>
               <div class="strategy-actions">
                 <button type="button" class="anim-btn" id="btn-simulate-ingress" title="Watch item slide into the boot">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   <span id="anim-btn-label">Watch It Load</span>
                 </button>
-                <button type="button" class="fleet-check-btn" id="btn-fleet-check" title="Compare fitment across all 26 vehicles in the garage">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                  <span>All Cars</span>
-                </button>
-                <button type="button" class="export-pass-btn" id="btn-export-pass" title="Generate and download a shareable Fitment Pass certificate">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  <span>Fitment Pass</span>
-                </button>
-                <button type="button" class="compare-btn" id="btn-open-compare" title="Compare this vehicle side-by-side with another car">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
-                  <span>Compare</span>
-                </button>
-                <button type="button" class="toggle-advanced-btn" id="btn-toggle-advanced" title="Customize tilt angles and loading modes">
-                  ⚙️ Tilt Options ▾
-                </button>
-                <button type="button" class="share-btn" id="btn-share-link" title="Copy shareable link for this car and cargo">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                  <span>Share</span>
-                </button>
+                <div class="secondary-tools-group">
+                  <button type="button" class="tool-btn" id="btn-open-compare" title="Compare this vehicle side-by-side with another car">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+                    <span>Compare</span>
+                  </button>
+                  <button type="button" class="tool-btn" id="btn-export-pass" title="Generate Fitment Pass certificate">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>Pass</span>
+                  </button>
+                  <button type="button" class="tool-btn" id="btn-share-link" title="Copy shareable link">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    <span>Share</span>
+                  </button>
+                  <button type="button" class="tool-btn toggle-advanced-btn" id="btn-toggle-advanced" title="Customize tilt angles and loading modes">
+                    <span>⚙️ Tilt ▾</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -398,16 +405,21 @@
           <!-- 3D Interactive Viewport -->
           <div id="view-3d-container" class="view-container active">
             <div class="viewport-3d-wrap">
-              <!-- Showroom Paint Swatch Palette -->
-              <div class="paint-swatch-bar" id="paint-swatch-bar" title="Change 3D Vehicle Paint Color">
-                <span class="swatch-label">Paint:</span>
-                <button type="button" class="paint-swatch active" data-color="#1e293b" title="Slate Shadow" style="background:#1e293b;"></button>
-                <button type="button" class="paint-swatch" data-color="#f8fafc" title="Pure White" style="background:#f8fafc;"></button>
-                <button type="button" class="paint-swatch" data-color="#090d16" title="Deep Onyx Black" style="background:#090d16;"></button>
-                <button type="button" class="paint-swatch" data-color="#94a3b8" title="Metallic Silver" style="background:#94a3b8;"></button>
-                <button type="button" class="paint-swatch" data-color="#2563eb" title="Royal Blue Metallic" style="background:#2563eb;"></button>
-                <button type="button" class="paint-swatch" data-color="#dc2626" title="Race Red" style="background:#dc2626;"></button>
-                <button type="button" class="paint-swatch" data-color="#059669" title="British Racing Green" style="background:#059669;"></button>
+              <!-- Sleek Floating Paint Swatch Popover -->
+              <div class="paint-swatch-dropdown" id="paint-swatch-dropdown">
+                <button type="button" class="paint-dropdown-btn" id="btn-toggle-paint" title="Change 3D Vehicle Paint Color">
+                  <span class="paint-dot-preview" id="paint-dot-preview" style="background:#1e293b;"></span>
+                  <span>Paint ▾</span>
+                </button>
+                <div class="paint-swatch-menu" id="paint-swatch-bar">
+                  <button type="button" class="paint-swatch active" data-color="#1e293b" title="Slate Shadow" style="background:#1e293b;"></button>
+                  <button type="button" class="paint-swatch" data-color="#f8fafc" title="Pure White" style="background:#f8fafc;"></button>
+                  <button type="button" class="paint-swatch" data-color="#090d16" title="Deep Onyx Black" style="background:#090d16;"></button>
+                  <button type="button" class="paint-swatch" data-color="#94a3b8" title="Metallic Silver" style="background:#94a3b8;"></button>
+                  <button type="button" class="paint-swatch" data-color="#2563eb" title="Royal Blue Metallic" style="background:#2563eb;"></button>
+                  <button type="button" class="paint-swatch" data-color="#dc2626" title="Race Red" style="background:#dc2626;"></button>
+                  <button type="button" class="paint-swatch" data-color="#059669" title="British Racing Green" style="background:#059669;"></button>
+                </div>
               </div>
 
               <canvas id="three-canvas"></canvas>
@@ -415,7 +427,7 @@
               <!-- Floating Camera Toolbar -->
               <div class="camera-toolbar">
                 <div class="cam-nav-group">
-                  <button type="button" class="cam-btn active" data-view="orbit">3D View</button>
+                  <button type="button" class="cam-btn active" data-view="orbit">3D</button>
                   <button type="button" class="cam-btn" data-view="side">Side</button>
                   <button type="button" class="cam-btn" data-view="rear">Rear</button>
                   <button type="button" class="cam-btn" data-view="top">Top</button>
@@ -424,10 +436,10 @@
                 <div class="cam-divider"></div>
                 <div class="cam-action-group">
                   <button type="button" class="cam-btn boot-toggle-btn active" id="btn-boot-toggle" title="Toggle Boot Tailgate Open/Closed">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px; margin-right: 3px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    Boot: Open
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px; margin-right: 3px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span>Boot: Open</span>
                   </button>
-                  <button type="button" class="cam-btn x-ray-btn" id="btn-xray-toggle">👁️ See Inside</button>
+                  <button type="button" class="cam-btn x-ray-btn" id="btn-xray-toggle">👁️ Inside</button>
                 </div>
               </div>
 
@@ -1028,6 +1040,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-notification" class="toast-notification" aria-live="polite"></div>
 
-  <script src="app.js?v=82"></script>
+  <script src="app.js?v=83"></script>
 </body>
 </html>

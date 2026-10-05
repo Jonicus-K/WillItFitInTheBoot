@@ -1439,6 +1439,8 @@ function updateSafetyAdvisory(rawL, rawW, rawH) {
 
 function setCarPaintColor(hex) {
   currentCarPaintColor = hex;
+  const dot = document.getElementById('paint-dot-preview');
+  if (dot) dot.style.background = hex;
   paintSwatches.forEach(swatch => {
     swatch.classList.toggle('active', swatch.dataset.color.toLowerCase() === hex.toLowerCase());
   });
@@ -1687,6 +1689,35 @@ function handleCustomCarSubmit(e) {
 }
 
 function attachEvents() {
+
+  // More Presets Collapsible Drawer
+  const btnTogglePresets = document.getElementById('btn-toggle-presets');
+  const presetsMoreDrawer = document.getElementById('presets-more-drawer');
+  const btnMorePresetsText = document.getElementById('btn-more-presets-text');
+  if (btnTogglePresets && presetsMoreDrawer) {
+    btnTogglePresets.addEventListener('click', () => {
+      const isCollapsed = presetsMoreDrawer.classList.toggle('collapsed');
+      if (btnMorePresetsText) {
+        btnMorePresetsText.textContent = isCollapsed ? '+ 7 more items ▾' : '▴ Fewer items';
+      }
+    });
+  }
+
+  // Floating Paint Swatches Dropdown Toggle
+  const btnTogglePaint = document.getElementById('btn-toggle-paint');
+  const paintDropdown = document.getElementById('paint-swatch-dropdown');
+  if (btnTogglePaint && paintDropdown) {
+    btnTogglePaint.addEventListener('click', (e) => {
+      e.stopPropagation();
+      paintDropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!paintDropdown.contains(e.target)) {
+        paintDropdown.classList.remove('open');
+      }
+    });
+  }
+
 
   // Multi-Item Quantity Multiplier (1x, 2x, 3x)
   qtyButtons.forEach(btn => {

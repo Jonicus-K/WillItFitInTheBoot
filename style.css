@@ -2477,3 +2477,162 @@ body {
     height: 14px;
   }
 }
+
+
+/* ========================================================
+   Streamlined & Simplified Controls (Uncluttered UX)
+   ======================================================== */
+.presets-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-more-presets {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  font-family: var(--font-family);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  transition: all 0.16s ease;
+  user-select: none;
+}
+
+.btn-more-presets:hover {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.presets-more-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+  max-height: 400px;
+  opacity: 1;
+  transition: max-height 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease, margin 0.2s ease;
+  margin-top: 4px;
+}
+
+.presets-more-drawer.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  pointer-events: none;
+}
+
+.car-pill.custom-car-pill {
+  border: 1px dashed rgba(59, 130, 246, 0.55);
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.car-pill.custom-car-pill:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #93c5fd;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.secondary-tools-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  gap: 1px;
+  backdrop-filter: blur(8px);
+}
+
+.tool-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-family);
+  font-size: 0.70rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.tool-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tool-btn.active {
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.paint-swatch-dropdown {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+}
+
+.paint-dropdown-btn {
+  background: rgba(11, 17, 32, 0.82);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-muted);
+  font-family: var(--font-family);
+  font-size: 0.70rem;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.16s ease;
+}
+
+.paint-dropdown-btn:hover,
+.paint-swatch-dropdown.open .paint-dropdown-btn {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.paint-dot-preview {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  display: inline-block;
+}
+
+.paint-swatch-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  background: rgba(11, 17, 32, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 5px 8px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.18s ease;
+}
+
+.paint-swatch-dropdown.open .paint-swatch-menu,
+.paint-swatch-dropdown:hover .paint-swatch-menu {
+  display: flex;
+}

@@ -1325,7 +1325,7 @@ function updateVolumeCapacityMeter(rawL, rawW, rawH, seatsFolded) {
     volumeCapacityCard.style.display = 'none';
     return;
   }
-  volumeCapacityCard.style.display = 'block';
+  volumeCapacityCard.style.display = 'inline-flex';
 
   const singleLitres = Math.round((rawL * rawW * rawH) / 1000);
   const totalCargoLitres = singleLitres * itemQuantity;
@@ -1336,7 +1336,7 @@ function updateVolumeCapacityMeter(rawL, rawW, rawH, seatsFolded) {
 
   if (cargoVolumeVal) {
     cargoVolumeVal.textContent = itemQuantity > 1
-      ? `${totalCargoLitres} L (${itemQuantity}× ${singleLitres}L)`
+      ? `${totalCargoLitres} L (${itemQuantity}×)`
       : `${totalCargoLitres} L`;
   }
   if (bootVolumeVal) {
@@ -1344,7 +1344,7 @@ function updateVolumeCapacityMeter(rawL, rawW, rawH, seatsFolded) {
   }
 
   if (volumePercentBadge) {
-    volumePercentBadge.textContent = pct > 100 ? `${pct}% (Exceeds Volume)` : `${pct}% of boot`;
+    volumePercentBadge.textContent = `${pct}% full`;
     volumePercentBadge.className = 'volume-percent-badge ' + (pct > 100 ? 'overflow' : pct > 75 ? 'warn' : 'ok');
   }
 
@@ -1419,7 +1419,7 @@ function updateSafetyAdvisory(rawL, rawW, rawH) {
       title: 'Pram Wheels & Hatch Glass Clearance',
       text: 'Engage wheel locks so the chassis does not roll against the rear hatch glass while driving. Remove quick-release rear wheels if vertical aperture clearance is tight.'
     };
-  } else if (presetName.includes('suitcase') || presetName.includes('luggage') || itemQuantity > 1) {
+  } else if (itemQuantity > 1 || presetName.includes('2x') || presetName.includes('2×')) {
     advisory = {
       icon: '🧳',
       title: 'Multi-Item Weight Distribution',

@@ -214,22 +214,15 @@
           <div class="form-group">
             <div class="card-header-row">
               <h2 class="card-title">2. Choose your car</h2>
+              <button type="button" class="btn-custom-car-link" id="btn-open-custom-car" title="Add a custom vehicle not in our list">
+                <span>➕ Custom Car</span>
+              </button>
             </div>
 
-            <!-- Body Type Filter Chips with Integrated Custom Car Trigger -->
-            <div class="car-filter-chips" id="car-filter-chips">
-              <button type="button" class="car-pill active" data-body="all">All (26)</button>
-              <button type="button" class="car-pill" data-body="hatchback">Hatchback (8)</button>
-              <button type="button" class="car-pill" data-body="suv">SUV (8)</button>
-              <button type="button" class="car-pill" data-body="estate">Estate (5)</button>
-              <button type="button" class="car-pill" data-body="saloon">Saloon (5)</button>
-              <button type="button" class="car-pill custom-car-pill" id="btn-open-custom-car" title="Add a custom vehicle not in our list">➕ Custom</button>
-            </div>
-
-            <!-- Fast Car Search -->
+            <!-- Fast Car Search & Instant Filter -->
             <div class="car-search-wrap">
               <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="car-search-input" placeholder="Search make or model (e.g. Golf, Tesla, Puma)..." autocomplete="off" spellcheck="false">
+              <input type="text" id="car-search-input" placeholder="Search car (e.g. Golf, Tesla, Puma)..." autocomplete="off" spellcheck="false">
               <button type="button" id="btn-clear-car-search" class="clear-search-btn" title="Clear search" style="display:none;">✕</button>
             </div>
 
@@ -243,6 +236,15 @@
               <button type="button" class="filter-reset-link" id="btn-reset-filters">Show all</button>
             </div>
 
+            <!-- Hidden car-filter-chips preserved for JS compatibility -->
+            <div class="car-filter-chips" id="car-filter-chips" style="display:none;">
+              <button type="button" class="car-pill active" data-body="all">All</button>
+              <button type="button" class="car-pill" data-body="hatchback">Hatchback</button>
+              <button type="button" class="car-pill" data-body="suv">SUV</button>
+              <button type="button" class="car-pill" data-body="estate">Estate</button>
+              <button type="button" class="car-pill" data-body="saloon">Saloon</button>
+            </div>
+
             <label class="checkbox-control">
               <input type="checkbox" id="fold-seats">
               <span class="checkbox-custom"></span>
@@ -250,29 +252,17 @@
             </label>
           </div>
 
-          <!-- Integrated Cargo Space Specs Panel -->
-          <div class="specs-panel" id="specs-panel">
-            <div class="specs-panel-header">
-              <span class="specs-panel-title">Car Boot Dimensions</span>
+          <!-- Clean Sleek Boot Specs Strip -->
+          <div class="specs-panel-inline" id="specs-panel">
+            <div class="specs-inline-header">
+              <span class="specs-badge">BOOT DIMENSIONS</span>
               <span class="specs-panel-car" id="specs-car-name">Volkswagen Golf</span>
             </div>
-            <div class="specs-grid">
-              <div class="spec-item">
-                <span class="spec-label">📏 Length</span>
-                <strong class="spec-value" id="spec-floor">77 cm (seats up)</strong>
-              </div>
-              <div class="spec-item">
-                <span class="spec-label">↔️ Width</span>
-                <strong class="spec-value" id="spec-arches">100 cm</strong>
-              </div>
-              <div class="spec-item">
-                <span class="spec-label">↕️ Height</span>
-                <strong class="spec-value" id="spec-roof">71 cm</strong>
-              </div>
-              <div class="spec-item">
-                <span class="spec-label">🚪 Opening</span>
-                <strong class="spec-value" id="spec-aperture">102 × 67 cm</strong>
-              </div>
+            <div class="specs-inline-grid">
+              <div class="spec-inline-item"><span class="spec-k">Floor:</span> <strong id="spec-floor">77 cm</strong></div>
+              <div class="spec-inline-item"><span class="spec-k">Arches:</span> <strong id="spec-arches">100 cm</strong></div>
+              <div class="spec-inline-item"><span class="spec-k">Roof:</span> <strong id="spec-roof">71 cm</strong></div>
+              <div class="spec-inline-item"><span class="spec-k">Opening:</span> <strong id="spec-aperture">102 × 67 cm</strong></div>
             </div>
           </div>
         </section>
@@ -281,61 +271,35 @@
       <!-- Results & Visualizer Column -->
       <section class="results-column">
         <div class="card result-card">
-          <div class="card-header-row">
-            <h2 class="card-title">Will It Fit?</h2>
-          </div>
+          <!-- Hero Verdict Header -->
+          <div class="verdict-hero-block">
+            <div id="result-banner" class="result-banner will-not-fit">Calculating...</div>
+            <p id="result-explanation" class="result-explanation">Calculating fitment...</p>
 
-          <!-- Primary Result Banner -->
-          <div id="result-banner" class="result-banner will-not-fit">Calculating...</div>
-          <p id="result-explanation" class="result-explanation">Calculating fitment...</p>
+            <!-- Unified Single-Line Telemetry & Actions Ribbon -->
+            <div class="unified-telemetry-ribbon">
+              <div class="ribbon-row-status">
+                <div class="ribbon-chips-left">
+                  <span class="strategy-chip" id="chip-ingress">🚪 Opening: Clears</span>
+                  <span class="strategy-chip" id="chip-stowed">📦 Boot: Fits Flat</span>
+                </div>
 
-          <!-- Boot Volume & Capacity Utilization Meter -->
-          <div class="volume-capacity-card" id="volume-capacity-card">
-            <div class="volume-header-row">
-              <div class="volume-stat-left">
-                <span class="volume-label">Cargo Volume:</span>
-                <strong class="volume-value" id="cargo-volume-val">94 L</strong>
-                <span class="volume-percent-badge" id="volume-percent-badge">25% of boot</span>
+                <!-- Compact Volume Telemetry Pill -->
+                <div class="volume-telemetry-pill" id="volume-capacity-card" title="Boot volume capacity & fill rate">
+                  <span class="vol-pill-label">Boot:</span>
+                  <span class="volume-percent-badge" id="volume-percent-badge">25% full</span>
+                  <div class="volume-meter-track">
+                    <div class="volume-meter-bar" id="volume-meter-bar" style="width: 25%;"></div>
+                  </div>
+                  <!-- Preserved values for tooltip & JS compatibility -->
+                  <span id="cargo-volume-val" class="vol-stat-inline">94 L</span>
+                  <span id="boot-volume-val" class="vol-stat-inline" style="display:none;">381 L</span>
+                  <span id="volume-footer-tip" class="vol-stat-inline" style="display:none;">~287 L free</span>
+                </div>
               </div>
-              <div class="volume-stat-right">
-                <span class="volume-label">Boot Capacity:</span>
-                <strong class="volume-value" id="boot-volume-val">381 L (seats up)</strong>
-              </div>
-            </div>
-            <div class="volume-meter-track">
-              <div class="volume-meter-bar" id="volume-meter-bar" style="width: 25%;"></div>
-            </div>
-            <div class="volume-footer-row">
-              <span class="volume-footer-tip" id="volume-footer-tip">~287 L remaining for bags &amp; groceries</span>
-            </div>
-          </div>
 
-          <!-- Smart Transport & Safety Advisory Card -->
-          <div class="safety-advisory-card" id="safety-advisory-card" style="display:none;">
-            <div class="advisory-icon" id="advisory-icon">💡</div>
-            <div class="advisory-content">
-              <strong class="advisory-title" id="advisory-title">Transport Advisory</strong>
-              <p class="advisory-text" id="advisory-text"></p>
-            </div>
-          </div>
-
-          <!-- Fleet Finder Banner -->
-          <div class="fleet-prompt-banner" id="fleet-prompt-banner">
-            <div class="fleet-prompt-left">
-              <span class="fleet-prompt-icon">💡</span>
-              <span class="fleet-prompt-text" id="fleet-prompt-text">Curious which cars can fit this item?</span>
-            </div>
-            <button type="button" class="fleet-prompt-btn" id="btn-open-fleet-prompt">Check All 26 Cars →</button>
-          </div>
-
-          <!-- Loading Strategy & Unified Actions Toolbar -->
-          <div class="angle-strategy-card" id="angle-strategy-card">
-            <div class="strategy-header">
-              <div class="strategy-chips-row" id="strategy-chips-row">
-                <span class="strategy-chip" id="chip-ingress">🚪 Opening: Clears</span>
-                <span class="strategy-chip" id="chip-stowed">📦 Boot: Fits Flat</span>
-              </div>
-              <div class="strategy-actions">
+              <!-- Primary Action & Unified Tools Group -->
+              <div class="ribbon-row-actions">
                 <button type="button" class="anim-btn" id="btn-simulate-ingress" title="Watch item slide into the boot">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   <span id="anim-btn-label">Watch It Load</span>
@@ -359,6 +323,19 @@
                 </div>
               </div>
             </div>
+
+            <!-- Compact Contextual Safety Advisory (Only shows for genuine warnings) -->
+            <div class="safety-advisory-card" id="safety-advisory-card" style="display:none;">
+              <span class="advisory-icon" id="advisory-icon">💡</span>
+              <div class="advisory-content">
+                <strong class="advisory-title" id="advisory-title">Transport Advisory:</strong>
+                <span class="advisory-text" id="advisory-text"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading Strategy Card Container (preserved for slider animation & sync) -->
+          <div class="angle-strategy-card-compact" id="angle-strategy-card">
 
             <!-- Hidden heading/badge preserved for JS sync -->
             <div class="strategy-headline-row" style="display:none;">
@@ -449,6 +426,15 @@
                 <span id="hud-body-type" class="body-type-pill">HATCHBACK</span>
               </div>
             </div>
+          </div>
+
+          <!-- Clean Subtle Garage Discovery Bar Below 3D Canvas -->
+          <div class="fleet-prompt-banner" id="fleet-prompt-banner">
+            <div class="fleet-prompt-left">
+              <span class="fleet-prompt-icon">💡</span>
+              <span class="fleet-prompt-text" id="fleet-prompt-text">Curious which cars can fit this item?</span>
+            </div>
+            <button type="button" class="fleet-prompt-btn" id="btn-open-fleet-prompt">Check All 26 Cars →</button>
           </div>
         </div>
       </section>

@@ -2636,3 +2636,241 @@ body {
 .paint-swatch-dropdown:hover .paint-swatch-menu {
   display: flex;
 }
+
+/* ========================================================
+   Hero Layout & Unified Telemetry Ribbon (Radical Decluttering)
+   ======================================================== */
+
+/* Section 2: Custom Car Header Link */
+.btn-custom-car-link {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px dashed rgba(59, 130, 246, 0.45);
+  color: #60a5fa;
+  font-family: var(--font-family);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  transition: all 0.16s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-custom-car-link:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #93c5fd;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Compact Boot Specs Strip */
+.specs-panel-inline {
+  background: rgba(13, 21, 39, 0.65);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.specs-inline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.specs-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.specs-panel-car {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.specs-inline-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 12px;
+}
+
+.spec-inline-item {
+  font-size: 0.70rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.spec-inline-item .spec-k {
+  color: var(--text-dim);
+  font-weight: 500;
+  margin-right: 2px;
+}
+
+.spec-inline-item strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+/* Hero Verdict Header Block */
+.verdict-hero-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.verdict-hero-block .result-banner {
+  margin-bottom: 0;
+  font-size: 0.95rem;
+  padding: 10px 14px;
+}
+
+.verdict-hero-block .result-explanation {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Unified Telemetry & Actions Ribbon */
+.unified-telemetry-ribbon {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px 11px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(8px);
+}
+
+.ribbon-row-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ribbon-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ribbon-chips-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Compact Volume Telemetry Pill */
+.volume-telemetry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-pill);
+  padding: 3px 8px;
+  font-size: 0.70rem;
+  transition: all 0.16s ease;
+}
+
+.volume-telemetry-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.vol-pill-label {
+  color: var(--text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+
+.volume-telemetry-pill .volume-percent-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+}
+
+.volume-telemetry-pill .volume-meter-track {
+  width: 48px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.vol-stat-inline {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Contextual Safety Advisory (Compact) */
+.verdict-hero-block .safety-advisory-card {
+  margin-top: 2px;
+  padding: 6px 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.verdict-hero-block .safety-advisory-card .advisory-icon {
+  font-size: 0.95rem;
+}
+
+.verdict-hero-block .safety-advisory-card .advisory-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.verdict-hero-block .safety-advisory-card .advisory-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.verdict-hero-block .safety-advisory-card .advisory-text {
+  font-size: 0.70rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* Discovery Banner below 3D canvas */
+.results-column .fleet-prompt-banner {
+  margin-top: 10px;
+  background: linear-gradient(90deg, rgba(30, 58, 138, 0.18) 0%, rgba(15, 23, 42, 0.45) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+}
+
+.results-column .fleet-prompt-banner:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  background: linear-gradient(90deg, rgba(30, 58, 138, 0.25) 0%, rgba(15, 23, 42, 0.55) 100%);
+}

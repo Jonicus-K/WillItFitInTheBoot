@@ -3196,7 +3196,7 @@ function calculateUsableLength(floorLength, heightAboveFloor, tanRake, seatsFold
   return Math.max(20, (floorLength + fwdBuffer) - rakeIntrusion);
 }
 
-function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
+function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded, itemQty = 1) {
   const floorLength = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
   const archWidth = car.wheel_arch_width;
   const roofHeight = car.roof_height;
@@ -3206,7 +3206,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
   const tanRake = Math.tan(rakeRad);
   const cabinWidth = car.overall_width * 0.82;
   const beltH = Math.min(24, roofHeight * 0.35);
-  const fwdBuffer = seatsFolded ? 14 : 0;
+  const fwdBuffer = 0; // Never allow virtual forward penetration beyond the seatback datum
 
   const rotations = getUniqueRotations(rawL, rawW, rawH);
 
@@ -3219,7 +3219,7 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
   let bestIngress = null;
   let failureReasons = [];
 
-  const maxFloorSpan = floorLength + fwdBuffer;
+  const maxFloorSpan = floorLength;
   const centerMaxLen = floorLength + 68;
   const passengerMaxLen = car.floor_length_seats_folded + 105;
 
@@ -3263,8 +3263,8 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
             failureReasons.push(`Too long for boot floor with seats up (${rot.l} cm vs ${floorLength} cm limit, max ${car.floor_length_seats_folded} cm with seats folded).`);
           }
         } else {
-          if (rot.w > 34) {
-            failureReasons.push(`Too long for boot floor (${rot.l} cm vs ${maxFloorSpan} cm max with seats folded) and too wide (${rot.w} cm) to slide between front seats (34 cm gap limit).`);
+          if (rot.w > 30) {
+            failureReasons.push(`Too long for boot floor (${rot.l} cm vs ${maxFloorSpan} cm max with seats folded) and too wide (${rot.w} cm) to slide between front seats (30 cm gap limit).`);
           } else {
             failureReasons.push(`Too long for boot floor (${rot.l} cm vs ${maxFloorSpan} cm max with seats folded).`);
           }
@@ -3283,8 +3283,9 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
     }
 
     // 5. Center Through-Load Test (Slide between front bucket seats over center console)
-    if (seatsFolded && ingress.canEnter && rot.w <= 34 && rot.h <= 26 && rot.l <= centerMaxLen) {
-      const margin = Math.min(centerMaxLen - rot.l, 34 - rot.w, 26 - rot.h);
+    // STRICTLY SINGLE ITEM (itemQty === 1) and width must clear the gap between front seats (<= 30 cm)
+    if (itemQty === 1 && seatsFolded && ingress.canEnter && rot.w <= 30 && rot.h <= 26 && rot.l <= centerMaxLen) {
+      const margin = Math.min(centerMaxLen - rot.l, 30 - rot.w, 26 - rot.h);
       if (!bestThrough || margin > bestThrough.margin) {
         bestThrough = {
           rot,
@@ -3296,11 +3297,11 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
     }
 
     // 6. Reclined Front Passenger Seat Test (Full-length passenger side through-load)
-    // Long items resting from boot floor over reclined seat incline gently upward (~5° to 6°)
+    // STRICTLY SINGLE ITEM (itemQty === 1)
     const passAngle = 5.5;
     const passRad = (passAngle * Math.PI) / 180;
     const topPassH = (rot.l * Math.sin(passRad)) + (rot.h * Math.cos(passRad));
-    if (seatsFolded && ingress.canEnter && rot.w <= 46 && rot.h <= 42 && rot.l <= passengerMaxLen && topPassH <= (roofHeight + 10)) {
+    if (itemQty === 1 && seatsFolded && ingress.canEnter && rot.w <= 46 && rot.h <= 42 && rot.l <= passengerMaxLen && topPassH <= (roofHeight + 10)) {
       const margin = Math.min(passengerMaxLen - rot.l, 46 - rot.w, 42 - rot.h);
       if (!bestPassenger || margin > bestPassenger.margin) {
         bestPassenger = {
@@ -3324,13 +3325,13 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
         if (topFrontH > roofHeight) continue;
 
         const horizSpan = rot.l * cosA;
-        const maxAllowedSpan = seatsFolded ? (floorLength + 14) : floorLength;
+        const maxAllowedSpan = floorLength;
         if (horizSpan > maxAllowedSpan) continue;
 
         const rearTopH = rot.h * cosA;
         const rearTopShiftX = rot.h * sinA;
         const glassXAtRearTop = Math.max(0, rearTopH - beltH) * tanRake;
-        const glassClearance = (floorLength + fwdBuffer - horizSpan) + rearTopShiftX - glassXAtRearTop;
+        const glassClearance = (floorLength - horizSpan) + rearTopShiftX - glassXAtRearTop;
         const roofClearance = roofHeight - topFrontH;
 
         if (glassClearance >= 0 && roofClearance >= 0) {
@@ -3775,7 +3776,7 @@ function evaluateFitment() {
     return;
   }
 
-  currentSolverOutcome = solveAllFitmentAngles(selectedCar, rawL, rawW, rawH, seatsFolded);
+  currentSolverOutcome = solveAllFitmentAngles(selectedCar, rawL, rawW, rawH, seatsFolded, itemQuantity);
   const optimal = currentSolverOutcome.optimal;
 
   let activeResult = null;
@@ -3868,13 +3869,12 @@ function evaluateFitment() {
       const rad = (testAngle * Math.PI) / 180;
       const topFrontH = (candidateRot.l * Math.sin(rad)) + (candidateRot.h * Math.cos(rad));
       const horizSpan = candidateRot.l * Math.cos(rad);
-      const maxAllowedSpan = seatsFolded ? (floorLength + 14) : floorLength;
+      const maxAllowedSpan = floorLength;
       const rearTopH = candidateRot.h * Math.cos(rad);
       const rearTopShiftX = candidateRot.h * Math.sin(rad);
       const beltH = Math.min(24, roofHeight * 0.35);
       const glassXAtRearTop = Math.max(0, rearTopH - beltH) * tanRake;
-      const fwdBuffer = seatsFolded ? 14 : 0;
-      const glassClearance = (floorLength + fwdBuffer - horizSpan) + rearTopShiftX - glassXAtRearTop;
+      const glassClearance = (floorLength - horizSpan) + rearTopShiftX - glassXAtRearTop;
       const roofClearance = roofHeight - topFrontH;
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
 
@@ -4037,10 +4037,10 @@ function evaluateFitment() {
 
       const centerMaxLen = floorLength + 68;
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
-      const fitsThrough = seatsFolded && ingress.canEnter && candidateRot.w <= 34 && candidateRot.h <= 26 && candidateRot.l <= centerMaxLen;
+      const fitsThrough = (itemQuantity === 1) && seatsFolded && ingress.canEnter && candidateRot.w <= 30 && candidateRot.h <= 26 && candidateRot.l <= centerMaxLen;
 
       if (fitsThrough) {
-        const m = Math.min(centerMaxLen - candidateRot.l, 34 - candidateRot.w, 26 - candidateRot.h);
+        const m = Math.min(centerMaxLen - candidateRot.l, 30 - candidateRot.w, 26 - candidateRot.h);
         activeResult = {
           mode: 'center',
           rot: candidateRot,
@@ -4049,12 +4049,13 @@ function evaluateFitment() {
           margin: m,
           ingress,
           heading: m >= 4 ? 'Fits Between Front Seats (Comfortable)' : 'Fits Between Front Seats (Tight)',
-          instruction: `Slides through the 34 cm gap between the front bucket seats over the center console, clearing to the dashboard with ${Math.round(m * 10) / 10} cm margin.`
+          instruction: `Slides through the 30 cm gap between the front bucket seats over the center console, clearing to the dashboard with ${Math.round(m * 10) / 10} cm margin.`
         };
       } else {
         let failReasons = [];
+        if (itemQuantity > 1) failReasons.push(`Through-load between seats only accommodates 1 item (${itemQuantity}× items cannot fit between front seats)`);
         if (!seatsFolded) failReasons.push('Requires rear seats to be folded flat');
-        if (candidateRot.w > 34) failReasons.push(`Width (${candidateRot.w} cm) exceeds 34 cm gap between front seats`);
+        if (candidateRot.w > 30) failReasons.push(`Width (${candidateRot.w} cm) exceeds 30 cm gap between front seats`);
         if (candidateRot.h > 26) failReasons.push(`Height (${candidateRot.h} cm) exceeds 26 cm console clearance`);
         if (candidateRot.l > centerMaxLen) failReasons.push(`Length (${candidateRot.l} cm) exceeds dashboard clearance (~${centerMaxLen} cm)`);
         if (!ingress.canEnter) failReasons.push('Exceeds tailgate aperture opening');
@@ -4080,7 +4081,7 @@ function evaluateFitment() {
       const ingress = checkApertureIngress(candidateRot, apWidth, apHeight);
       const rad = (testAngle * Math.PI) / 180;
       const topFrontH = (candidateRot.l * Math.sin(rad)) + (candidateRot.h * Math.cos(rad));
-      const fitsPassenger = seatsFolded && ingress.canEnter && candidateRot.w <= 46 && candidateRot.h <= 42 && candidateRot.l <= passengerMaxLen && topFrontH <= (roofHeight + 10);
+      const fitsPassenger = (itemQuantity === 1) && seatsFolded && ingress.canEnter && candidateRot.w <= 46 && candidateRot.h <= 42 && candidateRot.l <= passengerMaxLen && topFrontH <= (roofHeight + 10);
 
       if (fitsPassenger) {
         const m = Math.min(passengerMaxLen - candidateRot.l, 46 - candidateRot.w, 42 - candidateRot.h);
@@ -4097,6 +4098,7 @@ function evaluateFitment() {
         };
       } else {
         let failReasons = [];
+        if (itemQuantity > 1) failReasons.push(`Reclined passenger seat only accommodates 1 item (${itemQuantity}× items cannot fit on a single passenger seat)`);
         if (!seatsFolded) failReasons.push('Requires rear seats to be folded flat');
         if (candidateRot.w > 46) failReasons.push(`Width (${candidateRot.w} cm) exceeds 46 cm passenger lane width`);
         if (candidateRot.h > 42) failReasons.push(`Height (${candidateRot.h} cm) exceeds 42 cm roof/dashboard clearance`);
@@ -4210,7 +4212,7 @@ function evaluateFitment() {
   let multiPackFits = true;
   let multiPackArrangement = 'single';
 
-  if (itemQuantity > 1 && activeResult.status !== 'colliding') {
+  if (itemQuantity > 1) {
     const rot = activeResult.rot || { l: rawL, w: rawW, h: rawH };
     const sbsWidth = rot.w * itemQuantity + (itemQuantity - 1) * 1.5;
     const sbsFits = sbsWidth <= archWidth && rot.l <= floorLength && rot.h <= roofHeight;
@@ -4226,7 +4228,9 @@ function evaluateFitment() {
       sbsStackedFits = (rot.w * 2 + 1.5 <= archWidth) && (rot.h * 2 + 1.5 <= roofHeight) && (rot.l <= floorLength);
     }
 
-    if (sbsFits) {
+    if (activeResult.status === 'colliding') {
+      multiPackFits = false;
+    } else if (sbsFits) {
       multiPackArrangement = 'side_by_side';
     } else if (stackedFits) {
       multiPackArrangement = 'stacked';
@@ -4241,24 +4245,35 @@ function evaluateFitment() {
     if (!multiPackFits) {
       activeResult = {
         ...activeResult,
-        status: 'tight',
-        heading: `${itemQuantity}× Items: Tight Fit / Volume Limit`,
-        instruction: `A single unit fits, but packing ${itemQuantity}× units exceeds boot boundaries (${sbsWidth > archWidth ? 'too wide for wheel arches' : stackedHeight > roofHeight ? 'exceeds roof height' : 'exceeds floor length'}). Consider folding rear seats or multiple trips.`
+        mode: 'flat',
+        status: 'colliding',
+        heading: `${itemQuantity}× Items Exceed Boot Space`,
+        instruction: `Packing ${itemQuantity}× units exceeds boot boundaries (${rot.l > floorLength ? `length ${rot.l} cm exceeds ${floorLength} cm floor` : (sbsWidth > archWidth ? `width ${Math.round(sbsWidth)} cm exceeds ${archWidth} cm wheel arches` : `height exceeds interior roof`)}). Consider folding rear seats or making multiple trips.`
       };
       if (resultBanner) {
-        resultBanner.className = 'result-banner fits-tight';
-        resultBanner.textContent = `⚠️ 1 Unit Fits, But ${itemQuantity}× Items Exceed Boot Space!`;
+        resultBanner.className = 'result-banner will-not-fit';
+        resultBanner.textContent = `❌ ${itemQuantity}× Items Exceed Boot Space!`;
       }
+      if (chipStowed) {
+        chipStowed.className = 'strategy-chip colliding';
+        chipStowed.textContent = `✕ Boot Space: Exceeds boot capacity (${itemQuantity}× items)`;
+      }
+      if (strategyHeading) strategyHeading.textContent = activeResult.heading;
+      if (resultExplanation) resultExplanation.textContent = activeResult.instruction;
     } else {
       let arrangeLabel = 'Side-by-Side';
       if (multiPackArrangement === 'stacked') arrangeLabel = 'Stacked Vertically';
       else if (multiPackArrangement === 'front_to_back') arrangeLabel = 'Front-to-Back';
       else if (multiPackArrangement === 'side_stacked') arrangeLabel = '2 Side-by-Side + 1 On Top';
 
+      activeResult.mode = 'flat';
       activeResult.instruction += ` (All ${itemQuantity}× items fit arranged ${arrangeLabel})`;
-      if (resultBanner && activeResult.status === 'comfortable') {
+      if (resultBanner) {
+        resultBanner.className = (activeResult.status === 'comfortable') ? 'result-banner fits-comfortable' : 'result-banner fits-tight';
         resultBanner.textContent = `🎉 Yes, All ${itemQuantity}× Items Fit (${arrangeLabel})!`;
       }
+      if (strategyHeading) strategyHeading.textContent = activeResult.heading;
+      if (resultExplanation) resultExplanation.textContent = activeResult.instruction;
     }
   }
 
@@ -5271,12 +5286,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
   // Ergonomic driving position: dashboard is 30cm deep, steering column extends 14cm,
   // and driver sits 30cm behind steering wheel (total ~74cm from windshield cowl):
   const frontSeatsX = Math.round(cowlX + 74);
-  const frontSeatBackX = frontSeatsX + 21; // Backrest rear face aligns with cushion rear at +21
+  const frontSeatBackX = frontSeatsX + 25; // Backrest rear face aligns with cushion rear + backrest recline thickness
 
   // SPECIFICATION-ANCHORED REAR SEATS & CARGO BED ARCHITECTURE:
   // Tandem passenger spacing: rear seats sit ~84cm behind front seats, providing ~24-26cm of realistic knee room:
   const rearHingeX = frontSeatsX + 84;
-  const cargoBedFrontX = seatsFolded ? frontSeatBackX : rearHingeX;
+  const cargoBedFrontX = seatsFolded ? frontSeatBackX : (rearHingeX + 7);
   currentFloorLen = Math.abs(rearSillX - cargoBedFrontX);
 
   let roofRearX, deckFrontX;
@@ -8090,18 +8105,27 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const minSafePosX = cargoBedFrontX + (rot.l / 2) + (seatsFolded ? 4 : 2);
 
     let defaultPosX;
-    if (fitResult.status === 'colliding' && (rot.l > currentFloorLen || (cargoBedFrontX + rot.l) > (innerTailgateXAtTop - 4))) {
+    if (fitResult.status === 'colliding') {
       // Stopped by the upright rear seats or front seatbacks, so it visibly sticks out past the rear sill!
       defaultPosX = cargoBedFrontX + (rot.l / 2) + 2;
     } else if (minSafePosX <= maxSafePosX) {
       // Comfortably fits: center stably within the safe clearance zone
       defaultPosX = (minSafePosX + maxSafePosX) / 2;
     } else {
-      // Snug fit: position as far forward as possible to maximize tailgate clearance
-      defaultPosX = Math.min(maxSafePosX, cargoBedFrontX + (rot.l / 2) + 2);
+      // Snug fit: position resting safely behind seatback datum, NEVER forward into the seats!
+      defaultPosX = cargoBedFrontX + (rot.l / 2) + 2;
     }
 
-    if (fitResult.mode === 'pitch') {
+    if (fitResult.status === 'colliding') {
+      // Colliding items stop firmly behind seatbacks (cargoBedFrontX + 2) and protrude out tailgate
+      if (fitResult.bundle) {
+        cargo3DMesh.position.set(defaultPosX, sillY + 2.5, 0);
+      } else {
+        cargo3DMesh.position.set(defaultPosX, sillY + (rot.h / 2) + 2.5, 0);
+      }
+      cargoSimulationBaseGroup.add(cargo3DMesh);
+
+    } else if (fitResult.mode === 'pitch') {
       // Propped on seatback: pivot at rear sill floor contact
       const pivot = new THREE.Group();
       const pitchPivotX = Math.min(rearSillX - 6, innerTailgateXAtTop - 4);
@@ -8138,14 +8162,14 @@ function update3DStudio(car, seatsFolded, fitResult) {
       cargo3DMesh.rotation.x = rad;
       cargoSimulationBaseGroup.add(cargo3DMesh);
 
-    } else if (fitResult.mode === 'center') {
-      // Center through-load: rests flat on boot floor and glides between front bucket seats
-      const centerPosX = Math.min(defaultPosX, cargoBedFrontX + (rot.l / 2) - 10);
+    } else if (fitResult.mode === 'center' && itemQuantity === 1) {
+      // Center through-load: ONLY valid for a single item gliding between front bucket seats
+      const centerPosX = (innerTailgateXAtTop - 4) - (rot.l / 2);
       cargo3DMesh.position.set(centerPosX, sillY + (rot.h / 2) + 2.5, 0);
       cargoSimulationBaseGroup.add(cargo3DMesh);
 
-    } else if (fitResult.mode === 'passenger') {
-      // Reclined Front Passenger Seat: rests on boot floor near sill and angles up gently (~5°) resting on reclined front seat
+    } else if (fitResult.mode === 'passenger' && itemQuantity === 1) {
+      // Reclined Front Passenger Seat: ONLY valid for a single item
       const seatZOffset = (totalCarWidth / 4) - 6;
       const pivot = new THREE.Group();
       const passPivotX = rearSillX - 6;
@@ -8157,7 +8181,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
       cargoSimulationBaseGroup.add(pivot);
 
     } else {
-      // Standard Flat or Colliding
+      // Standard Flat inside boot
       if (fitResult.bundle) {
         // In trip bundles, individual items have local Y=0 as the carpet surface
         cargo3DMesh.position.set(defaultPosX, sillY + 2.5, 0);

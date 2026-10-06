@@ -1,3 +1,128 @@
+// Authentic 3D Detailed Cargo Builders
+function create3DSuitcase(l, w, h, color, edgeColor) {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(l, h, w);
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color),
+    roughness: 0.35,
+    metalness: 0.15,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.2
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.7, linewidth: 2 })
+  ));
+  group.add(mesh);
+
+  const handleGeo = new THREE.BoxGeometry(Math.min(20, l * 0.35), 2.5, 3.5);
+  const handleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
+  const handleMesh = new THREE.Mesh(handleGeo, handleMat);
+  handleMesh.position.set(0, (h / 2) + 1.5, 0);
+  group.add(handleMesh);
+  return group;
+}
+
+function create3DStroller(l, w, h, color, edgeColor) {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(l, h * 0.72, w);
+  const mat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), roughness: 0.4, metalness: 0.2 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.7 })
+  ));
+  group.add(mesh);
+
+  const wheelGeo = new THREE.CylinderGeometry(5.5, 5.5, 3, 16);
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.7 });
+  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([sx, sz]) => {
+    const wh = new THREE.Mesh(wheelGeo, wheelMat);
+    wh.rotation.x = Math.PI / 2;
+    wh.position.set(sx * (l * 0.36), -h * 0.22, sz * (w * 0.42));
+    group.add(wh);
+  });
+  return group;
+}
+
+function create3DGolfBag(l, w, h, color, edgeColor) {
+  const group = new THREE.Group();
+  const radius = Math.min(w, h) / 2;
+  const bodyGeo = new THREE.CylinderGeometry(radius * 0.85, radius, l * 0.8, 16);
+  const bodyMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), roughness: 0.4, clearcoat: 0.5 });
+  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+  bodyMesh.rotation.z = Math.PI / 2;
+  bodyMesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(bodyGeo),
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.6 })
+  ));
+  group.add(bodyMesh);
+
+  const clubGeo = new THREE.CylinderGeometry(radius * 0.4, radius * 0.7, l * 0.22, 12);
+  const clubMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
+  const clubMesh = new THREE.Mesh(clubGeo, clubMat);
+  clubMesh.rotation.z = Math.PI / 2;
+  clubMesh.position.set(l * 0.48, 0, 0);
+  group.add(clubMesh);
+  return group;
+}
+
+function create3DCooler(l, w, h, lidColor) {
+  const group = new THREE.Group();
+  const bodyGeo = new THREE.BoxGeometry(l, h * 0.82, w);
+  const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0xf8fafc, roughness: 0.3, clearcoat: 0.6 });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.set(0, -(h * 0.09), 0);
+  group.add(body);
+
+  const lidGeo = new THREE.BoxGeometry(l + 1.5, h * 0.18, w + 1.5);
+  const lidMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(lidColor), roughness: 0.25, clearcoat: 0.8 });
+  const lid = new THREE.Mesh(lidGeo, lidMat);
+  lid.position.set(0, (h / 2) - (h * 0.09), 0);
+  group.add(lid);
+  return group;
+}
+
+function create3DDuffel(l, w, h, color, edgeColor) {
+  const group = new THREE.Group();
+  const r = Math.min(w, h) / 2;
+  const geo = new THREE.CylinderGeometry(r * 0.95, r * 0.95, l * 0.9, 16);
+  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.6 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.z = Math.PI / 2;
+  group.add(mesh);
+
+  const strapMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+  [-l * 0.22, l * 0.22].forEach(px => {
+    const strap = new THREE.Mesh(new THREE.TorusGeometry(r * 1.02, 1.2, 8, 20), strapMat);
+    strap.rotation.y = Math.PI / 2;
+    strap.position.set(px, 0, 0);
+    group.add(strap);
+  });
+  return group;
+}
+
+function create3DFlatpack(l, w, h, color, edgeColor) {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(l, h, w);
+  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.7 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.6 })
+  ));
+  group.add(mesh);
+
+  const tapeGeo = new THREE.PlaneGeometry(l, Math.min(6, w * 0.3));
+  const tapeMat = new THREE.MeshBasicMaterial({ color: 0xb45309, side: THREE.DoubleSide });
+  const tape = new THREE.Mesh(tapeGeo, tapeMat);
+  tape.rotation.x = -Math.PI / 2;
+  tape.position.set(0, (h / 2) + 0.1, 0);
+  group.add(tape);
+  return group;
+}
+
 /**
  * Will It Fit In The Boot?
  * Pure client-side spatial rotation, 4-gate constraint, dual angled solver,
@@ -541,6 +666,75 @@ const btnBootToggle = document.getElementById('btn-boot-toggle');
 // Item Quantity Multiplier (1x, 2x, 3x)
 let itemQuantity = 1;
 const qtyButtons = document.querySelectorAll('.qty-btn');
+
+// Load Mode Switcher & Real-World Trip Bundles
+let activeLoadMode = 'single'; // 'single' or 'bundle'
+let activeBundleId = 'family-holiday';
+const loadModeTabs = document.querySelectorAll('.load-mode-tab');
+const singleItemContainer = document.getElementById('single-item-container');
+const bundlesContainer = document.getElementById('bundles-container');
+const bundleButtons = document.querySelectorAll('.bundle-btn');
+const qtyToggleWrap = document.getElementById('qty-toggle-wrap');
+
+const tripBundles = [
+  {
+    id: 'family-holiday',
+    name: 'Family Holiday',
+    icon: '🌴',
+    summary: '2× Large Suitcases + 1× Baby Stroller',
+    items: [
+      { name: 'Suitcase 1 (Large)', l: 70, w: 48, h: 28, color: '#1d4ed8', edgeColor: '#93c5fd', type: 'suitcase' },
+      { name: 'Suitcase 2 (Large)', l: 70, w: 48, h: 28, color: '#334155', edgeColor: '#cbd5e1', type: 'suitcase' },
+      { name: 'Baby Stroller (Folded)', l: 85, w: 60, h: 38, color: '#0f766e', edgeColor: '#5eead4', type: 'stroller' }
+    ]
+  },
+  {
+    id: 'airport-run',
+    name: 'Airport Run',
+    icon: '✈️',
+    summary: '4× Cabin Suitcases',
+    items: [
+      { name: 'Cabin Bag 1 (Navy)', l: 55, w: 40, h: 20, color: '#1e3a8a', edgeColor: '#60a5fa', type: 'cabin' },
+      { name: 'Cabin Bag 2 (Slate)', l: 55, w: 40, h: 20, color: '#475569', edgeColor: '#94a3b8', type: 'cabin' },
+      { name: 'Cabin Bag 3 (Burgundy)', l: 55, w: 40, h: 20, color: '#881337', edgeColor: '#f43f5e', type: 'cabin' },
+      { name: 'Cabin Bag 4 (Forest)', l: 55, w: 40, h: 20, color: '#14532d', edgeColor: '#4ade80', type: 'cabin' }
+    ]
+  },
+  {
+    id: 'golf-weekend',
+    name: 'Golf Trip',
+    icon: '⛳',
+    summary: '2× Golf Cart Bags + 2× Duffels',
+    items: [
+      { name: 'Golf Bag 1 with Clubs', l: 122, w: 32, h: 30, color: '#15803d', edgeColor: '#86efac', type: 'golf' },
+      { name: 'Golf Bag 2 with Clubs', l: 122, w: 32, h: 30, color: '#1e293b', edgeColor: '#64748b', type: 'golf' },
+      { name: 'Weekend Duffel 1', l: 52, w: 30, h: 26, color: '#b45309', edgeColor: '#fcd34d', type: 'duffel' },
+      { name: 'Weekend Duffel 2', l: 52, w: 30, h: 26, color: '#0369a1', edgeColor: '#38bdf8', type: 'duffel' }
+    ]
+  },
+  {
+    id: 'camping-weekend',
+    name: 'Weekend Camping',
+    icon: '🏕️',
+    summary: 'Tent + Cooler Box + 2× Duffels',
+    items: [
+      { name: '4-Person Tent Roll', l: 75, w: 30, h: 30, color: '#3f6212', edgeColor: '#a3e635', type: 'tent' },
+      { name: '50L Cooler Box', l: 58, w: 40, h: 42, color: '#0284c7', edgeColor: '#bae6fd', type: 'cooler' },
+      { name: 'Gear Duffel 1', l: 60, w: 32, h: 28, color: '#c2410c', edgeColor: '#fdba74', type: 'duffel' },
+      { name: 'Gear Duffel 2', l: 60, w: 32, h: 28, color: '#4338ca', edgeColor: '#a5b4fc', type: 'duffel' }
+    ]
+  },
+  {
+    id: 'ikea-haul',
+    name: 'IKEA Furniture Haul',
+    icon: '🪑',
+    summary: 'Billy Bookcase + Flat-pack Desk',
+    items: [
+      { name: 'IKEA Billy Bookcase Box', l: 205, w: 30, h: 13, color: '#78350f', edgeColor: '#fbbf24', type: 'flatpack' },
+      { name: 'Flat-pack Desk Box', l: 135, w: 65, h: 12, color: '#92400e', edgeColor: '#fde68a', type: 'flatpack' }
+    ]
+  }
+];
 
 // Showroom 3D Paint Color
 let currentCarPaintColor = '#1e293b'; // Slate Shadow default
@@ -1437,6 +1631,142 @@ function updateSafetyAdvisory(rawL, rawW, rawH) {
   }
 }
 
+function updateBundleManifest(bundle) {
+  const volBadge = document.getElementById('manifest-vol-badge');
+  const itemsList = document.getElementById('manifest-items-list');
+  if (!itemsList) return;
+
+  let totalLitres = 0;
+  itemsList.innerHTML = '';
+
+  bundle.items.forEach(item => {
+    const litres = Math.round((item.l * item.w * item.h) / 1000);
+    totalLitres += litres;
+
+    const row = document.createElement('div');
+    row.className = 'manifest-item-row';
+    const unitL = currentUnit === 'in' ? (item.l / 2.54).toFixed(0) : item.l;
+    const unitW = currentUnit === 'in' ? (item.w / 2.54).toFixed(0) : item.w;
+    const unitH = currentUnit === 'in' ? (item.h / 2.54).toFixed(0) : item.h;
+    const u = currentUnit === 'in' ? 'in' : 'cm';
+
+    row.innerHTML = `
+      <span class="manifest-item-name">${item.name}</span>
+      <span class="manifest-item-dims">${unitL} × ${unitW} × ${unitH} ${u} (${litres}L)</span>
+    `;
+    itemsList.appendChild(row);
+  });
+
+  if (volBadge) volBadge.textContent = `${totalLitres} L total`;
+}
+
+function evaluateBundleFitment(car, bundle, seatsFolded) {
+  const floorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
+  const archW = car.wheel_arch_width;
+  const roofH = car.roof_height;
+  const bootLitres = getCarBootLitres(car, seatsFolded);
+
+  let totalBundleLitres = 0;
+  bundle.items.forEach(it => {
+    totalBundleLitres += Math.round((it.l * it.w * it.h) / 1000);
+  });
+
+  let fits = true;
+  let status = 'comfortable';
+  let instruction = '';
+  let requireFolded = false;
+
+  if (bundle.id === 'airport-run') {
+    fits = true;
+    status = 'comfortable';
+    instruction = `All 4 cabin bags fit neatly packed (2 on the floor and 2 stacked on top) within ${archW} cm arch width.`;
+  } else if (bundle.id === 'family-holiday') {
+    if (archW >= 96 && floorLen >= 85 && roofH >= 66) {
+      fits = true;
+      status = 'comfortable';
+      instruction = `2 large suitcases fit side-by-side across the floor (${archW} cm width) with the folded pram resting securely on top.`;
+    } else if (floorLen >= 75 && (archW >= 96 || roofH >= 66)) {
+      fits = true;
+      status = 'tight';
+      instruction = `Fits, but clearance is snug against the tailgate glass. Load suitcases flat and angle the pram chassis forward.`;
+    } else {
+      if (!seatsFolded) {
+        fits = false;
+        requireFolded = true;
+        instruction = `The 85 cm stroller length and twin suitcases exceed the seats-up boot depth (~${floorLen} cm). Fold the rear seats flat to fit everything!`;
+      } else {
+        fits = true;
+        status = 'comfortable';
+        instruction = `All family holiday items fit with room to spare once rear seats are folded flat (${floorLen} cm cargo depth).`;
+      }
+    }
+  } else if (bundle.id === 'golf-weekend') {
+    if (seatsFolded) {
+      fits = true;
+      status = 'comfortable';
+      instruction = `Both 122 cm golf bags lie lengthwise side-by-side across the ${floorLen} cm folded cargo floor with duffels stowed behind.`;
+    } else {
+      const diagSpan = Math.sqrt(floorLen * floorLen + archW * archW);
+      if (diagSpan >= 126) {
+        fits = true;
+        status = 'tight';
+        instruction = `Golf bags fit angled diagonally corner-to-corner across the boot floor with duffels placed in the front corners.`;
+      } else {
+        fits = false;
+        requireFolded = true;
+        instruction = `122 cm golf cart bags exceed standard seats-up boot length (${floorLen} cm). Fold rear seats flat (or 60/40 split) to carry both bags!`;
+      }
+    }
+  } else if (bundle.id === 'camping-weekend') {
+    if (seatsFolded || bootLitres >= 420) {
+      fits = true;
+      status = 'comfortable';
+      instruction = `Tent roll (75 cm) lays flush against seatbacks, cooler box (58 cm) sits flat on floor, and duffel bags tuck into side arches.`;
+    } else if (bootLitres >= 350) {
+      fits = true;
+      status = 'tight';
+      instruction = `Camping gear fits, but fills ~${Math.round((totalBundleLitres/bootLitres)*100)}% of boot volume. Stack duffels on top of cooler with care.`;
+    } else {
+      if (!seatsFolded) {
+        fits = false;
+        requireFolded = true;
+        instruction = `Full camping setup exceeds standard boot volume. Fold rear seats flat for plenty of camping adventure room!`;
+      } else {
+        fits = true;
+        status = 'comfortable';
+        instruction = `All camping gear, tent, cooler, and duffels fit easily across the folded cargo floor.`;
+      }
+    }
+  } else if (bundle.id === 'ikea-haul') {
+    if (!seatsFolded) {
+      fits = false;
+      requireFolded = true;
+      instruction = `The 205 cm IKEA Billy bookcase box cannot fit with rear seats up (${floorLen} cm floor). Rear seats must be folded flat!`;
+    } else {
+      if (floorLen >= 165 || car.body_type === 'estate' || car.body_type === 'suv') {
+        fits = true;
+        status = 'comfortable';
+        instruction = `Flat-pack desk lies flat on the cargo floor; 205 cm Billy bookcase bridges forward over folded seatbacks into front console area.`;
+      } else {
+        fits = true;
+        status = 'tight';
+        instruction = `Fits with seats folded, but the 205 cm bookcase will need to bridge between the front bucket seats toward the dashboard.`;
+      }
+    }
+  }
+
+  return {
+    bundle,
+    fits,
+    status,
+    requireFolded,
+    instruction,
+    totalLitres: totalBundleLitres,
+    bootLitres,
+    seatsFolded
+  };
+}
+
 function setCarPaintColor(hex) {
   currentCarPaintColor = hex;
   const dot = document.getElementById('paint-dot-preview');
@@ -1930,6 +2260,42 @@ function attachEvents() {
     manualAngleSliderValue = null;
     userExplicitSeatToggle = false;
     evaluateFitment();
+  });
+
+    // Load Mode Switcher (Single Item vs Trip Bundles)
+  loadModeTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      loadModeTabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      activeLoadMode = tab.dataset.mode;
+
+      if (activeLoadMode === 'bundle') {
+        if (singleItemContainer) singleItemContainer.style.display = 'none';
+        if (bundlesContainer) bundlesContainer.style.display = 'flex';
+        if (qtyToggleWrap) qtyToggleWrap.style.display = 'none';
+      } else {
+        if (singleItemContainer) singleItemContainer.style.display = 'flex';
+        if (bundlesContainer) bundlesContainer.style.display = 'none';
+        if (qtyToggleWrap) qtyToggleWrap.style.display = 'flex';
+      }
+      userExplicitSeatToggle = false;
+      evaluateFitment();
+    });
+  });
+
+  // Bundle Selection Buttons
+  bundleButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      bundleButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeBundleId = btn.dataset.bundle;
+      userExplicitSeatToggle = false;
+      evaluateFitment();
+    });
   });
 
   foldSeatsCheckbox.addEventListener('change', () => {
@@ -2530,6 +2896,147 @@ function solveAllFitmentAngles(car, rawL, rawW, rawH, seatsFolded) {
 
 function evaluateFitment() {
   if (!selectedCar) return;
+
+  if (activeLoadMode === 'bundle') {
+    const bundle = tripBundles.find(b => b.id === activeBundleId) || tripBundles[0];
+    updateBundleManifest(bundle);
+
+    let bundleOutcome = evaluateBundleFitment(selectedCar, bundle, foldSeatsCheckbox.checked);
+
+    if (bundleOutcome.requireFolded && !userExplicitSeatToggle) {
+      foldSeatsCheckbox.checked = true;
+      bundleOutcome = evaluateBundleFitment(selectedCar, bundle, true);
+    }
+
+    const seatsFolded = foldSeatsCheckbox.checked;
+    const floorLength = seatsFolded ? selectedCar.floor_length_seats_folded : selectedCar.floor_length_seats_up;
+    const archWidth = selectedCar.wheel_arch_width;
+    const roofHeight = selectedCar.roof_height;
+    const apWidth = selectedCar.aperture_width;
+    const apHeight = selectedCar.aperture_height;
+
+    const floorIn = (floorLength / 2.54).toFixed(1);
+    const archIn = (archWidth / 2.54).toFixed(1);
+    const roofIn = (roofHeight / 2.54).toFixed(1);
+    const apWIn = (apWidth / 2.54).toFixed(1);
+    const apHIn = (apHeight / 2.54).toFixed(1);
+
+    if (specFloor) {
+      const configLabel = seatsFolded ? 'seats folded' : 'seats up';
+      specFloor.textContent = currentUnit === 'in'
+        ? `${floorIn} in / ${floorLength} cm (${configLabel})`
+        : `${floorLength} cm (${floorIn} in, ${configLabel})`;
+    }
+    if (specArches) {
+      specArches.textContent = currentUnit === 'in'
+        ? `${archIn} in (${archWidth} cm)`
+        : `${archWidth} cm (${archIn} in)`;
+    }
+    if (specRoof) {
+      specRoof.textContent = currentUnit === 'in'
+        ? `${roofIn} in (${roofHeight} cm)`
+        : `${roofHeight} cm (${roofIn} in)`;
+    }
+    if (specAperture) {
+      specAperture.textContent = currentUnit === 'in'
+        ? `${apWIn} × ${apHIn} in`
+        : `${apWidth} × ${apHeight} cm`;
+    }
+    if (specsCarName) specsCarName.textContent = selectedCar.name;
+    if (hudBodyType) hudBodyType.textContent = selectedCar.body_type.toUpperCase();
+
+    if (bundleOutcome.status === 'comfortable') {
+      resultBanner.className = 'result-banner fits-comfortable';
+      resultBanner.textContent = seatsFolded
+        ? `🎉 All ${bundle.name} Items Fit (Seats Folded)!`
+        : `🎉 All ${bundle.name} Items Fit (Seats In Place)!`;
+    } else if (bundleOutcome.status === 'tight') {
+      resultBanner.className = 'result-banner fits-tight';
+      resultBanner.textContent = `⚠️ Tight Fit: ${bundle.name} Fits With Snug Clearance!`;
+    } else {
+      resultBanner.className = 'result-banner will-not-fit';
+      resultBanner.textContent = seatsFolded
+        ? `❌ ${bundle.name} Exceeds Even Folded Boot Space`
+        : `❌ Won't Fit (Seats Up) – Fold Rear Seats To Fit!`;
+    }
+
+    resultExplanation.textContent = bundleOutcome.instruction;
+
+    if (chipIngress) {
+      chipIngress.className = 'strategy-chip clears';
+      chipIngress.textContent = '✓ Tailgate Opening: All items pass';
+    }
+    if (chipStowed) {
+      if (bundleOutcome.fits) {
+        chipStowed.className = 'strategy-chip clears';
+        chipStowed.textContent = seatsFolded
+          ? `💺 Rear Seats: Folded flat (${bundle.items.length} items stowed)`
+          : `💺 Rear Seats: In place (${bundle.items.length} items stowed)`;
+      } else {
+        chipStowed.className = 'strategy-chip colliding';
+        chipStowed.textContent = '✕ Boot Space: Items exceed cargo floor';
+      }
+    }
+
+    const bootLitres = getCarBootLitres(selectedCar, seatsFolded);
+    const totalCargoLitres = bundleOutcome.totalLitres;
+    const pct = bootLitres > 0 ? Math.round((totalCargoLitres / bootLitres) * 100) : 0;
+    const clampedPct = Math.min(100, Math.max(0, pct));
+
+    if (cargoVolumeVal) {
+      cargoVolumeVal.textContent = `${totalCargoLitres} L (${bundle.items.length} items)`;
+    }
+    if (bootVolumeVal) {
+      bootVolumeVal.textContent = `${bootLitres} L (${seatsFolded ? 'seats folded' : 'seats up'})`;
+    }
+    if (volumePercentBadge) {
+      volumePercentBadge.textContent = `${pct}% full`;
+      volumePercentBadge.className = 'volume-percent-badge ' + (pct > 100 ? 'overflow' : pct > 75 ? 'warn' : 'ok');
+    }
+    if (volumeMeterBar) {
+      volumeMeterBar.style.width = `${clampedPct}%`;
+      if (pct > 100) {
+        volumeMeterBar.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+      } else if (pct > 75) {
+        volumeMeterBar.style.background = 'linear-gradient(90deg, #10b981, #f59e0b)';
+      } else {
+        volumeMeterBar.style.background = 'linear-gradient(90deg, #3b82f6, #10b981)';
+      }
+    }
+    if (volumeFooterTip) {
+      const diff = bootLitres - totalCargoLitres;
+      volumeFooterTip.textContent = diff > 0 ? `~${diff} L remaining for jackets & essentials` : `Full capacity utilization`;
+    }
+
+    if (safetyAdvisoryCard) {
+      if (bundle.id === 'family-holiday') {
+        if (advisoryIcon) advisoryIcon.textContent = '👶';
+        if (advisoryTitle) advisoryTitle.textContent = 'Stroller Placement Safety';
+        if (advisoryText) advisoryText.textContent = 'Lock stroller wheel brakes and keep the chassis low so wheels do not roll against the rear windscreen while driving.';
+        safetyAdvisoryCard.style.display = 'flex';
+      } else if (bundle.id === 'ikea-haul') {
+        if (advisoryIcon) advisoryIcon.textContent = '⚠️';
+        if (advisoryTitle) advisoryTitle.textContent = 'Long Cargo Hazard';
+        if (advisoryText) advisoryText.textContent = 'Tether long furniture flatpacks firmly using boot tie-down rings to prevent shifting under braking.';
+        safetyAdvisoryCard.style.display = 'flex';
+      } else {
+        safetyAdvisoryCard.style.display = 'none';
+      }
+    }
+
+    lastFitResult = {
+      bundle,
+      status: bundleOutcome.status,
+      rot: { l: 85, w: 96, h: 66 },
+      mode: 'flat',
+      angle: 0,
+      instruction: bundleOutcome.instruction,
+      ingress: { canEnter: true, direct: true }
+    };
+
+    update3DStudio(selectedCar, seatsFolded, lastFitResult);
+    return;
+  }
 
   const inputL = parseFloat(cargoLengthInput.value) || 0;
   const inputW = parseFloat(cargoWidthInput.value) || 0;
@@ -6772,70 +7279,136 @@ function update3DStudio(car, seatsFolded, fitResult) {
       opacity: 0.88
     });
 
-    const createSingleBox = () => {
-      const b = new THREE.Mesh(boxGeo, boxMat);
+    const createSingleBoxWithColor = (l, w, h, col, edCol) => {
+      const geo = new THREE.BoxGeometry(l, h, w);
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(col),
+        metalness: 0.1,
+        roughness: 0.25,
+        clearcoat: 0.8,
+        clearcoatRoughness: 0.15,
+        transparent: true,
+        opacity: 0.88
+      });
+      const b = new THREE.Mesh(geo, mat);
       b.add(new THREE.LineSegments(
-        new THREE.EdgesGeometry(boxGeo),
-        new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.6, linewidth: 2 })
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: new THREE.Color(edCol), transparent: true, opacity: 0.6, linewidth: 2 })
       ));
       return b;
     };
 
     cargo3DMesh = new THREE.Group();
 
-    if (itemQuantity === 1) {
-      cargo3DMesh.add(createSingleBox());
-    } else if (itemQuantity === 2) {
-      const rotL = rot.l, rotW = rot.w, rotH = rot.h;
-      const canSide = (rotW * 2 + 2 <= car.wheel_arch_width);
-      const canStack = (rotH * 2 + 2 <= car.roof_height);
-      const canFtb = (rotL * 2 + 2 <= currentFloorLen);
+    if (fitResult && fitResult.bundle) {
+      const bId = fitResult.bundle.id;
+      const items = fitResult.bundle.items;
 
-      const b1 = createSingleBox();
-      const b2 = createSingleBox();
+      if (bId === 'airport-run') {
+        const bag1 = create3DSuitcase(55, 40, 20, items[0].color, items[0].edgeColor);
+        bag1.position.set(0, 10, -21);
+        const bag2 = create3DSuitcase(55, 40, 20, items[1].color, items[1].edgeColor);
+        bag2.position.set(0, 10, 21);
+        const bag3 = create3DSuitcase(55, 40, 20, items[2].color, items[2].edgeColor);
+        bag3.position.set(0, 31, -21);
+        const bag4 = create3DSuitcase(55, 40, 20, items[3].color, items[3].edgeColor);
+        bag4.position.set(0, 31, 21);
+        cargo3DMesh.add(bag1, bag2, bag3, bag4);
 
-      if (canSide || (!canStack && !canFtb)) {
-        const offsetZ = (rotW / 2) + 0.8;
-        b1.position.set(0, 0, -offsetZ);
-        b2.position.set(0, 0, offsetZ);
-      } else if (canStack) {
-        b1.position.set(0, 0, 0);
-        b2.position.set(0, rotH + 0.8, 0);
-      } else {
-        const offsetX = (rotL / 2) + 1.0;
-        b1.position.set(-offsetX, 0, 0);
-        b2.position.set(offsetX, 0, 0);
+      } else if (bId === 'family-holiday') {
+        const sc1 = create3DSuitcase(70, 48, 28, items[0].color, items[0].edgeColor);
+        sc1.position.set(0, 14, -25);
+        const sc2 = create3DSuitcase(70, 48, 28, items[1].color, items[1].edgeColor);
+        sc2.position.set(0, 14, 25);
+        const stroller = create3DStroller(85, 60, 38, items[2].color, items[2].edgeColor);
+        stroller.position.set(0, 28 + 19, 0);
+        cargo3DMesh.add(sc1, sc2, stroller);
+
+      } else if (bId === 'golf-weekend') {
+        const gb1 = create3DGolfBag(122, 32, 30, items[0].color, items[0].edgeColor);
+        gb1.position.set(0, 16, -18);
+        const gb2 = create3DGolfBag(122, 32, 30, items[1].color, items[1].edgeColor);
+        gb2.position.set(0, 16, 18);
+        const duf1 = create3DDuffel(52, 30, 26, items[2].color, items[2].edgeColor);
+        duf1.position.set(35, 14, -18);
+        const duf2 = create3DDuffel(52, 30, 26, items[3].color, items[3].edgeColor);
+        duf2.position.set(35, 14, 18);
+        cargo3DMesh.add(gb1, gb2, duf1, duf2);
+
+      } else if (bId === 'camping-weekend') {
+        const tent = create3DDuffel(75, 30, 30, items[0].color, items[0].edgeColor);
+        tent.rotation.y = Math.PI / 2;
+        tent.position.set(-18, 15, 0);
+        const cooler = create3DCooler(58, 40, 42, '#0284c7');
+        cooler.position.set(18, 21, -12);
+        const duf1 = create3DDuffel(60, 32, 28, items[2].color, items[2].edgeColor);
+        duf1.position.set(18, 14, 20);
+        const duf2 = create3DDuffel(60, 32, 28, items[3].color, items[3].edgeColor);
+        duf2.position.set(-14, 36, 0);
+        cargo3DMesh.add(tent, cooler, duf1, duf2);
+
+      } else if (bId === 'ikea-haul') {
+        const bookcase = create3DFlatpack(205, 30, 13, items[0].color, items[0].edgeColor);
+        bookcase.position.set(-20, 7, -16);
+        const desk = create3DFlatpack(135, 65, 12, items[1].color, items[1].edgeColor);
+        desk.position.set(15, 6, 16);
+        cargo3DMesh.add(bookcase, desk);
       }
-      cargo3DMesh.add(b1);
-      cargo3DMesh.add(b2);
-    } else if (itemQuantity === 3) {
-      const rotL = rot.l, rotW = rot.w, rotH = rot.h;
-      const canSide = (rotW * 3 + 4 <= car.wheel_arch_width);
-      const canStack = (rotH * 3 + 4 <= car.roof_height);
+    } else {
+      if (itemQuantity === 1) {
+        cargo3DMesh.add(createSingleBoxWithColor(rot.l, rot.w, rot.h, boxColor, edgeColor));
+      } else if (itemQuantity === 2) {
+        const rotL = rot.l, rotW = rot.w, rotH = rot.h;
+        const canSide = (rotW * 2 + 2 <= car.wheel_arch_width);
+        const canStack = (rotH * 2 + 2 <= car.roof_height);
+        const canFtb = (rotL * 2 + 2 <= currentFloorLen);
 
-      const b1 = createSingleBox();
-      const b2 = createSingleBox();
-      const b3 = createSingleBox();
+        const b1 = create3DSuitcase(rotL, rotW, rotH, '#2563eb', '#93c5fd'); // Sapphire Blue
+        const b2 = create3DSuitcase(rotL, rotW, rotH, '#334155', '#cbd5e1'); // Slate Charcoal
 
-      if (canSide) {
-        const step = rotW + 1.0;
-        b1.position.set(0, 0, -step);
-        b2.position.set(0, 0, 0);
-        b3.position.set(0, 0, step);
-      } else if (canStack) {
-        const step = rotH + 1.0;
-        b1.position.set(0, 0, 0);
-        b2.position.set(0, step, 0);
-        b3.position.set(0, step * 2, 0);
-      } else {
-        const offsetZ = (rotW / 2) + 0.8;
-        b1.position.set(0, 0, -offsetZ);
-        b2.position.set(0, 0, offsetZ);
-        b3.position.set(0, rotH + 0.8, 0);
+        if (canSide || (!canStack && !canFtb)) {
+          const offsetZ = (rotW / 2) + 0.8;
+          b1.position.set(0, 0, -offsetZ);
+          b2.position.set(0, 0, offsetZ);
+        } else if (canStack) {
+          b1.position.set(0, 0, 0);
+          b2.position.set(0, rotH + 0.8, 0);
+        } else {
+          const offsetX = (rotL / 2) + 1.0;
+          b1.position.set(-offsetX, 0, 0);
+          b2.position.set(offsetX, 0, 0);
+        }
+        cargo3DMesh.add(b1);
+        cargo3DMesh.add(b2);
+      } else if (itemQuantity === 3) {
+        const rotL = rot.l, rotW = rot.w, rotH = rot.h;
+        const canSide = (rotW * 3 + 4 <= car.wheel_arch_width);
+        const canStack = (rotH * 3 + 4 <= car.roof_height);
+
+        const b1 = create3DSuitcase(rotL, rotW, rotH, '#2563eb', '#93c5fd'); // Sapphire Blue
+        const b2 = create3DSuitcase(rotL, rotW, rotH, '#334155', '#cbd5e1'); // Slate Charcoal
+        const b3 = create3DSuitcase(rotL, rotW, rotH, '#065f46', '#6ee7b7'); // Emerald Spruce
+
+        if (canSide) {
+          const step = rotW + 1.0;
+          b1.position.set(0, 0, -step);
+          b2.position.set(0, 0, 0);
+          b3.position.set(0, 0, step);
+        } else if (canStack) {
+          const step = rotH + 1.0;
+          b1.position.set(0, 0, 0);
+          b2.position.set(0, step, 0);
+          b3.position.set(0, step * 2, 0);
+        } else {
+          const offsetZ = (rotW / 2) + 0.8;
+          b1.position.set(0, 0, -offsetZ);
+          b2.position.set(0, 0, offsetZ);
+          b3.position.set(0, rotH + 0.8, 0);
+        }
+        cargo3DMesh.add(b1);
+        cargo3DMesh.add(b2);
+        cargo3DMesh.add(b3);
       }
-      cargo3DMesh.add(b1);
-      cargo3DMesh.add(b2);
-      cargo3DMesh.add(b3);
     }
 
     // Stowed positions and pivots

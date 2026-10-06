@@ -1,56 +1,567 @@
-// Authentic 3D Detailed Cargo Builders
+// Authentic 3D Detailed Cargo Builders & Textures
+const _textureCache = {};
+
+function getTVBoxTexture() {
+  if (_textureCache['tv_box']) return _textureCache['tv_box'];
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+
+  // Corrugated Kraft Cardboard background with subtle fiber specks
+  ctx.fillStyle = '#b88655';
+  ctx.fillRect(0, 0, 512, 256);
+  ctx.fillStyle = '#a67443';
+  for (let i = 0; i < 400; i++) {
+    const rx = Math.random() * 512;
+    const ry = Math.random() * 256;
+    ctx.fillRect(rx, ry, Math.random() * 3 + 1, 1);
+  }
+
+  // Border outline
+  ctx.strokeStyle = '#6b401d';
+  ctx.lineWidth = 5;
+  ctx.strokeRect(14, 14, 484, 228);
+
+  // Television silhouette outline
+  ctx.fillStyle = '#292524';
+  ctx.fillRect(40, 36, 175, 108);
+  ctx.strokeStyle = '#d6d3d1';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(40, 36, 175, 108);
+
+  // Screen glare diagonal
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(60, 130);
+  ctx.lineTo(150, 45);
+  ctx.stroke();
+
+  // TV Stand
+  ctx.fillStyle = '#57534e';
+  ctx.fillRect(115, 144, 25, 16);
+  ctx.fillRect(95, 160, 65, 6);
+
+  // TV Branding & Resolution Typography
+  ctx.fillStyle = '#1c1917';
+  ctx.font = 'bold 26px "Segoe UI", sans-serif';
+  ctx.fillText('4K ULTRA HD', 236, 70);
+  ctx.font = 'bold 18px "Segoe UI", sans-serif';
+  ctx.fillText('OLED CINEMA DISPLAY', 236, 98);
+  ctx.font = '14px monospace';
+  ctx.fillText('HDR10+ / DOLBY VISION', 236, 122);
+  ctx.fillText('MODEL: OLED-65X90J', 236, 142);
+
+  // High-contrast Warning: FRAGILE GLASS
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(40, 180, 175, 46);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillText('⚠ FRAGILE', 52, 211);
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('HANDLE WITH CARE', 52, 222);
+
+  // Directional Transit Arrows
+  ctx.fillStyle = '#1c1917';
+  ctx.font = 'bold 44px sans-serif';
+  ctx.fillText('↑↑', 430, 80);
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText('THIS WAY UP', 400, 102);
+
+  // Keep Dry Umbrella Icon & Barcode
+  ctx.font = '24px sans-serif';
+  ctx.fillText('☂', 440, 145);
+  
+  // Barcode
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(236, 178, 230, 48);
+  ctx.fillStyle = '#111827';
+  for (let x = 246; x < 450; x += (Math.random() > 0.4 ? 4 : 2)) {
+    ctx.fillRect(x, 184, 2, 36);
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  _textureCache['tv_box'] = tex;
+  return tex;
+}
+
+function getFlatpackLabelTexture(productTitle) {
+  const cacheKey = 'fp_' + productTitle;
+  if (_textureCache[cacheKey]) return _textureCache[cacheKey];
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+
+  // Crisp white industrial logistics label
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 512, 128);
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(4, 4, 504, 120);
+
+  // Product title
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 24px "Segoe UI", sans-serif';
+  ctx.fillText(productTitle.toUpperCase(), 16, 36);
+
+  // Dimensions & Weight badge
+  ctx.font = '15px monospace';
+  ctx.fillText('ARTICLE: 002.638.50  |  PACK 1/1', 16, 62);
+  ctx.fillText('NET WT: 34.5 KG  |  FLATPACK FURNITURE', 16, 84);
+
+  // Heavy 2-person lift symbol
+  ctx.fillStyle = '#e11d48';
+  ctx.fillRect(16, 94, 180, 24);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText('👥 HEAVY 2-PERSON LIFT', 22, 111);
+
+  // Scannable Barcode
+  ctx.fillStyle = '#0f172a';
+  for (let x = 320; x < 490; x += (Math.random() > 0.4 ? 4 : 2)) {
+    ctx.fillRect(x, 24, 2, 60);
+  }
+  ctx.font = '11px monospace';
+  ctx.fillText('8 412589 772104', 350, 100);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  _textureCache[cacheKey] = tex;
+  return tex;
+}
+
 function create3DSuitcase(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
-  const geo = new THREE.BoxGeometry(l, h, w);
+  const geo = new THREE.BoxGeometry(l, h * 0.94, w);
   const mat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color),
-    roughness: 0.35,
-    metalness: 0.15,
-    clearcoat: 0.7,
-    clearcoatRoughness: 0.2
+    roughness: 0.32,
+    metalness: 0.16,
+    clearcoat: 0.8,
+    clearcoatRoughness: 0.15
   });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.add(new THREE.LineSegments(
+  const shell = new THREE.Mesh(geo, mat);
+  shell.add(new THREE.LineSegments(
     new THREE.EdgesGeometry(geo),
     new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.7, linewidth: 2 })
   ));
-  group.add(mesh);
+  group.add(shell);
 
-  const handleGeo = new THREE.BoxGeometry(Math.min(20, l * 0.35), 2.5, 3.5);
+  // Hard-shell horizontal aerodynamic ribs (3 embossed accent strips front & back)
+  const ribMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(edgeColor), roughness: 0.4, metalness: 0.3 });
+  [-h * 0.24, 0, h * 0.24].forEach(py => {
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(l * 0.84, 1.2, w + 0.6), ribMat);
+    rib.position.set(0, py, 0);
+    group.add(rib);
+  });
+
+  // TSA perimeter zipper seam band
+  const seamMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 });
+  const seamMesh = new THREE.Mesh(new THREE.BoxGeometry(l + 0.4, h * 0.94 + 0.4, 0.9), seamMat);
+  group.add(seamMesh);
+
+  // Molded corner bumper protectors (4 top corners)
+  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6, metalness: 0.4 });
+  const bSize = Math.min(9, l * 0.18, w * 0.18, h * 0.18);
+  const bGeo = new THREE.BoxGeometry(bSize, bSize, bSize);
+  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([sx, sz]) => {
+    const bmp = new THREE.Mesh(bGeo, bumperMat);
+    bmp.position.set(sx * ((l / 2) - (bSize / 2) + 0.1), (h * 0.47) - (bSize / 2), sz * ((w / 2) - (bSize / 2) + 0.1));
+    group.add(bmp);
+  });
+
+  // Telescoping Trolley Handle (Dual chrome aluminum vertical tubes + top grip bar)
+  const railGeo = new THREE.CylinderGeometry(0.7, 0.7, h * 0.95, 8);
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.15 });
+  const railSpacing = Math.min(18, l * 0.32);
+  [-railSpacing / 2, railSpacing / 2].forEach(px => {
+    const rail = new THREE.Mesh(railGeo, chromeMat);
+    rail.position.set(px, 0, -(w / 2) + 1.2);
+    group.add(rail);
+  });
+
+  const trolleyHandleGeo = new THREE.BoxGeometry(railSpacing + 2.5, 2.4, 3.6);
   const handleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
-  const handleMesh = new THREE.Mesh(handleGeo, handleMat);
-  handleMesh.position.set(0, (h / 2) + 1.5, 0);
-  group.add(handleMesh);
+  const trolleyHandle = new THREE.Mesh(trolleyHandleGeo, handleMat);
+  trolleyHandle.position.set(0, (h / 2) + 1.6, -(w / 2) + 1.2);
+  group.add(trolleyHandle);
+
+  // Top carry handle
+  const topHandle = new THREE.Mesh(new THREE.BoxGeometry(Math.min(16, l * 0.28), 2.0, 3.0), handleMat);
+  topHandle.position.set(0, (h / 2) + 1.3, 0);
+  group.add(topHandle);
+
+  // 4x 360-degree dual-wheel spinner castors at bottom corners
+  const wheelGeo = new THREE.CylinderGeometry(2.4, 2.4, 1.4, 14);
+  const rubberMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 });
+  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([sx, sz]) => {
+    const wh = new THREE.Mesh(wheelGeo, rubberMat);
+    wh.rotation.z = Math.PI / 2;
+    wh.position.set(sx * ((l / 2) - 4.5), -(h / 2) + 2.4, sz * ((w / 2) - 4.5));
+    group.add(wh);
+  });
+
   return group;
 }
 
 function create3DStroller(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
-  const geo = new THREE.BoxGeometry(l, h * 0.72, w);
-  const mat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), roughness: 0.4, metalness: 0.2 });
+  const tubeMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.2 });
+
+  // Main folded oval chassis tubing
+  const frameMainGeo = new THREE.BoxGeometry(l * 0.88, 3.2, w * 0.82);
+  const frameMain = new THREE.Mesh(frameMainGeo, tubeMat);
+  frameMain.position.set(0, -h * 0.12, 0);
+  group.add(frameMain);
+
+  // Inclined upright push handlebar tubes
+  const armLen = Math.sqrt(l * l * 0.35 + h * h * 0.4);
+  const armGeo = new THREE.CylinderGeometry(1.2, 1.2, armLen, 8);
+  [-w * 0.38, w * 0.38].forEach(pz => {
+    const arm = new THREE.Mesh(armGeo, tubeMat);
+    arm.rotation.z = -0.55;
+    arm.position.set(l * 0.1, h * 0.1, pz);
+    group.add(arm);
+  });
+
+  // Soft-grip horizontal push handlebar
+  const barGeo = new THREE.CylinderGeometry(1.6, 1.6, w * 0.82, 12);
+  const gripMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+  const bar = new THREE.Mesh(barGeo, gripMat);
+  bar.rotation.x = Math.PI / 2;
+  bar.position.set(l * 0.36, (h / 2) - 3, 0);
+  group.add(bar);
+
+  // Folded Sun Canopy Hood & Fabric Bassinet
+  const fabricGeo = new THREE.BoxGeometry(l * 0.52, h * 0.36, w * 0.74);
+  const fabricMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), roughness: 0.6, metalness: 0.1 });
+  const fabric = new THREE.Mesh(fabricGeo, fabricMat);
+  fabric.position.set(-l * 0.08, h * 0.08, 0);
+  fabric.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(fabricGeo),
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.7 })
+  ));
+  group.add(fabric);
+
+  // Large rear spoke wheels & front swivel castors
+  const rWheelGeo = new THREE.CylinderGeometry(Math.min(7.5, h * 0.26), Math.min(7.5, h * 0.26), 2.8, 16);
+  const fWheelGeo = new THREE.CylinderGeometry(Math.min(4.8, h * 0.18), Math.min(4.8, h * 0.18), 2.2, 16);
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.7 });
+
+  // Rear wheels
+  [-w * 0.44, w * 0.44].forEach(pz => {
+    const wh = new THREE.Mesh(rWheelGeo, wheelMat);
+    wh.rotation.x = Math.PI / 2;
+    wh.position.set(-l * 0.36, -(h / 2) + Math.min(7.5, h * 0.26), pz);
+    group.add(wh);
+  });
+
+  // Front dual castors
+  [-w * 0.36, w * 0.36].forEach(pz => {
+    const wh = new THREE.Mesh(fWheelGeo, wheelMat);
+    wh.rotation.x = Math.PI / 2;
+    wh.position.set(l * 0.36, -(h / 2) + Math.min(4.8, h * 0.18), pz);
+    group.add(wh);
+  });
+
+  return group;
+}
+
+function create3DBicycle(l, w, h, color, edgeColor) {
+  const group = new THREE.Group();
+  const frameMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color),
+    metalness: 0.85,
+    roughness: 0.22,
+    clearcoat: 0.9
+  });
+  const darkCompMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 });
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.92, roughness: 0.15 });
+
+  const wheelRadius = Math.min(32, h * 0.34);
+  const wheelDist = l * 0.68;
+
+  // Front & Rear Spoked Wheels with Rubber Tyres
+  const tyreMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.85 });
+  [-wheelDist / 2, wheelDist / 2].forEach(px => {
+    // Outer rubber tyre
+    const tyre = new THREE.Mesh(new THREE.TorusGeometry(wheelRadius, 1.8, 8, 30), tyreMat);
+    tyre.position.set(px, -(h / 2) + wheelRadius, 0);
+    group.add(tyre);
+
+    // Inner alloy rim
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(wheelRadius * 0.92, 0.9, 6, 24), chromeMat);
+    rim.position.set(px, -(h / 2) + wheelRadius, 0);
+    group.add(rim);
+
+    // Center hub axle
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 5.0, 10), darkCompMat);
+    hub.rotation.x = Math.PI / 2;
+    hub.position.set(px, -(h / 2) + wheelRadius, 0);
+    group.add(hub);
+
+    // Radial spokes
+    for (let a = 0; a < Math.PI; a += Math.PI / 3) {
+      const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, wheelRadius * 1.8, 4), chromeMat);
+      spoke.rotation.z = a;
+      spoke.position.set(px, -(h / 2) + wheelRadius, 0);
+      group.add(spoke);
+    }
+  });
+
+  // Diamond Bicycle Frame Tubes
+  const bbX = -l * 0.04;
+  const bbY = -(h / 2) + wheelRadius + 2;
+  const seatPostTopX = -l * 0.12;
+  const seatPostTopY = (h * 0.22);
+  const headTubeX = l * 0.26;
+  const headTubeY = (h * 0.28);
+
+  const makeTube = (p1, p2, radius = 1.3) => {
+    const v1 = new THREE.Vector3(p1[0], p1[1], 0);
+    const v2 = new THREE.Vector3(p2[0], p2[1], 0);
+    const dist = v1.distanceTo(v2);
+    const tubeGeo = new THREE.CylinderGeometry(radius, radius, dist, 8);
+    const tube = new THREE.Mesh(tubeGeo, frameMat);
+    tube.position.copy(v1.clone().add(v2).multiplyScalar(0.5));
+    tube.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v2.clone().sub(v1).normalize());
+    group.add(tube);
+  };
+
+  // Seat tube, Down tube, Top tube, Chainstays, Seatstays
+  makeTube([bbX, bbY], [seatPostTopX, seatPostTopY], 1.5);
+  makeTube([bbX, bbY], [headTubeX, headTubeY], 1.6);
+  makeTube([seatPostTopX, seatPostTopY], [headTubeX, headTubeY], 1.4);
+  makeTube([bbX, bbY], [-wheelDist / 2, -(h / 2) + wheelRadius], 1.2);
+  makeTube([seatPostTopX, seatPostTopY], [-wheelDist / 2, -(h / 2) + wheelRadius], 1.2);
+  // Front fork
+  makeTube([headTubeX, headTubeY], [wheelDist / 2, -(h / 2) + wheelRadius], 1.4);
+
+  // Handlebars & Grips
+  const barGeo = new THREE.CylinderGeometry(1.2, 1.2, Math.min(w * 0.88, 62), 10);
+  const bar = new THREE.Mesh(barGeo, darkCompMat);
+  bar.rotation.x = Math.PI / 2;
+  bar.position.set(headTubeX + 2, headTubeY + 8, 0);
+  group.add(bar);
+
+  // Aerodynamic Sport Saddle
+  const saddleGeo = new THREE.BoxGeometry(22, 4.5, 9);
+  const saddle = new THREE.Mesh(saddleGeo, darkCompMat);
+  saddle.position.set(seatPostTopX - 4, seatPostTopY + 7, 0);
+  group.add(saddle);
+
+  // Crankset & Pedals
+  const chainring = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 6.5, 1.0, 16), darkCompMat);
+  chainring.rotation.x = Math.PI / 2;
+  chainring.position.set(bbX, bbY, 2.5);
+  group.add(chainring);
+
+  const pedalGeo = new THREE.BoxGeometry(6, 2, 7);
+  const pedalL = new THREE.Mesh(pedalGeo, darkCompMat);
+  pedalL.position.set(bbX + 8, bbY, -8);
+  const pedalR = new THREE.Mesh(pedalGeo, darkCompMat);
+  pedalR.position.set(bbX - 8, bbY, 8);
+  group.add(pedalL, pedalR);
+
+  return group;
+}
+
+function create3DTVBox(l, w, h, color, edgeColor) {
+  const group = new THREE.Group();
+  const boxGeo = new THREE.BoxGeometry(l, h, w);
+  const boxMat = new THREE.MeshPhysicalMaterial({
+    color: 0xc29b68, // Authentic corrugated kraft cardboard
+    roughness: 0.85,
+    metalness: 0.05
+  });
+  const mainBox = new THREE.Mesh(boxGeo, boxMat);
+  mainBox.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(boxGeo),
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.6 })
+  ));
+  group.add(mainBox);
+
+  // Prominent Graphic Decal Panels (4K OLED / Fragile / Specs / Arrows)
+  const tex = getTVBoxTexture();
+  if (h <= w && h <= l) {
+    // Laying flat: top face (+Y) is the primary 16:9 screen face!
+    const decalGeo = new THREE.PlaneGeometry(l * 0.88, w * 0.84);
+    const decalMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.95 });
+    const decalTop = new THREE.Mesh(decalGeo, decalMat);
+    decalTop.rotation.x = -Math.PI / 2;
+    decalTop.position.set(0, (h / 2) + 0.12, 0);
+    group.add(decalTop);
+  } else {
+    // Standing upright: front and back faces (+-Z) are the large screen faces!
+    const decalGeo = new THREE.PlaneGeometry(l * 0.88, h * 0.84);
+    const decalMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.95 });
+
+    const decalFront = new THREE.Mesh(decalGeo, decalMat);
+    decalFront.position.set(0, 0, (w / 2) + 0.12);
+    group.add(decalFront);
+
+    const decalBack = new THREE.Mesh(decalGeo, decalMat);
+    decalBack.rotation.y = Math.PI;
+    decalBack.position.set(0, 0, -(w / 2) - 0.12);
+    group.add(decalBack);
+  }
+
+  // Heavy-duty brown packaging tape along seams
+  const tapeMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.4 });
+  const seamTape = new THREE.Mesh(new THREE.BoxGeometry(l + 0.2, 0.4, Math.min(8, w * 0.25)), tapeMat);
+  seamTape.position.set(0, (h / 2) + 0.15, (w / 2) - Math.min(4, w * 0.12));
+  group.add(seamTape);
+
+  // Recessed hand grip carry cutouts on narrow ends
+  const handleCutoutMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.9 });
+  const hGripGeo = new THREE.BoxGeometry(0.8, 5.0, Math.min(12, w * 0.5));
+  [-l / 2 - 0.1, l / 2 + 0.1].forEach(px => {
+    const grip = new THREE.Mesh(hGripGeo, handleCutoutMat);
+    grip.position.set(px, 0, 0);
+    group.add(grip);
+  });
+
+  return group;
+}
+
+function create3DWasher(l, w, h, color, edgeColor) {
+  const group = new THREE.Group();
+  
+  // Appliance cubic cabinet in gloss enamel white
+  const cabinetGeo = new THREE.BoxGeometry(l, h * 0.96, w);
+  const cabinetMat = new THREE.MeshPhysicalMaterial({
+    color: 0xf8fafc,
+    roughness: 0.22,
+    metalness: 0.14,
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.15
+  });
+  const cabinet = new THREE.Mesh(cabinetGeo, cabinetMat);
+  cabinet.position.set(0, h * 0.02, 0);
+  cabinet.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(cabinetGeo),
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.65 })
+  ));
+  group.add(cabinet);
+
+  // Circular Porthole Drum Door (Front face, +X)
+  const doorRadius = Math.min(22, w * 0.36, h * 0.34);
+  const doorGeo = new THREE.CylinderGeometry(doorRadius, doorRadius, 2.5, 24);
+  const chromeDoorMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.2 });
+  const doorRim = new THREE.Mesh(doorGeo, chromeDoorMat);
+  doorRim.rotation.z = Math.PI / 2;
+  doorRim.position.set((l / 2) + 1.2, -h * 0.04, 0);
+  group.add(doorRim);
+
+  // Tinted Glass Porthole Window with interior drum shadow
+  const glassGeo = new THREE.CylinderGeometry(doorRadius * 0.78, doorRadius * 0.78, 2.8, 20);
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0x0f172a,
+    metalness: 0.4,
+    roughness: 0.1,
+    transparent: true,
+    opacity: 0.88,
+    clearcoat: 1.0
+  });
+  const glass = new THREE.Mesh(glassGeo, glassMat);
+  glass.rotation.z = Math.PI / 2;
+  glass.position.set((l / 2) + 1.2, -h * 0.04, 0);
+  group.add(glass);
+
+  // Door status accent ring (glows green/amber/red based on fitment)
+  const statusRingGeo = new THREE.TorusGeometry(doorRadius + 0.6, 0.6, 8, 24);
+  const statusRingMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(color) });
+  const statusRing = new THREE.Mesh(statusRingGeo, statusRingMat);
+  statusRing.rotation.y = Math.PI / 2;
+  statusRing.position.set((l / 2) + 1.3, -h * 0.04, 0);
+  group.add(statusRing);
+
+  // Control Fascia Panel (Top front)
+  const fasciaY = (h * 0.36);
+  // Detergent drawer (Left side)
+  const drawerGeo = new THREE.BoxGeometry(1.6, 9, w * 0.28);
+  const drawerMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4 });
+  const drawer = new THREE.Mesh(drawerGeo, drawerMat);
+  drawer.position.set((l / 2) + 0.8, fasciaY, -w * 0.3);
+  group.add(drawer);
+
+  // Rotary cycle program dial (Center)
+  const knobGeo = new THREE.CylinderGeometry(3.6, 3.6, 2.0, 16);
+  const knobMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.3 });
+  const knob = new THREE.Mesh(knobGeo, knobMat);
+  knob.rotation.z = Math.PI / 2;
+  knob.position.set((l / 2) + 1.1, fasciaY, 0);
+  group.add(knob);
+
+  // Digital LED Display Screen (Right side)
+  const screenGeo = new THREE.BoxGeometry(1.4, 7, w * 0.32);
+  const screenMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+  const screen = new THREE.Mesh(screenGeo, screenMat);
+  screen.position.set((l / 2) + 0.8, fasciaY, w * 0.28);
+  group.add(screen);
+
+  // Base service plinth & leveling feet
+  const feetMat = new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.9 });
+  const footGeo = new THREE.CylinderGeometry(2.0, 2.0, 1.8, 10);
+  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([sx, sz]) => {
+    const foot = new THREE.Mesh(footGeo, feetMat);
+    foot.position.set(sx * ((l / 2) - 4), -(h / 2) + 0.9, sz * ((w / 2) - 4));
+    group.add(foot);
+  });
+
+  return group;
+}
+
+function create3DFlatpack(l, w, h, color, edgeColor, labelTitle = 'IKEA Billy Bookcase') {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(l, h, w);
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color || '#78350f'),
+    roughness: 0.8,
+    metalness: 0.05
+  });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.add(new THREE.LineSegments(
     new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.7 })
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.65 })
   ));
   group.add(mesh);
 
-  const wheelGeo = new THREE.CylinderGeometry(5.5, 5.5, 3, 16);
-  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.7 });
-  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([sx, sz]) => {
-    const wh = new THREE.Mesh(wheelGeo, wheelMat);
-    wh.rotation.x = Math.PI / 2;
-    wh.position.set(sx * (l * 0.36), -h * 0.22, sz * (w * 0.42));
-    group.add(wh);
-  });
+  // Logistics barcode shipping manifest label on top face
+  const tex = getFlatpackLabelTexture(labelTitle);
+  const labelGeo = new THREE.PlaneGeometry(Math.min(70, l * 0.55), Math.min(22, w * 0.75));
+  const labelMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.95 });
+  const label = new THREE.Mesh(labelGeo, labelMat);
+  label.rotation.x = -Math.PI / 2;
+  label.position.set(0, (h / 2) + 0.12, 0);
+  group.add(label);
+
+  // Reinforced packing tape band
+  const tapeGeo = new THREE.PlaneGeometry(l + 0.2, Math.min(7, w * 0.35));
+  const tapeMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.4 });
+  const tape = new THREE.Mesh(tapeGeo, tapeMat);
+  tape.rotation.x = -Math.PI / 2;
+  tape.position.set(0, (h / 2) + 0.08, 0);
+  group.add(tape);
+
   return group;
 }
 
 function create3DGolfBag(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
   const radius = Math.min(w, h) / 2;
-  const bodyGeo = new THREE.CylinderGeometry(radius * 0.85, radius, l * 0.8, 16);
-  const bodyMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), roughness: 0.4, clearcoat: 0.5 });
+  const bagLen = l * 0.76;
+
+  // Stand bag nylon/leather body
+  const bodyGeo = new THREE.CylinderGeometry(radius * 0.88, radius, bagLen, 18);
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color),
+    roughness: 0.45,
+    metalness: 0.15,
+    clearcoat: 0.5
+  });
   const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
   bodyMesh.rotation.z = Math.PI / 2;
   bodyMesh.add(new THREE.LineSegments(
@@ -59,12 +570,52 @@ function create3DGolfBag(l, w, h, color, edgeColor) {
   ));
   group.add(bodyMesh);
 
-  const clubGeo = new THREE.CylinderGeometry(radius * 0.4, radius * 0.7, l * 0.22, 12);
-  const clubMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
-  const clubMesh = new THREE.Mesh(clubGeo, clubMat);
-  clubMesh.rotation.z = Math.PI / 2;
-  clubMesh.position.set(l * 0.48, 0, 0);
-  group.add(clubMesh);
+  // Top molded club divider collar
+  const collarGeo = new THREE.CylinderGeometry(radius * 0.92, radius * 0.88, 4, 16);
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
+  const collar = new THREE.Mesh(collarGeo, darkMat);
+  collar.rotation.z = Math.PI / 2;
+  collar.position.set((bagLen / 2) + 2, 0, 0);
+  group.add(collar);
+
+  // Golf clubs with graphite shafts and protective driver headcovers
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.15 });
+  const driverCoverMat = new THREE.MeshPhysicalMaterial({ color: 0xdc2626, roughness: 0.3, clearcoat: 0.6 });
+  const woodCoverMat = new THREE.MeshPhysicalMaterial({ color: 0x2563eb, roughness: 0.3, clearcoat: 0.6 });
+
+  // 1x Big Driver with Red Headcover
+  const driverHead = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.45, 12, 10), driverCoverMat);
+  driverHead.scale.set(1.4, 0.9, 0.9);
+  driverHead.position.set((l / 2) - 4, 2, 0);
+  group.add(driverHead);
+
+  // 2x Fairway Woods with Blue Covers
+  const wood1 = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.34, 10, 8), woodCoverMat);
+  wood1.position.set((l / 2) - 9, -radius * 0.3, radius * 0.28);
+  const wood2 = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.34, 10, 8), woodCoverMat);
+  wood2.position.set((l / 2) - 9, -radius * 0.3, -radius * 0.28);
+  group.add(wood1, wood2);
+
+  // 3x Iron Club Heads
+  [-radius * 0.3, 0, radius * 0.3].forEach(pz => {
+    const iron = new THREE.Mesh(new THREE.BoxGeometry(4.5, 2.2, 1.2), chromeMat);
+    iron.position.set((l / 2) - 12, radius * 0.3, pz);
+    group.add(iron);
+  });
+
+  // Dual side accessory zip pockets
+  const pocketGeo = new THREE.BoxGeometry(bagLen * 0.5, radius * 0.8, radius * 0.5);
+  const pocket1 = new THREE.Mesh(pocketGeo, darkMat);
+  pocket1.position.set(-2, radius * 0.65, 0);
+  group.add(pocket1);
+
+  // Padded shoulder sling strap
+  const strapGeo = new THREE.TorusGeometry(radius * 1.3, 1.2, 6, 16, Math.PI);
+  const strap = new THREE.Mesh(strapGeo, darkMat);
+  strap.rotation.z = Math.PI / 2;
+  strap.position.set(0, -radius * 0.7, 0);
+  group.add(strap);
+
   return group;
 }
 
@@ -103,24 +654,117 @@ function create3DDuffel(l, w, h, color, edgeColor) {
   return group;
 }
 
-function create3DFlatpack(l, w, h, color, edgeColor) {
+function create3DDogCrate(l, w, h, color, edgeColor) {
+  const group = new THREE.Group();
+  const wireMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
+  const trayMat = new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.7 });
+
+  // Black composite plastic bottom leak-proof tray
+  const trayGeo = new THREE.BoxGeometry(l, 3.5, w);
+  const tray = new THREE.Mesh(trayGeo, trayMat);
+  tray.position.set(0, -(h / 2) + 1.75, 0);
+  group.add(tray);
+
+  // Outer wire crate bounding frame
+  const cageGeo = new THREE.BoxGeometry(l - 1, h - 3, w - 1);
+  const cageEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(cageGeo),
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor || 0x38bdf8), linewidth: 2 })
+  );
+  cageEdges.position.set(0, 1.5, 0);
+  group.add(cageEdges);
+
+  // Interior Wire Grid Lines (horizontal & vertical bars)
+  const numXBars = Math.max(3, Math.floor(l / 15));
+  for (let i = 1; i < numXBars; i++) {
+    const px = -(l / 2) + (i * (l / numXBars));
+    const vBar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, h - 4, 4), wireMat);
+    vBar.position.set(px, 1.5, (w / 2) - 0.5);
+    group.add(vBar);
+  }
+
+  // Top carry handle
+  const handleGeo = new THREE.BoxGeometry(Math.min(14, l * 0.3), 1.5, 3.5);
+  const handle = new THREE.Mesh(handleGeo, wireMat);
+  handle.position.set(0, (h / 2) + 1.2, 0);
+  group.add(handle);
+
+  return group;
+}
+
+function create3DGenericCargoCase(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
   const geo = new THREE.BoxGeometry(l, h, w);
-  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.7 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.add(new THREE.LineSegments(
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color),
+    roughness: 0.35,
+    metalness: 0.2,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.2
+  });
+  const shell = new THREE.Mesh(geo, mat);
+  shell.add(new THREE.LineSegments(
     new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.6 })
+    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.75, linewidth: 2 })
   ));
-  group.add(mesh);
+  group.add(shell);
 
-  const tapeGeo = new THREE.PlaneGeometry(l, Math.min(6, w * 0.3));
-  const tapeMat = new THREE.MeshBasicMaterial({ color: 0xb45309, side: THREE.DoubleSide });
-  const tape = new THREE.Mesh(tapeGeo, tapeMat);
-  tape.rotation.x = -Math.PI / 2;
-  tape.position.set(0, (h / 2) + 0.1, 0);
-  group.add(tape);
+  // Heavy-duty flight case ball corner bumpers (all 8 corners)
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.15 });
+  const cSize = Math.min(7, l * 0.12, w * 0.12, h * 0.12);
+  const cGeo = new THREE.BoxGeometry(cSize, cSize, cSize);
+  [[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [-1, 1, 1], [1, -1, -1], [1, -1, 1], [1, 1, -1], [1, 1, 1]].forEach(([sx, sy, sz]) => {
+    const cap = new THREE.Mesh(cGeo, chromeMat);
+    cap.position.set(sx * ((l / 2) - (cSize / 2) + 0.1), sy * ((h / 2) - (cSize / 2) + 0.1), sz * ((w / 2) - (cSize / 2) + 0.1));
+    group.add(cap);
+  });
+
+  // Dual spring-loaded side flip handles
+  const handleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
+  const handleGeo = new THREE.BoxGeometry(1.6, 3.0, Math.min(15, w * 0.35));
+  [-l / 2 - 0.8, l / 2 + 0.8].forEach(px => {
+    const hMesh = new THREE.Mesh(handleGeo, handleMat);
+    hMesh.position.set(px, 0, 0);
+    group.add(hMesh);
+  });
+
   return group;
+}
+
+function createCargoItem3D(rot, presetName, boxColor, edgeColor) {
+  const pName = (presetName || '').toLowerCase();
+  const l = rot.l, w = rot.w, h = rot.h;
+
+  if (pName.includes('bike') || pName.includes('bicycle')) {
+    return create3DBicycle(l, w, h, boxColor, edgeColor);
+  } else if (pName.includes('tv')) {
+    return create3DTVBox(l, w, h, boxColor, edgeColor);
+  } else if (pName.includes('wash') || pName.includes('dryer') || pName.includes('appliance')) {
+    return create3DWasher(l, w, h, boxColor, edgeColor);
+  } else if (pName.includes('stroller') || pName.includes('pram')) {
+    return create3DStroller(l, w, h, boxColor, edgeColor);
+  } else if (pName.includes('golf')) {
+    return create3DGolfBag(l, w, h, boxColor, edgeColor);
+  } else if (pName.includes('dog') || pName.includes('crate') || pName.includes('pet')) {
+    return create3DDogCrate(l, w, h, boxColor, edgeColor);
+  } else if (pName.includes('ikea') || pName.includes('bookcase') || pName.includes('kallax') || pName.includes('flat-pack') || pName.includes('desk')) {
+    return create3DFlatpack(l, w, h, boxColor, edgeColor, presetName || 'IKEA Flatpack');
+  } else if (pName.includes('suitcase') || pName.includes('luggage') || pName.includes('cabin') || pName.includes('bag')) {
+    return create3DSuitcase(l, w, h, boxColor, edgeColor);
+  } else {
+    // Dimension heuristics for custom inputs
+    if (l >= 120 && h >= 65 && w <= 25) {
+      return create3DTVBox(l, w, h, boxColor, edgeColor);
+    } else if (w >= 50 && h >= 75 && l >= 50 && Math.abs(l - w) <= 15) {
+      return create3DWasher(l, w, h, boxColor, edgeColor);
+    } else if (l >= 150 && w <= 45 && h <= 30) {
+      return create3DFlatpack(l, w, h, boxColor, edgeColor, 'Custom Flatpack');
+    } else if (l >= 50 && l <= 90 && w >= 35 && w <= 60 && h >= 20 && h <= 40) {
+      return create3DSuitcase(l, w, h, boxColor, edgeColor);
+    } else {
+      return create3DGenericCargoCase(l, w, h, boxColor, edgeColor);
+    }
+  }
 }
 
 /**
@@ -1583,17 +2227,17 @@ function updateSafetyAdvisory(rawL, rawW, rawH) {
       title: 'Transporting Large Flat-Panel TVs',
       text: 'Avoid laying OLED/LED screens completely flat if possible. Road vibration causes unbacked large glass panels to crack under tension. Transport standing upright or wedged at an angle supported with blankets.'
     };
-  } else if (presetName.includes('wash') || (rawW >= 55 && rawH >= 80 && rawL >= 55)) {
-    advisory = {
-      icon: '⚡',
-      title: 'Washing Machine Transport Safety',
-      text: 'Always install drum transit locking bolts before moving to prevent drum suspension damage. Empty residual pump filter water first. If laid on side, keep soap tray facing UP to protect electronics.'
-    };
   } else if (presetName.includes('bike') || presetName.includes('bicycle') || (rawL >= 150 && rawH >= 85)) {
     advisory = {
       icon: '🚲',
       title: 'Bicycle Derailleur & Chain Protection',
       text: 'Always load bicycle with drivetrain (chain and gears) facing UP. Resting the rear derailleur on the car floor bends the hanger, ruining gear shifting. Protect boot fabric with a tarp.'
+    };
+  } else if (presetName.includes('wash') || presetName.includes('dryer') || (rawW >= 55 && rawW <= 70 && rawH >= 75 && rawH <= 95 && rawL >= 55 && rawL <= 70)) {
+    advisory = {
+      icon: '⚡',
+      title: 'Washing Machine Transport Safety',
+      text: 'Always install drum transit locking bolts before moving to prevent drum suspension damage. Empty residual pump filter water first. If laid on side, keep soap tray facing UP to protect electronics.'
     };
   } else if (presetName.includes('ikea') || presetName.includes('flat-pack') || (rawL >= 180 && rawW <= 45)) {
     advisory = {
@@ -3024,10 +3668,19 @@ function evaluateFitment() {
       }
     }
 
+    const bundleBoundingBoxes = {
+      'family-holiday': { l: 85, w: 96, h: 66 },
+      'airport-run': { l: 55, w: 82, h: 42 },
+      'golf-weekend': { l: 122, w: 66, h: 32 },
+      'camping-weekend': { l: 75, w: 72, h: 56 },
+      'ikea-haul': { l: 205, w: 68, h: 25 }
+    };
+    const bBounds = bundleBoundingBoxes[bundle.id] || { l: 85, w: 96, h: 66 };
+
     lastFitResult = {
       bundle,
       status: bundleOutcome.status,
-      rot: { l: 85, w: 96, h: 66 },
+      rot: bBounds,
       mode: 'flat',
       angle: 0,
       instruction: bundleOutcome.instruction,
@@ -3466,6 +4119,8 @@ function evaluateFitment() {
     }
   }
 
+    const currentActivePreset = document.querySelector('.preset-btn.active');
+  activeResult.presetName = currentActivePreset ? (currentActivePreset.dataset.name || currentActivePreset.textContent || '') : '';
   lastFitResult = activeResult;
 
   // Update UI Elements with friendly, human-first copy
@@ -7306,33 +7961,33 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
       if (bId === 'airport-run') {
         const bag1 = create3DSuitcase(55, 40, 20, items[0].color, items[0].edgeColor);
-        bag1.position.set(0, 10, -21);
+        bag1.position.set(0, 10, -20.5);
         const bag2 = create3DSuitcase(55, 40, 20, items[1].color, items[1].edgeColor);
-        bag2.position.set(0, 10, 21);
+        bag2.position.set(0, 10, 20.5);
         const bag3 = create3DSuitcase(55, 40, 20, items[2].color, items[2].edgeColor);
-        bag3.position.set(0, 31, -21);
+        bag3.position.set(0, 30.5, -20.5);
         const bag4 = create3DSuitcase(55, 40, 20, items[3].color, items[3].edgeColor);
-        bag4.position.set(0, 31, 21);
+        bag4.position.set(0, 30.5, 20.5);
         cargo3DMesh.add(bag1, bag2, bag3, bag4);
 
       } else if (bId === 'family-holiday') {
         const sc1 = create3DSuitcase(70, 48, 28, items[0].color, items[0].edgeColor);
-        sc1.position.set(0, 14, -25);
+        sc1.position.set(0, 14, -24.5);
         const sc2 = create3DSuitcase(70, 48, 28, items[1].color, items[1].edgeColor);
-        sc2.position.set(0, 14, 25);
+        sc2.position.set(0, 14, 24.5);
         const stroller = create3DStroller(85, 60, 38, items[2].color, items[2].edgeColor);
         stroller.position.set(0, 28 + 19, 0);
         cargo3DMesh.add(sc1, sc2, stroller);
 
       } else if (bId === 'golf-weekend') {
         const gb1 = create3DGolfBag(122, 32, 30, items[0].color, items[0].edgeColor);
-        gb1.position.set(0, 16, -18);
+        gb1.position.set(-15, 15, -17);
         const gb2 = create3DGolfBag(122, 32, 30, items[1].color, items[1].edgeColor);
-        gb2.position.set(0, 16, 18);
+        gb2.position.set(-15, 15, 17);
         const duf1 = create3DDuffel(52, 30, 26, items[2].color, items[2].edgeColor);
-        duf1.position.set(35, 14, -18);
+        duf1.position.set(40, 13, -17);
         const duf2 = create3DDuffel(52, 30, 26, items[3].color, items[3].edgeColor);
-        duf2.position.set(35, 14, 18);
+        duf2.position.set(40, 13, 17);
         cargo3DMesh.add(gb1, gb2, duf1, duf2);
 
       } else if (bId === 'camping-weekend') {
@@ -7340,31 +7995,38 @@ function update3DStudio(car, seatsFolded, fitResult) {
         tent.rotation.y = Math.PI / 2;
         tent.position.set(-18, 15, 0);
         const cooler = create3DCooler(58, 40, 42, '#0284c7');
-        cooler.position.set(18, 21, -12);
+        cooler.position.set(18, 21, -14);
         const duf1 = create3DDuffel(60, 32, 28, items[2].color, items[2].edgeColor);
         duf1.position.set(18, 14, 20);
         const duf2 = create3DDuffel(60, 32, 28, items[3].color, items[3].edgeColor);
-        duf2.position.set(-14, 36, 0);
+        duf2.position.set(18, 42 + 14, -14); // Stacked flush on top of cooler lid!
         cargo3DMesh.add(tent, cooler, duf1, duf2);
 
       } else if (bId === 'ikea-haul') {
-        const bookcase = create3DFlatpack(205, 30, 13, items[0].color, items[0].edgeColor);
-        bookcase.position.set(-20, 7, -16);
-        const desk = create3DFlatpack(135, 65, 12, items[1].color, items[1].edgeColor);
+        const bookcase = create3DFlatpack(205, 30, 13, items[0].color, items[0].edgeColor, 'IKEA Billy Bookcase');
+        bookcase.position.set(-15, 6.5, -16);
+        const desk = create3DFlatpack(135, 65, 12, items[1].color, items[1].edgeColor, 'Flat-pack Desk');
         desk.position.set(15, 6, 16);
         cargo3DMesh.add(bookcase, desk);
       }
     } else {
+      const activePreset = document.querySelector('.preset-btn.active');
+      const presetName = fitResult.presetName || (activePreset ? (activePreset.dataset.name || activePreset.textContent || '') : '');
+
+      const createItemModel = (col, edCol) => {
+        return createCargoItem3D(rot, presetName, col, edCol);
+      };
+
       if (itemQuantity === 1) {
-        cargo3DMesh.add(createSingleBoxWithColor(rot.l, rot.w, rot.h, boxColor, edgeColor));
+        cargo3DMesh.add(createItemModel(boxColor, edgeColor));
       } else if (itemQuantity === 2) {
         const rotL = rot.l, rotW = rot.w, rotH = rot.h;
         const canSide = (rotW * 2 + 2 <= car.wheel_arch_width);
         const canStack = (rotH * 2 + 2 <= car.roof_height);
         const canFtb = (rotL * 2 + 2 <= currentFloorLen);
 
-        const b1 = create3DSuitcase(rotL, rotW, rotH, '#2563eb', '#93c5fd'); // Sapphire Blue
-        const b2 = create3DSuitcase(rotL, rotW, rotH, '#334155', '#cbd5e1'); // Slate Charcoal
+        const b1 = createItemModel(boxColor, edgeColor);
+        const b2 = createItemModel('#334155', '#cbd5e1');
 
         if (canSide || (!canStack && !canFtb)) {
           const offsetZ = (rotW / 2) + 0.8;
@@ -7378,16 +8040,15 @@ function update3DStudio(car, seatsFolded, fitResult) {
           b1.position.set(-offsetX, 0, 0);
           b2.position.set(offsetX, 0, 0);
         }
-        cargo3DMesh.add(b1);
-        cargo3DMesh.add(b2);
+        cargo3DMesh.add(b1, b2);
       } else if (itemQuantity === 3) {
         const rotL = rot.l, rotW = rot.w, rotH = rot.h;
         const canSide = (rotW * 3 + 4 <= car.wheel_arch_width);
         const canStack = (rotH * 3 + 4 <= car.roof_height);
 
-        const b1 = create3DSuitcase(rotL, rotW, rotH, '#2563eb', '#93c5fd'); // Sapphire Blue
-        const b2 = create3DSuitcase(rotL, rotW, rotH, '#334155', '#cbd5e1'); // Slate Charcoal
-        const b3 = create3DSuitcase(rotL, rotW, rotH, '#065f46', '#6ee7b7'); // Emerald Spruce
+        const b1 = createItemModel(boxColor, edgeColor);
+        const b2 = createItemModel('#334155', '#cbd5e1');
+        const b3 = createItemModel('#065f46', '#6ee7b7');
 
         if (canSide) {
           const step = rotW + 1.0;
@@ -7405,9 +8066,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
           b2.position.set(0, 0, offsetZ);
           b3.position.set(0, rotH + 0.8, 0);
         }
-        cargo3DMesh.add(b1);
-        cargo3DMesh.add(b2);
-        cargo3DMesh.add(b3);
+        cargo3DMesh.add(b1, b2, b3);
       }
     }
 
@@ -7499,7 +8158,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
     } else {
       // Standard Flat or Colliding
-      cargo3DMesh.position.set(defaultPosX, sillY + (rot.h / 2) + 2.5, 0);
+      if (fitResult.bundle) {
+        // In trip bundles, individual items have local Y=0 as the carpet surface
+        cargo3DMesh.position.set(defaultPosX, sillY + 2.5, 0);
+      } else {
+        // Single items are centered at (0,0,0) with bottom at -rot.h/2
+        cargo3DMesh.position.set(defaultPosX, sillY + (rot.h / 2) + 2.5, 0);
+      }
       cargoSimulationBaseGroup.add(cargo3DMesh);
     }
 

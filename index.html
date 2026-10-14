@@ -116,7 +116,7 @@
        (three -> OrbitControls -> app.js) without blocking first paint. -->
   <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" integrity="sha384-wagZhIFgY4hD+7awjQjR4e2E294y6J2HSnd8eTNc15ZubTeQeVRZwhQJ+W6hnBsf" crossorigin="anonymous"></script>
-  <script defer src="app.js?v=84"></script>
+  <script defer src="app.js?v=86"></script>
 </head>
 <body>
   <div class="app-container">
@@ -460,15 +460,15 @@
               <!-- Sleek Floating Paint Swatch Popover -->
               <div class="paint-swatch-dropdown" id="paint-swatch-dropdown">
                 <button type="button" class="paint-dropdown-btn" id="btn-toggle-paint" title="Change 3D Vehicle Paint Color">
-                  <span class="paint-dot-preview" id="paint-dot-preview" style="background:#1e293b;"></span>
+                  <span class="paint-dot-preview" id="paint-dot-preview" style="background:#2563eb;"></span>
                   <span>Paint ▾</span>
                 </button>
                 <div class="paint-swatch-menu" id="paint-swatch-bar">
-                  <button type="button" class="paint-swatch active" data-color="#1e293b" title="Slate Shadow" style="background:#1e293b;"></button>
+                  <button type="button" class="paint-swatch" data-color="#1e293b" title="Slate Shadow" style="background:#1e293b;"></button>
                   <button type="button" class="paint-swatch" data-color="#f8fafc" title="Pure White" style="background:#f8fafc;"></button>
                   <button type="button" class="paint-swatch" data-color="#090d16" title="Deep Onyx Black" style="background:#090d16;"></button>
                   <button type="button" class="paint-swatch" data-color="#94a3b8" title="Metallic Silver" style="background:#94a3b8;"></button>
-                  <button type="button" class="paint-swatch" data-color="#2563eb" title="Royal Blue Metallic" style="background:#2563eb;"></button>
+                  <button type="button" class="paint-swatch active" data-color="#2563eb" title="Royal Blue Metallic" style="background:#2563eb;"></button>
                   <button type="button" class="paint-swatch" data-color="#dc2626" title="Race Red" style="background:#dc2626;"></button>
                   <button type="button" class="paint-swatch" data-color="#059669" title="British Racing Green" style="background:#059669;"></button>
                 </div>
@@ -491,7 +491,7 @@
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px; margin-right: 3px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     <span>Boot: Open</span>
                   </button>
-                  <button type="button" class="cam-btn x-ray-btn" id="btn-xray-toggle">👁️ Inside</button>
+                  <button type="button" class="cam-btn x-ray-btn" id="btn-xray-toggle">👁️ See Inside</button>
                 </div>
               </div>
 

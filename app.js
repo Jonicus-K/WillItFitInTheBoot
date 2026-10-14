@@ -132,27 +132,351 @@ function getFlatpackLabelTexture(productTitle) {
   return tex;
 }
 
+function getTireTreadTexture() {
+  if (_textureCache['tire_tread']) return _textureCache['tire_tread'];
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+
+  // Base vulcanized rubber
+  ctx.fillStyle = '#111622';
+  ctx.fillRect(0, 0, 512, 128);
+
+  // Micro-texture rubber grain
+  ctx.fillStyle = '#1a2233';
+  for (let i = 0; i < 1500; i++) {
+    const rx = Math.random() * 512;
+    const ry = Math.random() * 128;
+    ctx.fillRect(rx, ry, Math.random() * 2 + 1, 1);
+  }
+
+  // 4 Main Longitudinal Water-Evacuation Channels (Circumferential Aqua-Grooves)
+  const channelYs = [26, 48, 80, 102];
+  channelYs.forEach(y => {
+    // Deep dark channel groove
+    ctx.fillStyle = '#05070c';
+    ctx.fillRect(0, y - 5, 512, 10);
+    // Channel bottom drainage rib
+    ctx.fillStyle = '#0a0e17';
+    ctx.fillRect(0, y - 2, 512, 4);
+    // Beveled edge highlight on groove lips
+    ctx.fillStyle = '#222d40';
+    ctx.fillRect(0, y - 6, 512, 1);
+    ctx.fillRect(0, y + 5, 512, 1);
+  });
+
+  // Center continuous stability rib
+  ctx.fillStyle = '#1c2538';
+  ctx.fillRect(0, 63, 512, 2);
+
+  // Outer Shoulder Siping & Diagonal Tread Blocks
+  ctx.strokeStyle = '#05070c';
+  ctx.lineWidth = 3.5;
+  for (let x = 0; x < 512; x += 16) {
+    // Top shoulder angled cuts
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + 10, 21);
+    ctx.stroke();
+
+    // Bottom shoulder angled cuts
+    ctx.beginPath();
+    ctx.moveTo(x, 128);
+    ctx.lineTo(x + 10, 107);
+    ctx.stroke();
+
+    // Intermediate block lateral siping
+    ctx.strokeStyle = '#0a0e17';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x + 6, 26);
+    ctx.lineTo(x + 12, 48);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x + 6, 102);
+    ctx.lineTo(x + 12, 80);
+    ctx.stroke();
+    ctx.strokeStyle = '#05070c';
+    ctx.lineWidth = 3.5;
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.repeat.set(16, 1);
+  _textureCache['tire_tread'] = tex;
+  return tex;
+}
+
+function getBrakeRotorTexture() {
+  if (_textureCache['brake_rotor']) return _textureCache['brake_rotor'];
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  const cx = 128, cy = 128;
+
+  // Base metallic disc
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillRect(0, 0, 256, 256);
+
+  // Circular lathe-turned brushed steel grain (concentric rings)
+  for (let r = 40; r < 125; r += 1.5) {
+    const alpha = 0.12 + Math.random() * 0.18;
+    const isDark = Math.random() > 0.45;
+    ctx.strokeStyle = isDark ? `rgba(15, 23, 42, ${alpha})` : `rgba(248, 250, 252, ${alpha})`;
+    ctx.lineWidth = Math.random() * 1.2 + 0.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Cross-Drilled Rotor Ventilation Holes (8 spiral arms of drilled holes)
+  const numArms = 8;
+  const holesPerArm = 5;
+  ctx.fillStyle = '#0f172a';
+  for (let a = 0; a < numArms; a++) {
+    const baseAngle = (a * Math.PI * 2) / numArms;
+    for (let h = 0; h < holesPerArm; h++) {
+      const r = 58 + h * 12.5;
+      const angle = baseAngle + (h * 0.14);
+      const hx = cx + Math.cos(angle) * r;
+      const hy = cy + Math.sin(angle) * r;
+
+      ctx.beginPath();
+      ctx.arc(hx, hy, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Chamfered silver hole rim
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 2.8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  _textureCache['brake_rotor'] = tex;
+  return tex;
+}
+
+function getTireSidewallTexture() {
+  if (_textureCache['tire_sidewall']) return _textureCache['tire_sidewall'];
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  const cx = 128, cy = 128;
+
+  // Dark vulcanized sidewall
+  ctx.fillStyle = '#121722';
+  ctx.fillRect(0, 0, 256, 256);
+
+  // Concentric radial ribs
+  [65, 75, 95, 115, 122].forEach(r => {
+    ctx.strokeStyle = '#090e17';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+
+  // Embossed technical typography along arc
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.fillStyle = '#2d3748';
+  ctx.font = 'bold 9px monospace';
+  const text = '225/45 R18 • SPORT CONTACT • RADIAL';
+  const radius = 105;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const angle = -Math.PI * 0.75 + (i * 0.08);
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.translate(0, -radius);
+    ctx.fillText(char, -3, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  _textureCache['tire_sidewall'] = tex;
+  return tex;
+}
+
+function getNettingTexture() {
+  if (_textureCache['boot_net']) return _textureCache['boot_net'];
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.15)';
+  ctx.fillRect(0, 0, 64, 64);
+
+  // Diamond cross-hatch elastic cords
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 2.0;
+
+  ctx.beginPath();
+  ctx.moveTo(0, 32);
+  ctx.lineTo(32, 0);
+  ctx.lineTo(64, 32);
+  ctx.lineTo(32, 64);
+  ctx.closePath();
+  ctx.stroke();
+
+  // Corner knot nodes
+  ctx.fillStyle = '#1e293b';
+  [[0, 32], [32, 0], [64, 32], [32, 64]].forEach(([x, y]) => {
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(6, 4);
+  _textureCache['boot_net'] = tex;
+  return tex;
+}
+
+// -------------------------------------------------------------
+// Procedural Filleted Box Geometry Engine (Eliminates harsh knife edges)
+// -------------------------------------------------------------
+(function initRoundedBoxGeometry() {
+  if (typeof THREE === 'undefined' || THREE.RoundedBoxGeometry) return;
+
+  const _tempNormal = new THREE.Vector3();
+
+  function getUv(faceDirVector, normal, uvAxis, projectionAxis, radius, sideLength) {
+    const totArcLength = (2 * Math.PI * radius) / 4;
+    const centerLength = Math.max(sideLength - 2 * radius, 0);
+    const halfArc = Math.PI / 4;
+
+    _tempNormal.copy(normal);
+    _tempNormal[projectionAxis] = 0;
+    _tempNormal.normalize();
+
+    const arcUvRatio = (0.5 * totArcLength) / (totArcLength + centerLength);
+    const arcAngleRatio = 1.0 - _tempNormal.angleTo(faceDirVector) / halfArc;
+
+    if (Math.sign(_tempNormal[uvAxis]) === 1) {
+      return arcAngleRatio * arcUvRatio;
+    } else {
+      const lenUv = centerLength / (totArcLength + centerLength);
+      return lenUv + arcUvRatio + arcUvRatio * (1.0 - arcAngleRatio);
+    }
+  }
+
+  class RoundedBoxGeometry extends THREE.BoxGeometry {
+    constructor(width = 1, height = 1, depth = 1, segments = 2, radius = 0.1) {
+      segments = segments * 2 + 1;
+      radius = Math.min(width / 2, height / 2, depth / 2, radius);
+      super(1, 1, 1, segments, segments, segments);
+
+      if (segments === 1) return;
+      const geometry2 = this.toNonIndexed();
+      this.index = null;
+      this.attributes.position = geometry2.attributes.position;
+      this.attributes.normal = geometry2.attributes.normal;
+      this.attributes.uv = geometry2.attributes.uv;
+
+      const position = new THREE.Vector3();
+      const normal = new THREE.Vector3();
+      const box = new THREE.Vector3(width, height, depth).divideScalar(2).subScalar(radius);
+      const positions = this.attributes.position.array;
+      const normals = this.attributes.normal.array;
+      const uvs = this.attributes.uv.array;
+      const faceTris = positions.length / 6;
+      const faceDirVector = new THREE.Vector3();
+      const halfSegmentSize = 0.5 / segments;
+
+      for (let i = 0, j = 0; i < positions.length; i += 3, j += 2) {
+        position.fromArray(positions, i);
+        normal.copy(position);
+        normal.x -= Math.sign(normal.x) * halfSegmentSize;
+        normal.y -= Math.sign(normal.y) * halfSegmentSize;
+        normal.z -= Math.sign(normal.z) * halfSegmentSize;
+        normal.normalize();
+
+        positions[i + 0] = box.x * Math.sign(position.x) + normal.x * radius;
+        positions[i + 1] = box.y * Math.sign(position.y) + normal.y * radius;
+        positions[i + 2] = box.z * Math.sign(position.z) + normal.z * radius;
+        normals[i + 0] = normal.x;
+        normals[i + 1] = normal.y;
+        normals[i + 2] = normal.z;
+
+        const side = Math.floor(i / faceTris);
+        switch (side) {
+          case 0: // right
+            faceDirVector.set(1, 0, 0);
+            uvs[j + 0] = getUv(faceDirVector, normal, 'z', 'y', radius, depth);
+            uvs[j + 1] = 1.0 - getUv(faceDirVector, normal, 'y', 'z', radius, height);
+            break;
+          case 1: // left
+            faceDirVector.set(-1, 0, 0);
+            uvs[j + 0] = 1.0 - getUv(faceDirVector, normal, 'z', 'y', radius, depth);
+            uvs[j + 1] = 1.0 - getUv(faceDirVector, normal, 'y', 'z', radius, height);
+            break;
+          case 2: // top
+            faceDirVector.set(0, 1, 0);
+            uvs[j + 0] = 1.0 - getUv(faceDirVector, normal, 'x', 'z', radius, width);
+            uvs[j + 1] = getUv(faceDirVector, normal, 'z', 'x', radius, depth);
+            break;
+          case 3: // bottom
+            faceDirVector.set(0, -1, 0);
+            uvs[j + 0] = 1.0 - getUv(faceDirVector, normal, 'x', 'z', radius, width);
+            uvs[j + 1] = 1.0 - getUv(faceDirVector, normal, 'z', 'x', radius, depth);
+            break;
+          case 4: // front
+            faceDirVector.set(0, 0, 1);
+            uvs[j + 0] = 1.0 - getUv(faceDirVector, normal, 'x', 'y', radius, width);
+            uvs[j + 1] = 1.0 - getUv(faceDirVector, normal, 'y', 'x', radius, height);
+            break;
+          case 5: // back
+            faceDirVector.set(0, 0, -1);
+            uvs[j + 0] = getUv(faceDirVector, normal, 'x', 'y', radius, width);
+            uvs[j + 1] = 1.0 - getUv(faceDirVector, normal, 'y', 'x', radius, height);
+            break;
+        }
+      }
+    }
+  }
+
+  THREE.RoundedBoxGeometry = RoundedBoxGeometry;
+})();
+
+function createSmoothBoxGeo(w, h, d, radius = 2.0, segments = 2) {
+  const maxR = Math.min(w, h, d) * 0.22;
+  const r = Math.min(radius, maxR);
+  if (r <= 0.4 || typeof THREE === 'undefined' || !THREE.RoundedBoxGeometry) {
+    return new THREE.BoxGeometry(w, h, d);
+  }
+  return new THREE.RoundedBoxGeometry(w, h, d, segments, r);
+}
+
 function create3DSuitcase(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
-  const geo = new THREE.BoxGeometry(l, h * 0.94, w);
+  const geo = createSmoothBoxGeo(l, h * 0.94, w, 2.6, 2);
   const mat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color),
-    roughness: 0.32,
+    roughness: 0.28,
     metalness: 0.16,
-    clearcoat: 0.8,
-    clearcoatRoughness: 0.15
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.10
   });
   const shell = new THREE.Mesh(geo, mat);
-  shell.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.7, linewidth: 2 })
-  ));
   group.add(shell);
 
   // Hard-shell horizontal aerodynamic ribs (3 embossed accent strips front & back)
   const ribMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(edgeColor), roughness: 0.4, metalness: 0.3 });
   [-h * 0.24, 0, h * 0.24].forEach(py => {
-    const rib = new THREE.Mesh(new THREE.BoxGeometry(l * 0.84, 1.2, w + 0.6), ribMat);
+    const rib = new THREE.Mesh(createSmoothBoxGeo(l * 0.84, 1.2, w + 0.6, 0.5, 1), ribMat);
     rib.position.set(0, py, 0);
     group.add(rib);
   });
@@ -163,9 +487,9 @@ function create3DSuitcase(l, w, h, color, edgeColor) {
   group.add(seamMesh);
 
   // Molded corner bumper protectors (4 top corners)
-  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6, metalness: 0.4 });
+  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.4 });
   const bSize = Math.min(9, l * 0.18, w * 0.18, h * 0.18);
-  const bGeo = new THREE.BoxGeometry(bSize, bSize, bSize);
+  const bGeo = createSmoothBoxGeo(bSize, bSize, bSize, 1.4, 2);
   [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([sx, sz]) => {
     const bmp = new THREE.Mesh(bGeo, bumperMat);
     bmp.position.set(sx * ((l / 2) - (bSize / 2) + 0.1), (h * 0.47) - (bSize / 2), sz * ((w / 2) - (bSize / 2) + 0.1));
@@ -182,14 +506,14 @@ function create3DSuitcase(l, w, h, color, edgeColor) {
     group.add(rail);
   });
 
-  const trolleyHandleGeo = new THREE.BoxGeometry(railSpacing + 2.5, 2.4, 3.6);
+  const trolleyHandleGeo = createSmoothBoxGeo(railSpacing + 2.5, 2.4, 3.6, 0.8, 1);
   const handleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
   const trolleyHandle = new THREE.Mesh(trolleyHandleGeo, handleMat);
   trolleyHandle.position.set(0, (h / 2) + 1.6, -(w / 2) + 1.2);
   group.add(trolleyHandle);
 
   // Top carry handle
-  const topHandle = new THREE.Mesh(new THREE.BoxGeometry(Math.min(16, l * 0.28), 2.0, 3.0), handleMat);
+  const topHandle = new THREE.Mesh(createSmoothBoxGeo(Math.min(16, l * 0.28), 2.0, 3.0, 0.8, 1), handleMat);
   topHandle.position.set(0, (h / 2) + 1.3, 0);
   group.add(topHandle);
 
@@ -235,14 +559,10 @@ function create3DStroller(l, w, h, color, edgeColor) {
   group.add(bar);
 
   // Folded Sun Canopy Hood & Fabric Bassinet
-  const fabricGeo = new THREE.BoxGeometry(l * 0.52, h * 0.36, w * 0.74);
-  const fabricMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), roughness: 0.6, metalness: 0.1 });
+  const fabricGeo = createSmoothBoxGeo(l * 0.52, h * 0.36, w * 0.74, 1.8, 2);
+  const fabricMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color), roughness: 0.55, metalness: 0.1 });
   const fabric = new THREE.Mesh(fabricGeo, fabricMat);
   fabric.position.set(-l * 0.08, h * 0.08, 0);
-  fabric.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(fabricGeo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.7 })
-  ));
   group.add(fabric);
 
   // Large rear spoke wheels & front swivel castors
@@ -275,16 +595,22 @@ function create3DBicycle(l, w, h, color, edgeColor) {
     color: new THREE.Color(color),
     metalness: 0.85,
     roughness: 0.22,
-    clearcoat: 0.9
+    clearcoat: 0.95,
+    clearcoatRoughness: 0.05
   });
   const darkCompMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 });
-  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.92, roughness: 0.15 });
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.12 });
 
   const wheelRadius = Math.min(32, h * 0.34);
   const wheelDist = l * 0.68;
 
-  // Front & Rear Spoked Wheels with Rubber Tyres
-  const tyreMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.85 });
+  // Front & Rear Spoked Wheels with Rubber Tyres and Disc Brakes
+  const tyreMat = new THREE.MeshStandardMaterial({
+    color: 0x18181b,
+    roughness: 0.88,
+    bumpMap: getTireTreadTexture(),
+    bumpScale: 0.40
+  });
   [-wheelDist / 2, wheelDist / 2].forEach(px => {
     // Outer rubber tyre
     const tyre = new THREE.Mesh(new THREE.TorusGeometry(wheelRadius, 1.8, 8, 30), tyreMat);
@@ -301,6 +627,12 @@ function create3DBicycle(l, w, h, color, edgeColor) {
     hub.rotation.x = Math.PI / 2;
     hub.position.set(px, -(h / 2) + wheelRadius, 0);
     group.add(hub);
+
+    // Disc Brake Rotor (Stainless steel cross-drilled disc)
+    const bikeRotor = new THREE.Mesh(new THREE.CylinderGeometry(wheelRadius * 0.35, wheelRadius * 0.35, 0.4, 20), chromeMat);
+    bikeRotor.rotation.x = Math.PI / 2;
+    bikeRotor.position.set(px, -(h / 2) + wheelRadius, 1.6);
+    group.add(bikeRotor);
 
     // Radial spokes
     for (let a = 0; a < Math.PI; a += Math.PI / 3) {
@@ -339,6 +671,26 @@ function create3DBicycle(l, w, h, color, edgeColor) {
   // Front fork
   makeTube([headTubeX, headTubeY], [wheelDist / 2, -(h / 2) + wheelRadius], 1.4);
 
+  // Aerodynamic Sports Hydration Bottle & Cage on Down Tube
+  const bottleMat = new THREE.MeshPhysicalMaterial({ color: 0x0284c7, roughness: 0.25, clearcoat: 0.6 });
+  const bottleMidX = (bbX + headTubeX) / 2 - 2;
+  const bottleMidY = (bbY + headTubeY) / 2 + 3.5;
+  const dtAngle = Math.atan2(headTubeY - bbY, headTubeX - bbX);
+
+  const bottleGroup = new THREE.Group();
+  bottleGroup.position.set(bottleMidX, bottleMidY, 0);
+  bottleGroup.rotation.z = dtAngle;
+
+  const bottleMesh = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 11, 16), bottleMat);
+  bottleMesh.rotation.z = Math.PI / 2;
+  bottleGroup.add(bottleMesh);
+
+  const bottleCap = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.8, 2.0, 14), darkCompMat);
+  bottleCap.rotation.z = Math.PI / 2;
+  bottleCap.position.set(6.2, 0, 0);
+  bottleGroup.add(bottleCap);
+  group.add(bottleGroup);
+
   // Handlebars & Grips
   const barGeo = new THREE.CylinderGeometry(1.2, 1.2, Math.min(w * 0.88, 62), 10);
   const bar = new THREE.Mesh(barGeo, darkCompMat);
@@ -346,8 +698,17 @@ function create3DBicycle(l, w, h, color, edgeColor) {
   bar.position.set(headTubeX + 2, headTubeY + 8, 0);
   group.add(bar);
 
+  // Alloy Brake Levers
+  [-16, 16].forEach(bz => {
+    const leverGeo = new THREE.BoxGeometry(4.0, 0.6, 1.2);
+    const lever = new THREE.Mesh(leverGeo, chromeMat);
+    lever.position.set(headTubeX + 4.5, headTubeY + 7.5, bz);
+    lever.rotation.z = -0.3;
+    group.add(lever);
+  });
+
   // Aerodynamic Sport Saddle
-  const saddleGeo = new THREE.BoxGeometry(22, 4.5, 9);
+  const saddleGeo = createSmoothBoxGeo(22, 4.5, 9, 1.2, 1);
   const saddle = new THREE.Mesh(saddleGeo, darkCompMat);
   saddle.position.set(seatPostTopX - 4, seatPostTopY + 7, 0);
   group.add(saddle);
@@ -358,7 +719,7 @@ function create3DBicycle(l, w, h, color, edgeColor) {
   chainring.position.set(bbX, bbY, 2.5);
   group.add(chainring);
 
-  const pedalGeo = new THREE.BoxGeometry(6, 2, 7);
+  const pedalGeo = createSmoothBoxGeo(6, 2, 7, 0.4, 1);
   const pedalL = new THREE.Mesh(pedalGeo, darkCompMat);
   pedalL.position.set(bbX + 8, bbY, -8);
   const pedalR = new THREE.Mesh(pedalGeo, darkCompMat);
@@ -370,17 +731,13 @@ function create3DBicycle(l, w, h, color, edgeColor) {
 
 function create3DTVBox(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
-  const boxGeo = new THREE.BoxGeometry(l, h, w);
+  const boxGeo = createSmoothBoxGeo(l, h, w, 1.0, 1);
   const boxMat = new THREE.MeshPhysicalMaterial({
     color: 0xc29b68, // Authentic corrugated kraft cardboard
     roughness: 0.85,
     metalness: 0.05
   });
   const mainBox = new THREE.Mesh(boxGeo, boxMat);
-  mainBox.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(boxGeo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.6 })
-  ));
   group.add(mainBox);
 
   // Prominent Graphic Decal Panels (4K OLED / Fragile / Specs / Arrows)
@@ -430,20 +787,16 @@ function create3DWasher(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
   
   // Appliance cubic cabinet in gloss enamel white
-  const cabinetGeo = new THREE.BoxGeometry(l, h * 0.96, w);
+  const cabinetGeo = createSmoothBoxGeo(l, h * 0.96, w, 1.6, 2);
   const cabinetMat = new THREE.MeshPhysicalMaterial({
     color: 0xf8fafc,
-    roughness: 0.22,
-    metalness: 0.14,
-    clearcoat: 0.85,
-    clearcoatRoughness: 0.15
+    roughness: 0.18,
+    metalness: 0.12,
+    clearcoat: 0.90,
+    clearcoatRoughness: 0.10
   });
   const cabinet = new THREE.Mesh(cabinetGeo, cabinetMat);
   cabinet.position.set(0, h * 0.02, 0);
-  cabinet.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(cabinetGeo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.65 })
-  ));
   group.add(cabinet);
 
   // Circular Porthole Drum Door (Front face, +X)
@@ -516,17 +869,13 @@ function create3DWasher(l, w, h, color, edgeColor) {
 
 function create3DFlatpack(l, w, h, color, edgeColor, labelTitle = 'IKEA Billy Bookcase') {
   const group = new THREE.Group();
-  const geo = new THREE.BoxGeometry(l, h, w);
+  const geo = createSmoothBoxGeo(l, h, w, 0.8, 1);
   const mat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color || '#78350f'),
     roughness: 0.8,
     metalness: 0.05
   });
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.65 })
-  ));
   group.add(mesh);
 
   // Logistics barcode shipping manifest label on top face
@@ -554,8 +903,8 @@ function create3DGolfBag(l, w, h, color, edgeColor) {
   const radius = Math.min(w, h) / 2;
   const bagLen = l * 0.76;
 
-  // Stand bag nylon/leather body
-  const bodyGeo = new THREE.CylinderGeometry(radius * 0.88, radius, bagLen, 18);
+  // Stand bag nylon/leather body (smooth cylinder without wireframe creases)
+  const bodyGeo = new THREE.CylinderGeometry(radius * 0.88, radius, bagLen, 24);
   const bodyMat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color),
     roughness: 0.45,
@@ -564,14 +913,10 @@ function create3DGolfBag(l, w, h, color, edgeColor) {
   });
   const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
   bodyMesh.rotation.z = Math.PI / 2;
-  bodyMesh.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(bodyGeo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.6 })
-  ));
   group.add(bodyMesh);
 
   // Top molded club divider collar
-  const collarGeo = new THREE.CylinderGeometry(radius * 0.92, radius * 0.88, 4, 16);
+  const collarGeo = new THREE.CylinderGeometry(radius * 0.92, radius * 0.88, 4, 20);
   const darkMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
   const collar = new THREE.Mesh(collarGeo, darkMat);
   collar.rotation.z = Math.PI / 2;
@@ -584,33 +929,33 @@ function create3DGolfBag(l, w, h, color, edgeColor) {
   const woodCoverMat = new THREE.MeshPhysicalMaterial({ color: 0x2563eb, roughness: 0.3, clearcoat: 0.6 });
 
   // 1x Big Driver with Red Headcover
-  const driverHead = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.45, 12, 10), driverCoverMat);
+  const driverHead = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.45, 14, 12), driverCoverMat);
   driverHead.scale.set(1.4, 0.9, 0.9);
   driverHead.position.set((l / 2) - 4, 2, 0);
   group.add(driverHead);
 
   // 2x Fairway Woods with Blue Covers
-  const wood1 = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.34, 10, 8), woodCoverMat);
+  const wood1 = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.34, 12, 10), woodCoverMat);
   wood1.position.set((l / 2) - 9, -radius * 0.3, radius * 0.28);
-  const wood2 = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.34, 10, 8), woodCoverMat);
+  const wood2 = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.34, 12, 10), woodCoverMat);
   wood2.position.set((l / 2) - 9, -radius * 0.3, -radius * 0.28);
   group.add(wood1, wood2);
 
   // 3x Iron Club Heads
   [-radius * 0.3, 0, radius * 0.3].forEach(pz => {
-    const iron = new THREE.Mesh(new THREE.BoxGeometry(4.5, 2.2, 1.2), chromeMat);
+    const iron = new THREE.Mesh(createSmoothBoxGeo(4.5, 2.2, 1.2, 0.4, 1), chromeMat);
     iron.position.set((l / 2) - 12, radius * 0.3, pz);
     group.add(iron);
   });
 
   // Dual side accessory zip pockets
-  const pocketGeo = new THREE.BoxGeometry(bagLen * 0.5, radius * 0.8, radius * 0.5);
+  const pocketGeo = createSmoothBoxGeo(bagLen * 0.5, radius * 0.8, radius * 0.5, 0.8, 1);
   const pocket1 = new THREE.Mesh(pocketGeo, darkMat);
   pocket1.position.set(-2, radius * 0.65, 0);
   group.add(pocket1);
 
   // Padded shoulder sling strap
-  const strapGeo = new THREE.TorusGeometry(radius * 1.3, 1.2, 6, 16, Math.PI);
+  const strapGeo = new THREE.TorusGeometry(radius * 1.3, 1.2, 8, 20, Math.PI);
   const strap = new THREE.Mesh(strapGeo, darkMat);
   strap.rotation.z = Math.PI / 2;
   strap.position.set(0, -radius * 0.7, 0);
@@ -621,98 +966,203 @@ function create3DGolfBag(l, w, h, color, edgeColor) {
 
 function create3DCooler(l, w, h, lidColor) {
   const group = new THREE.Group();
-  const bodyGeo = new THREE.BoxGeometry(l, h * 0.82, w);
-  const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0xf8fafc, roughness: 0.3, clearcoat: 0.6 });
+  const bodyGeo = createSmoothBoxGeo(l, h * 0.82, w, 2.2, 2);
+  const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0xf8fafc, roughness: 0.25, clearcoat: 0.8 });
   const body = new THREE.Mesh(bodyGeo, bodyMat);
   body.position.set(0, -(h * 0.09), 0);
   group.add(body);
 
-  const lidGeo = new THREE.BoxGeometry(l + 1.5, h * 0.18, w + 1.5);
-  const lidMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(lidColor), roughness: 0.25, clearcoat: 0.8 });
+  const lidGeo = createSmoothBoxGeo(l + 1.8, h * 0.18, w + 1.8, 1.4, 2);
+  const lidMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(lidColor), roughness: 0.22, clearcoat: 0.85 });
   const lid = new THREE.Mesh(lidGeo, lidMat);
-  lid.position.set(0, (h / 2) - (h * 0.09), 0);
+  const lidY = (h / 2) - (h * 0.09);
+  lid.position.set(0, lidY, 0);
   group.add(lid);
+
+  // 2 Molded Beverage Cup Holders on Lid
+  const darkRecessMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
+  [-l * 0.22, l * 0.22].forEach(px => {
+    const cupRecess = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.0, 1.4, 16), darkRecessMat);
+    cupRecess.position.set(px, lidY + (h * 0.09) - 0.4, 0);
+    group.add(cupRecess);
+  });
+
+  // Front Heavy-Duty Rubber T-Latches
+  const latchMat = new THREE.MeshStandardMaterial({ color: 0x090e17, roughness: 0.8 });
+  [-l * 0.25, l * 0.25].forEach(px => {
+    const tLatchGeo = createSmoothBoxGeo(2.6, 4.5, 1.4, 0.5, 1);
+    const tLatch = new THREE.Mesh(tLatchGeo, latchMat);
+    tLatch.position.set(px, lidY - 1.8, (w / 2) + 1.2);
+    group.add(tLatch);
+  });
+
+  // Side Pivot Carry Handles
+  [-1, 1].forEach(side => {
+    const handleGeo = createSmoothBoxGeo(2.2, 3.6, Math.min(16, w * 0.38), 0.8, 1);
+    const handleMesh = new THREE.Mesh(handleGeo, latchMat);
+    handleMesh.position.set(side * ((l / 2) + 1.4), -(h * 0.08), 0);
+    group.add(handleMesh);
+  });
+
+  // Threaded Drain Plug with Cap (Left side base)
+  const drainGeo = new THREE.CylinderGeometry(1.6, 1.6, 1.8, 14);
+  const drain = new THREE.Mesh(drainGeo, latchMat);
+  drain.rotation.z = Math.PI / 2;
+  drain.position.set(-(l / 2) - 0.8, -(h / 2) + 2.5, (w / 2) - 4);
+  group.add(drain);
+
   return group;
 }
 
 function create3DDuffel(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
   const r = Math.min(w, h) / 2;
-  const geo = new THREE.CylinderGeometry(r * 0.95, r * 0.95, l * 0.9, 16);
-  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.6 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.rotation.z = Math.PI / 2;
-  group.add(mesh);
+  const bagLen = l * 0.92;
 
-  const strapMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
-  [-l * 0.22, l * 0.22].forEach(px => {
-    const strap = new THREE.Mesh(new THREE.TorusGeometry(r * 1.02, 1.2, 8, 20), strapMat);
-    strap.rotation.y = Math.PI / 2;
-    strap.position.set(px, 0, 0);
-    group.add(strap);
+  // Sculpted Rounded Duffel Body in durable ballistic nylon
+  const bodyGeo = createSmoothBoxGeo(bagLen, h * 0.86, w * 0.88, r * 0.55, 2);
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(color),
+    roughness: 0.62,
+    metalness: 0.12,
+    clearcoat: 0.25
   });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  group.add(body);
+
+  // Reinforced Ballistic Nylon End Caps
+  const endCapMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 });
+  [-bagLen / 2 + 1.2, bagLen / 2 - 1.2].forEach(px => {
+    const capGeo = createSmoothBoxGeo(2.4, h * 0.88, w * 0.90, r * 0.50, 1);
+    const cap = new THREE.Mesh(capGeo, endCapMat);
+    cap.position.set(px, 0, 0);
+    group.add(cap);
+  });
+
+  // Longitudinal Dual Zipper Storm Flap across top
+  const zipMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.3 });
+  const zipTrack = new THREE.Mesh(createSmoothBoxGeo(bagLen * 0.78, 0.8, 2.2, 0.3, 1), zipMat);
+  zipTrack.position.set(0, (h * 0.43) + 0.2, 0);
+  group.add(zipTrack);
+
+  // Twin Chrome Zipper Pulls
+  const pullMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.92, roughness: 0.15 });
+  [-3.0, 3.0].forEach(px => {
+    const pull = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.4, 3.0), pullMat);
+    pull.position.set(px, (h * 0.43) + 0.6, 0);
+    group.add(pull);
+  });
+
+  // Heavy-Duty Wrap-Around Webbing Straps (Front & Rear underbelly cradles)
+  const strapMat = new THREE.MeshStandardMaterial({ color: 0x090e17, roughness: 0.85 });
+  [-bagLen * 0.24, bagLen * 0.24].forEach(px => {
+    const strapRing = new THREE.Mesh(new THREE.TorusGeometry(r * 0.94, 1.2, 8, 24), strapMat);
+    strapRing.rotation.y = Math.PI / 2;
+    strapRing.position.set(px, 0, 0);
+    group.add(strapRing);
+  });
+
+  // Top Padded Dual Carry Handle with Hook-and-Loop Velcro Wrap
+  const handleLoopGeo = new THREE.TorusGeometry(bagLen * 0.26, 1.4, 8, 24, Math.PI);
+  const handleLoop = new THREE.Mesh(handleLoopGeo, strapMat);
+  handleLoop.position.set(0, (h * 0.43) + 1.0, 0);
+  group.add(handleLoop);
+
+  const velcroWrapGeo = createSmoothBoxGeo(10.0, 3.2, 4.2, 1.0, 1);
+  const velcroWrap = new THREE.Mesh(velcroWrapGeo, endCapMat);
+  velcroWrap.position.set(0, (h * 0.43) + (bagLen * 0.26) + 0.8, 0);
+  group.add(velcroWrap);
+
+  // Exterior Front Zipper Utility Pocket
+  const pocketGeo = createSmoothBoxGeo(bagLen * 0.46, h * 0.42, 2.4, 0.8, 1);
+  const pocket = new THREE.Mesh(pocketGeo, endCapMat);
+  pocket.position.set(0, -h * 0.05, (w * 0.44) + 0.8);
+  group.add(pocket);
+
   return group;
 }
 
 function create3DDogCrate(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
-  const wireMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
+  const wireMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
   const trayMat = new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.7 });
 
   // Black composite plastic bottom leak-proof tray
-  const trayGeo = new THREE.BoxGeometry(l, 3.5, w);
+  const trayGeo = createSmoothBoxGeo(l, 3.5, w, 0.8, 1);
   const tray = new THREE.Mesh(trayGeo, trayMat);
   tray.position.set(0, -(h / 2) + 1.75, 0);
   group.add(tray);
 
-  // Outer wire crate bounding frame
+  // Cozy Plush Fleece Pet Bedding Mat inside the tray
+  const fleeceMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.95 });
+  const fleeceBedGeo = createSmoothBoxGeo(l - 3.5, 2.2, w - 3.5, 1.0, 1);
+  const fleeceBed = new THREE.Mesh(fleeceBedGeo, fleeceMat);
+  fleeceBed.position.set(0, -(h / 2) + 3.2, 0);
+  group.add(fleeceBed);
+
+  // Outer wire crate bounding frame (authentic dark steel wire)
   const cageGeo = new THREE.BoxGeometry(l - 1, h - 3, w - 1);
   const cageEdges = new THREE.LineSegments(
     new THREE.EdgesGeometry(cageGeo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor || 0x38bdf8), linewidth: 2 })
+    new THREE.LineBasicMaterial({ color: 0x334155, linewidth: 2 })
   );
   cageEdges.position.set(0, 1.5, 0);
   group.add(cageEdges);
 
   // Interior Wire Grid Lines (horizontal & vertical bars)
-  const numXBars = Math.max(3, Math.floor(l / 15));
+  const numXBars = Math.max(3, Math.floor(l / 14));
   for (let i = 1; i < numXBars; i++) {
     const px = -(l / 2) + (i * (l / numXBars));
     const vBar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, h - 4, 4), wireMat);
     vBar.position.set(px, 1.5, (w / 2) - 0.5);
     group.add(vBar);
+
+    const vBarBack = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, h - 4, 4), wireMat);
+    vBarBack.position.set(px, 1.5, -(w / 2) + 0.5);
+    group.add(vBarBack);
   }
 
+  // Front Door Sliding Bolt Safety Latches
+  const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.15 });
+  [-h * 0.18, h * 0.18].forEach(py => {
+    const latchGeo = new THREE.CylinderGeometry(0.55, 0.55, 4.2, 8);
+    const latch = new THREE.Mesh(latchGeo, chromeMat);
+    latch.rotation.z = Math.PI / 2;
+    latch.position.set(l * 0.14, py + 1.5, (w / 2) + 0.2);
+    group.add(latch);
+
+    const handleGeo = new THREE.BoxGeometry(1.2, 2.2, 0.8);
+    const handle = new THREE.Mesh(handleGeo, chromeMat);
+    handle.position.set(l * 0.18, py + 1.5, (w / 2) + 0.4);
+    group.add(handle);
+  });
+
   // Top carry handle
-  const handleGeo = new THREE.BoxGeometry(Math.min(14, l * 0.3), 1.5, 3.5);
-  const handle = new THREE.Mesh(handleGeo, wireMat);
-  handle.position.set(0, (h / 2) + 1.2, 0);
-  group.add(handle);
+  const topHandleGeo = createSmoothBoxGeo(Math.min(14, l * 0.3), 1.5, 3.5, 0.5, 1);
+  const topHandle = new THREE.Mesh(topHandleGeo, wireMat);
+  topHandle.position.set(0, (h / 2) + 1.2, 0);
+  group.add(topHandle);
 
   return group;
 }
 
 function create3DGenericCargoCase(l, w, h, color, edgeColor) {
   const group = new THREE.Group();
-  const geo = new THREE.BoxGeometry(l, h, w);
+  const geo = createSmoothBoxGeo(l, h, w, 2.0, 2);
   const mat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(color),
-    roughness: 0.35,
-    metalness: 0.2,
-    clearcoat: 0.7,
-    clearcoatRoughness: 0.2
+    roughness: 0.30,
+    metalness: 0.22,
+    clearcoat: 0.80,
+    clearcoatRoughness: 0.12
   });
   const shell = new THREE.Mesh(geo, mat);
-  shell.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: new THREE.Color(edgeColor), transparent: true, opacity: 0.75, linewidth: 2 })
-  ));
   group.add(shell);
 
   // Heavy-duty flight case ball corner bumpers (all 8 corners)
   const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.15 });
   const cSize = Math.min(7, l * 0.12, w * 0.12, h * 0.12);
-  const cGeo = new THREE.BoxGeometry(cSize, cSize, cSize);
+  const cGeo = createSmoothBoxGeo(cSize, cSize, cSize, 1.2, 2);
   [[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [-1, 1, 1], [1, -1, -1], [1, -1, 1], [1, 1, -1], [1, 1, 1]].forEach(([sx, sy, sz]) => {
     const cap = new THREE.Mesh(cGeo, chromeMat);
     cap.position.set(sx * ((l / 2) - (cSize / 2) + 0.1), sy * ((h / 2) - (cSize / 2) + 0.1), sz * ((w / 2) - (cSize / 2) + 0.1));
@@ -1381,7 +1831,7 @@ const tripBundles = [
 ];
 
 // Showroom 3D Paint Color
-let currentCarPaintColor = '#1e293b'; // Slate Shadow default
+let currentCarPaintColor = '#2563eb'; // Royal Blue Metallic default
 const paintSwatches = document.querySelectorAll('.paint-swatch');
 
 // Volume Capacity Meter DOM Elements
@@ -1425,6 +1875,7 @@ let plinthGroup = null;
 let gridHelper = null;
 let flankFill = null;
 let flankFillOpposite = null;
+let bootInteriorLight = null;
 let lastBuiltCarKey = null;
 let needsRender = true;
 
@@ -3037,6 +3488,9 @@ function attachEvents() {
         Boot: ${isTailgateOpen ? 'Open' : 'Closed'}
       `;
       targetTailgateAngle = isTailgateOpen ? getOpenTailgateAngle(selectedCar ? selectedCar.body_type : 'hatchback') : 0;
+      if (selectedCar && lastFitResult) {
+        update3DStudio(selectedCar, foldSeatsCheckbox.checked, lastFitResult);
+      }
       requestRender();
     });
   }
@@ -4417,7 +4871,7 @@ function initThreeStudio() {
   flankFillOpposite.position.set(-160, 140, -480);
   scene.add(flankFillOpposite);
 
-  const bootInteriorLight = new THREE.PointLight(0xffedd5, 1.8, 300);
+  bootInteriorLight = new THREE.PointLight(0xffedd5, 1.8, 300);
   bootInteriorLight.position.set(20, 95, 0);
   scene.add(bootInteriorLight);
 
@@ -4671,7 +5125,10 @@ function createWheel3D(radius = 30, width = 22, isSUV = false) {
   });
 
   const rotorMat = new THREE.MeshStandardMaterial({
-    color: 0x94a3b8, // Drilled steel brake rotor
+    color: 0xa8b4c4,
+    map: getBrakeRotorTexture(),
+    bumpMap: getBrakeRotorTexture(),
+    bumpScale: 0.35,
     metalness: 0.95,
     roughness: 0.22,
     side: THREE.DoubleSide
@@ -4683,15 +5140,29 @@ function createWheel3D(radius = 30, width = 22, isSUV = false) {
     metalness: 0.3
   });
 
-  // 1. TYRE: Continuous smooth vulcanized rubber tread & sidewalls (no floating torus ring!)
+  // 1. TYRE: Continuous smooth vulcanized rubber tread & sidewalls with authentic performance grooves
+  const treadMat = new THREE.MeshStandardMaterial({
+    color: 0x161d28,
+    map: getTireTreadTexture(),
+    bumpMap: getTireTreadTexture(),
+    bumpScale: 0.70,
+    roughness: 0.90,
+    metalness: 0.06
+  });
   const treadGeo = new THREE.CylinderGeometry(radius, radius, width, 40, 1, true);
-  const tread = new THREE.Mesh(treadGeo, tireMat);
+  const tread = new THREE.Mesh(treadGeo, treadMat);
   tread.rotation.x = Math.PI / 2;
   wheelGroup.add(tread);
 
-  // Outer Tyre Sidewall Face Ring (flush with tread at radius, leaves center open for alloy rim)
+  // Outer Tyre Sidewall Face Ring with embossed typography & bead
+  const sidewallMat = new THREE.MeshStandardMaterial({
+    color: 0x141a24,
+    map: getTireSidewallTexture(),
+    roughness: 0.92,
+    metalness: 0.05
+  });
   const sidewallGeo = new THREE.RingGeometry(rimRadius, radius, 40);
-  const sidewall = new THREE.Mesh(sidewallGeo, tireMat);
+  const sidewall = new THREE.Mesh(sidewallGeo, sidewallMat);
   sidewall.position.z = halfW;
   wheelGroup.add(sidewall);
 
@@ -4949,39 +5420,50 @@ function createSeat3D(width = 44, riserHeight = 22, isReclinedFlat = false) {
 function createSideMirror3D(isLeft, bodyPaintMat, trimMat) {
   const mirrorGroup = new THREE.Group();
 
-  // Mounting arm
-  const stemGeo = new THREE.BoxGeometry(4.5, 3.0, 7.0);
+  // Aerodynamic mounting stalk
+  const stemGeo = createSmoothBoxGeo(4.8, 2.8, 6.8, 0.8, 1);
   const stem = new THREE.Mesh(stemGeo, trimMat);
-  stem.position.set(0, 0, isLeft ? 3.5 : -3.5);
+  stem.position.set(0, 0, isLeft ? 3.4 : -3.4);
   mirrorGroup.add(stem);
 
-  // Aerodynamic painted mirror housing
-  const housingGeo = new THREE.BoxGeometry(11, 7.5, 6);
+  // Aerodynamic painted mirror housing (smooth filleted shell)
+  const housingGeo = createSmoothBoxGeo(11.4, 7.2, 5.8, 2.2, 2);
   const housing = new THREE.Mesh(housingGeo, bodyPaintMat);
-  housing.position.set(1, 1.5, isLeft ? 8.5 : -8.5);
-  housing.rotation.y = isLeft ? -0.15 : 0.15;
+  const hZ = isLeft ? 8.6 : -8.6;
+  housing.position.set(1.0, 1.4, hZ);
+  housing.rotation.y = isLeft ? -0.14 : 0.14;
   mirrorGroup.add(housing);
 
-  // Mirror glass face
-  const mirrorGlassGeo = new THREE.BoxGeometry(0.8, 6.2, 5.0);
+  // Matte obsidian aerodynamic lower cradle base
+  const cradleGeo = createSmoothBoxGeo(10.8, 2.4, 5.4, 1.0, 1);
+  const cradle = new THREE.Mesh(cradleGeo, trimMat);
+  cradle.position.set(housing.position.x - 0.2, housing.position.y - 2.6, hZ);
+  cradle.rotation.y = isLeft ? -0.14 : 0.14;
+  mirrorGroup.add(cradle);
+
+  // Reflective mirror glass face with chrome bezel
+  const mirrorGlassGeo = createSmoothBoxGeo(0.6, 6.2, 5.0, 0.4, 1);
   const mirrorGlassMat = new THREE.MeshStandardMaterial({
-    color: 0x94a3b8,
+    color: 0xa0aec0,
     metalness: 0.98,
-    roughness: 0.05
+    roughness: 0.04
   });
   const mirrorFace = new THREE.Mesh(mirrorGlassGeo, mirrorGlassMat);
-  mirrorFace.position.set(housing.position.x + 5.2, housing.position.y, housing.position.z);
+  mirrorFace.position.set(housing.position.x + 5.2, housing.position.y, hZ);
+  mirrorFace.rotation.y = isLeft ? -0.14 : 0.14;
   mirrorGroup.add(mirrorFace);
 
-  // Amber LED turn signal strip
-  const indicatorGeo = new THREE.BoxGeometry(6, 1.2, 0.8);
+  // Integrated LED turn repeater indicator blade (crisp crystalline/amber light guide)
+  const indicatorGeo = createSmoothBoxGeo(7.5, 1.1, 0.9, 0.4, 1);
   const indicatorMat = new THREE.MeshStandardMaterial({
-    color: 0xf59e0b,
+    color: 0xfbbf24,
     emissive: 0xf59e0b,
-    emissiveIntensity: 1.2
+    emissiveIntensity: 1.4,
+    roughness: 0.15
   });
   const indicator = new THREE.Mesh(indicatorGeo, indicatorMat);
-  indicator.position.set(housing.position.x - 2, housing.position.y, isLeft ? housing.position.z + 3.1 : housing.position.z - 3.1);
+  indicator.position.set(housing.position.x - 1.8, housing.position.y, isLeft ? hZ + 2.9 : hZ - 2.9);
+  indicator.rotation.y = isLeft ? -0.14 : 0.14;
   mirrorGroup.add(indicator);
 
   return mirrorGroup;
@@ -5221,17 +5703,67 @@ function createRoundedWheelArchTub(tubLen = 38, tubHeight = 12, depth = 16, isGh
 }
 
 /**
- * Helper to add precision CAD edge highlight lines to a mesh
+ * Helper to add precision CAD edge highlight lines to a mesh.
+ * In Solid Showroom Paint mode, this returns early so vehicles display clean,
+ * smooth, authentic stamped sheet metal reflections without wireframe cages.
+ * When in Cutaway / See Inside mode (xRayMode < 0.85), subtle contour lines
+ * are rendered to outline the transparent ghost silhouette.
  */
 function addCadEdges(mesh, color = 0x3b82f6, thresholdAngle = 30) {
   if (!mesh || !mesh.geometry) return;
+  if (xRayMode >= 0.85) return;
   const edges = new THREE.EdgesGeometry(mesh.geometry, thresholdAngle);
   const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
     color: color,
     transparent: true,
-    opacity: 0.18
+    opacity: 0.14
   }));
   mesh.add(line);
+}
+
+// -------------------------------------------------------------
+// Soft Ambient Occlusion Contact Shadow Generators
+// -------------------------------------------------------------
+let _softShadowTexture = null;
+function getSoftShadowTexture() {
+  if (_softShadowTexture) return _softShadowTexture;
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  
+  // Radial gradient with cubic falloff for realistic ground contact ambient occlusion
+  const grad = ctx.createRadialGradient(128, 128, 15, 128, 128, 120);
+  grad.addColorStop(0, 'rgba(3, 7, 18, 0.86)');
+  grad.addColorStop(0.35, 'rgba(3, 7, 18, 0.60)');
+  grad.addColorStop(0.70, 'rgba(3, 7, 18, 0.20)');
+  grad.addColorStop(1, 'rgba(3, 7, 18, 0.0)');
+  
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 256, 256);
+  
+  _softShadowTexture = new THREE.CanvasTexture(canvas);
+  return _softShadowTexture;
+}
+
+let _tireShadowTexture = null;
+function getTireShadowTexture() {
+  if (_tireShadowTexture) return _tireShadowTexture;
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  
+  const grad = ctx.createRadialGradient(64, 64, 8, 64, 64, 58);
+  grad.addColorStop(0, 'rgba(2, 6, 14, 0.90)');
+  grad.addColorStop(0.42, 'rgba(2, 6, 14, 0.50)');
+  grad.addColorStop(1, 'rgba(2, 6, 14, 0.0)');
+  
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+  
+  _tireShadowTexture = new THREE.CanvasTexture(canvas);
+  return _tireShadowTexture;
 }
 
 /**
@@ -5263,7 +5795,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const isApertureColliding = Boolean(fitResult && fitResult.ingress && !fitResult.ingress.canEnter);
   const isIngressMode = activeAngleMode === 'ingress';
   const isPassReclined = Boolean(fitResult && fitResult.mode === 'passenger');
-  const carCacheKey = `${car.id}__f:${seatsFolded}__x:${xRayMode}__p:${isPassReclined}__col:${isApertureColliding}__ing:${isIngressMode}`;
+  const carCacheKey = `${car.id}__f:${seatsFolded}__x:${xRayMode}__p:${isPassReclined}__col:${isApertureColliding}__ing:${isIngressMode}__t:${isTailgateOpen}`;
   const rebuildCar = !car3DGroup || carCacheKey !== lastBuiltCarKey;
 
   if (rebuildCar) {
@@ -5334,6 +5866,10 @@ function update3DStudio(car, seatsFolded, fitResult) {
   if (gridHelper) gridHelper.position.x = carCenterX;
   if (flankFill) flankFill.position.x = carCenterX;
   if (flankFillOpposite) flankFillOpposite.position.x = carCenterX;
+  if (bootInteriorLight) {
+    bootInteriorLight.position.set(rearSillX - 18, beltY - 2, 0);
+    bootInteriorLight.intensity = isTailgateOpen ? 2.4 : 0.6;
+  }
 
   // AUTHENTIC AUTOMOTIVE ARCHITECTURE: Realistic front overhangs & wheelbases
   // (Prevents the cartoonish long bonnet / anteater look!)
@@ -5419,12 +5955,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
     const bodyPaintMat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(currentCarPaintColor), // Dynamic 3D showroom paint
-      metalness: 0.86,
-      roughness: 0.24,
+      metalness: 0.64,
+      roughness: 0.16,
       clearcoat: 1.0,
-      clearcoatRoughness: 0.08,
+      clearcoatRoughness: 0.04,
       transparent: isGhost,
-      opacity: isGhost ? 0.65 : 1.0,
+      opacity: isGhost ? 0.60 : 1.0,
       depthWrite: true,
       side: THREE.DoubleSide
     });
@@ -5445,11 +5981,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
     });
 
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0x081628, // Tinted automotive glass
-      roughness: 0.06,
-      metalness: 0.15,
+      color: 0x071526, // Tinted automotive privacy glass
+      roughness: 0.04,
+      metalness: 0.22,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.02,
       transparent: true,
-      opacity: isGhost ? 0.28 : 0.45,
+      opacity: isGhost ? 0.28 : 0.62,
       depthWrite: false
     });
 
@@ -6922,6 +7460,42 @@ function update3DStudio(car, seatsFolded, fitResult) {
     addCadEdges(roofMesh, 0x38bdf8);
     car3DGroup.add(roofMesh);
 
+    // Modern Panoramic Glass Sunroof Panel (Embedded into roof)
+    if (!car.id.includes('tesla')) {
+      const sunFrontX = roofFrontX + 5;
+      const sunRearX = isEstate ? (roofFrontX + (roofLen * 0.70)) : (roofFrontX + (roofLen * 0.58));
+      const sunLen = Math.max(16, sunRearX - sunFrontX);
+      const sunWidth = Math.min(roofWidth - 14, (shoulderZ * 2) * 0.58);
+      const sunY = roofTopY - 0.2;
+
+      const sunroofGlassMat = new THREE.MeshPhysicalMaterial({
+        color: 0x071526,
+        metalness: 0.35,
+        roughness: 0.04,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.02,
+        transparent: true,
+        opacity: isGhost ? 0.35 : 0.82,
+        depthWrite: false
+      });
+
+      const sunroofFrameGeo = createSmoothBoxGeo(sunLen + 2.0, 0.8, sunWidth + 2.0, 0.5, 1);
+      const sunroofFrame = new THREE.Mesh(sunroofFrameGeo, trimMat);
+      sunroofFrame.position.set((sunFrontX + sunRearX) / 2, sunY + 0.15, 0);
+      car3DGroup.add(sunroofFrame);
+
+      const sunroofGlassGeo = new THREE.BoxGeometry(sunLen, 0.6, sunWidth);
+      const sunroofGlass = new THREE.Mesh(sunroofGlassGeo, sunroofGlassMat);
+      sunroofGlass.position.set((sunFrontX + sunRearX) / 2, sunY + 0.35, 0);
+      car3DGroup.add(sunroofGlass);
+
+      // Sunroof center cross divider bar
+      const sunDivGeo = new THREE.BoxGeometry(2.0, 0.7, sunWidth);
+      const sunDiv = new THREE.Mesh(sunDivGeo, trimMat);
+      sunDiv.position.set((sunFrontX + sunRearX) / 2, sunY + 0.4, 0);
+      car3DGroup.add(sunDiv);
+    }
+
     // Roof Ditch Moldings / Rain Channels along both sides of roof
     [-1, 1].forEach(side => {
       const ditchGeo = new THREE.BoxGeometry(roofLen - 2, 0.6, 0.8);
@@ -7664,20 +8238,17 @@ function update3DStudio(car, seatsFolded, fitResult) {
     }
 
     // 12. INTERIOR CARGO BAY, COCKPIT & SEATING ARCHITECTURE
-    // Cargo Floor Carpet
+    // Cargo Floor Carpet (Smooth plush anthracite automotive lining)
     const bootFloorGeo = new THREE.BoxGeometry(currentFloorLen, 2.5, archW);
     const bootFloorMat = new THREE.MeshStandardMaterial({
-      color: 0x18263e,
-      roughness: 0.85,
-      transparent: true,
-      opacity: 0.8
+      color: 0x141f30,
+      roughness: 0.88,
+      metalness: 0.08,
+      transparent: isGhost,
+      opacity: isGhost ? 0.70 : 1.0
     });
     const bootFloorMesh = new THREE.Mesh(bootFloorGeo, bootFloorMat);
     bootFloorMesh.position.set(rearSillX - (currentFloorLen / 2), sillY + 1.25, 0);
-    bootFloorMesh.add(new THREE.LineSegments(
-      new THREE.EdgesGeometry(bootFloorGeo),
-      new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 })
-    ));
     car3DGroup.add(bootFloorMesh);
 
     // Stainless steel scuff plate at rear sill threshold
@@ -7729,9 +8300,222 @@ function update3DStudio(car, seatsFolded, fitResult) {
       const wallGeo = new THREE.BoxGeometry(wallLen, wallHeight, 2.0);
       const wallMesh = new THREE.Mesh(wallGeo, sideLinerMat);
       wallMesh.position.set(rearSillX - (wallLen / 2), sillY + 1.25 + (wallHeight / 2), wallZ);
-      // Note: Rendered with clean carpet material and NO wireframe lines to blend seamlessly into interior
       car3DGroup.add(wallMesh);
     });
+
+    // 3. RETRACTABLE / RIGID TONNEAU PARCEL SHELF (Authentic Modern Luggage Load Cover)
+    // Displayed when rear seats are in place and cargo is below the beltline shelf height
+    const shelfY = beltY - 0.5;
+    const shelfClearance = shelfY - (sillY + 1.25);
+    let cargoHeightAboveSill = 0;
+    if (fitResult && fitResult.rot) {
+      cargoHeightAboveSill = fitResult.rot.h;
+    }
+    const isCargoBelowShelf = cargoHeightAboveSill <= (isTailgateOpen && isHatch ? shelfClearance + 18 : shelfClearance + 2);
+
+    if (!seatsFolded && !isSaloon && isCargoBelowShelf) {
+      const shelfFrontX = cargoBedFrontX + 2;
+      const shelfRearX = rearSillX - 6;
+      const shelfLen = Math.max(14, shelfRearX - shelfFrontX);
+      const shelfWidth = Math.min(cabinWidth - 6, archW + 18);
+
+      const shelfGroup = new THREE.Group();
+      shelfGroup.position.set(shelfFrontX, shelfY, 0);
+
+      if (isEstate || isSUV) {
+        // Modern Retractable Roller Tonneau Cassette & Extended Load Blind
+        shelfGroup.rotation.z = 0;
+
+        const cassetteGeo = createSmoothBoxGeo(6.5, 4.2, shelfWidth + 2.0, 1.2, 2);
+        const cassetteMat = new THREE.MeshStandardMaterial({
+          color: 0x1e293b,
+          roughness: 0.35,
+          metalness: 0.75,
+          transparent: isGhost,
+          opacity: isGhost ? 0.60 : 1.0
+        });
+        const cassette = new THREE.Mesh(cassetteGeo, cassetteMat);
+        cassette.position.set(3.2, 0, 0);
+        shelfGroup.add(cassette);
+
+        // Extended durable vinyl / canvas load blind
+        const blindGeo = new THREE.BoxGeometry(shelfLen - 6.5, 0.8, shelfWidth);
+        const blindMat = new THREE.MeshStandardMaterial({
+          color: 0x1e293b,
+          roughness: 0.82,
+          transparent: isGhost,
+          opacity: isGhost ? 0.60 : 1.0
+        });
+        const blind = new THREE.Mesh(blindGeo, blindMat);
+        blind.position.set(3.2 + (shelfLen - 6.5) / 2, 0.3, 0);
+        shelfGroup.add(blind);
+
+        // Ergonomic center pull handle with bright satin chrome accent
+        const handleGeo = createSmoothBoxGeo(3.2, 1.4, 20.0, 0.6, 2);
+        const handleMat = new THREE.MeshStandardMaterial({
+          color: 0xf8fafc,
+          roughness: 0.15,
+          metalness: 0.95
+        });
+        const handle = new THREE.Mesh(handleGeo, handleMat);
+        handle.position.set(shelfLen - 1.6, 0.4, 0);
+        shelfGroup.add(handle);
+
+      } else {
+        // Modern Moulded Composite Carpet Parcel Shelf (Hatchback)
+        // Tilts upwards naturally when tailgate is open (supported by cords attached to tailgate)
+        const shelfTilt = (isTailgateOpen && isHatch) ? 0.38 : 0;
+        shelfGroup.rotation.z = shelfTilt;
+
+        const shelfGeo = createSmoothBoxGeo(shelfLen, 2.2, shelfWidth, 1.2, 2);
+        const shelfMat = new THREE.MeshStandardMaterial({
+          color: 0x243247, // Anthracite molded carpet with visible contrast
+          roughness: 0.88,
+          metalness: 0.08,
+          transparent: isGhost,
+          opacity: isGhost ? 0.65 : 1.0
+        });
+        const shelfMesh = new THREE.Mesh(shelfGeo, shelfMat);
+        shelfMesh.position.set(shelfLen / 2, 0, 0);
+        shelfGroup.add(shelfMesh);
+
+        // Front Rubber Pivot Pin Bosses
+        [-1, 1].forEach(side => {
+          const pinGeo = new THREE.CylinderGeometry(1.2, 1.2, 3.2, 12);
+          const pinMat = new THREE.MeshStandardMaterial({ color: 0x090e17, roughness: 0.8 });
+          const pin = new THREE.Mesh(pinGeo, pinMat);
+          pin.rotation.x = Math.PI / 2;
+          pin.position.set(1.5, 0, side * ((shelfWidth / 2) + 1.2));
+          shelfGroup.add(pin);
+        });
+
+        // Dual tailgate lift suspension cords (strings)
+        [-1, 1].forEach(side => {
+          const p1X = shelfFrontX + (shelfLen - 3.0) * Math.cos(shelfTilt) - 0.9 * Math.sin(shelfTilt);
+          const p1Y = shelfY + (shelfLen - 3.0) * Math.sin(shelfTilt) + 0.9 * Math.cos(shelfTilt);
+          const p1Z = side * (shelfWidth * 0.42);
+          const p1 = new THREE.Vector3(p1X, p1Y, p1Z);
+
+          // Calculate exact tailgate frame cord mounting eyelet
+          const hingeX = roofRearX;
+          const hingeY = roofRearY;
+          const waistX = (rearSillX + 1) - roofRearX;
+          const waistY = (beltY + 1) - roofRearY;
+          const tAngle = isTailgateOpen ? getOpenTailgateAngle(bodyType) : 0;
+          const cosA = Math.cos(tAngle);
+          const sinA = Math.sin(tAngle);
+          const waistRotX = waistX * cosA - waistY * sinA;
+          const waistRotY = waistX * sinA + waistY * cosA;
+          const pegX = hingeX + 0.65 * waistRotX;
+          const pegY = hingeY + 0.65 * waistRotY;
+          const pegZ = side * (shelfWidth * 0.38);
+          const p2 = new THREE.Vector3(pegX, pegY, pegZ);
+
+          const cordDist = p1.distanceTo(p2);
+          const cordGeo = new THREE.CylinderGeometry(0.45, 0.45, cordDist, 8);
+          const cordMat = new THREE.MeshStandardMaterial({
+            color: 0xcbd5e1, // Satin woven silver-slate cord
+            roughness: 0.45,
+            metalness: 0.25
+          });
+          const cord = new THREE.Mesh(cordGeo, cordMat);
+          cord.position.copy(p1.clone().add(p2).multiplyScalar(0.5));
+          cord.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p2.clone().sub(p1).normalize());
+          car3DGroup.add(cord);
+
+          // Rubber Cord Retaining Balls at top and bottom
+          const ballGeo = new THREE.SphereGeometry(1.0, 12, 12);
+          const ballMat = new THREE.MeshStandardMaterial({ color: 0x090e17, roughness: 0.8 });
+          const b1 = new THREE.Mesh(ballGeo, ballMat);
+          b1.position.copy(p1);
+          car3DGroup.add(b1);
+          const b2 = new THREE.Mesh(ballGeo, ballMat);
+          b2.position.copy(p2);
+          car3DGroup.add(b2);
+        });
+      }
+
+      car3DGroup.add(shelfGroup);
+    }
+
+    // 4. CHROME LUGGAGE LASHING D-RINGS (4 boot floor corners)
+    const tieDownPlateGeo = new THREE.BoxGeometry(3.6, 0.3, 3.6);
+    const tieDownPlateMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+    const tieDownRingGeo = new THREE.TorusGeometry(1.2, 0.28, 6, 12);
+    const tieDownXOffsets = [cargoBedFrontX + 8, rearSillX - 8];
+    const tieDownZOffsets = [-(archW / 2) + 5, (archW / 2) - 5];
+
+    tieDownXOffsets.forEach(tx => {
+      tieDownZOffsets.forEach(tz => {
+        const plate = new THREE.Mesh(tieDownPlateGeo, tieDownPlateMat);
+        plate.position.set(tx, sillY + 1.4, tz);
+        car3DGroup.add(plate);
+
+        const dRing = new THREE.Mesh(tieDownRingGeo, chromeMat);
+        dRing.rotation.x = Math.PI / 2;
+        dRing.position.set(tx, sillY + 1.6, tz);
+        car3DGroup.add(dRing);
+      });
+    });
+
+    // 5. RECESSED FROSTED LED BOOT COURTESY LAMP (Left Wall)
+    const lampBezelGeo = createSmoothBoxGeo(5.2, 2.8, 1.2, 0.5, 1);
+    const lampBezel = new THREE.Mesh(lampBezelGeo, trimMat);
+    lampBezel.position.set(rearSillX - 16, beltY - 6, halfTailgateW - 0.6);
+    car3DGroup.add(lampBezel);
+
+    const lampLensGeo = createSmoothBoxGeo(4.2, 2.0, 0.8, 0.4, 1);
+    const lampLensMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0x93c5fd,
+      emissiveIntensity: isTailgateOpen ? 1.8 : 0.2,
+      roughness: 0.1
+    });
+    const lampLens = new THREE.Mesh(lampLensGeo, lampLensMat);
+    lampLens.position.set(rearSillX - 16, beltY - 6, halfTailgateW - 0.2);
+    car3DGroup.add(lampLens);
+
+    // 6. BOOT ELASTIC STORAGE NET & EMERGENCY HAZARD WARNING TRIANGLE (Right Wall)
+    const netLen = Math.max(14, rearSillX - (rearWheelX + (tubLen / 2)) - 2);
+    const netHeight = Math.max(10, (beltY - sillY) * 0.45);
+    if (netLen > 8) {
+      const netGeo = new THREE.PlaneGeometry(netLen, netHeight);
+      const netMat = new THREE.MeshStandardMaterial({
+        map: getNettingTexture(),
+        transparent: true,
+        opacity: 0.85,
+        roughness: 0.8,
+        side: THREE.DoubleSide
+      });
+      const netMesh = new THREE.Mesh(netGeo, netMat);
+      netMesh.position.set(rearSillX - (netLen / 2) - 3, sillY + 4 + (netHeight / 2), -(halfTailgateW) + 2.5);
+      car3DGroup.add(netMesh);
+
+      // Elastic Top Band
+      const netBandGeo = new THREE.BoxGeometry(netLen + 1, 0.8, 0.8);
+      const netBand = new THREE.Mesh(netBandGeo, trimMat);
+      netBand.position.set(rearSillX - (netLen / 2) - 3, sillY + 4 + netHeight, -(halfTailgateW) + 2.5);
+      car3DGroup.add(netBand);
+
+      // Roadside Emergency Warning Triangle in slim red case tucked in net
+      const triCaseGeo = createSmoothBoxGeo(Math.min(22, netLen - 2), 4.2, 3.2, 0.8, 1);
+      const triCaseMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4, metalness: 0.1 });
+      const triCase = new THREE.Mesh(triCaseGeo, triCaseMat);
+      triCase.position.set(rearSillX - (netLen / 2) - 3, sillY + 3.8, -(halfTailgateW) + 3.2);
+      car3DGroup.add(triCase);
+    }
+
+    // 7. 12V 120W DC AUXILIARY POWER SOCKET (Left Wall Sill)
+    const socketGeo = new THREE.CylinderGeometry(1.6, 1.6, 1.2, 16);
+    const socket = new THREE.Mesh(socketGeo, trimMat);
+    socket.rotation.x = Math.PI / 2;
+    socket.position.set(rearSillX - 8, sillY + 8, halfTailgateW - 0.8);
+    car3DGroup.add(socket);
+
+    const socketCapGeo = new THREE.BoxGeometry(2.4, 2.4, 0.6);
+    const socketCap = new THREE.Mesh(socketCapGeo, chromeMat);
+    socketCap.position.set(rearSillX - 8, sillY + 8, halfTailgateW - 0.2);
+    car3DGroup.add(socketCap);
 
 
 
@@ -7981,17 +8765,28 @@ function update3DStudio(car, seatsFolded, fitResult) {
     }
     car3DGroup.add(rearSeatGroup);
 
-    // Ground Ambient Occlusion Plate & Wheel Shadows
-    const shadowGeo = new THREE.PlaneGeometry(rearBumperX - carFrontX + 30, totalCarWidth + 24);
-    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x02050b, transparent: true, opacity: 0.8 });
+    // Soft Ground Ambient Occlusion Shadow & Wheel Contact Patches
+    const shadowGeo = new THREE.PlaneGeometry(rearBumperX - carFrontX + 48, totalCarWidth + 36);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: getSoftShadowTexture(),
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false
+    });
     const shadowPlate = new THREE.Mesh(shadowGeo, shadowMat);
     shadowPlate.rotation.x = -Math.PI / 2;
     shadowPlate.position.set((carFrontX + rearBumperX) / 2, groundY + 0.2, 0);
     car3DGroup.add(shadowPlate);
 
+    const tireShadowMat = new THREE.MeshBasicMaterial({
+      map: getTireShadowTexture(),
+      transparent: true,
+      opacity: 0.90,
+      depthWrite: false
+    });
     wheelPositions.forEach(([wx, wy, wz]) => {
-      const tireShadowGeo = new THREE.PlaneGeometry(wheelRadius * 1.5, 26);
-      const tireShadow = new THREE.Mesh(tireShadowGeo, shadowMat);
+      const tireShadowGeo = new THREE.PlaneGeometry(wheelRadius * 1.6, wheelWidth + 12);
+      const tireShadow = new THREE.Mesh(tireShadowGeo, tireShadowMat);
       tireShadow.rotation.x = -Math.PI / 2;
       tireShadow.position.set(wx, groundY + 0.3, wz);
       car3DGroup.add(tireShadow);
@@ -8029,22 +8824,17 @@ function update3DStudio(car, seatsFolded, fitResult) {
     });
 
     const createSingleBoxWithColor = (l, w, h, col, edCol) => {
-      const geo = new THREE.BoxGeometry(l, h, w);
+      const geo = createSmoothBoxGeo(l, h, w, 2.0, 2);
       const mat = new THREE.MeshPhysicalMaterial({
         color: new THREE.Color(col),
-        metalness: 0.1,
-        roughness: 0.25,
-        clearcoat: 0.8,
-        clearcoatRoughness: 0.15,
+        metalness: 0.12,
+        roughness: 0.22,
+        clearcoat: 0.85,
+        clearcoatRoughness: 0.12,
         transparent: true,
-        opacity: 0.88
+        opacity: 0.90
       });
-      const b = new THREE.Mesh(geo, mat);
-      b.add(new THREE.LineSegments(
-        new THREE.EdgesGeometry(geo),
-        new THREE.LineBasicMaterial({ color: new THREE.Color(edCol), transparent: true, opacity: 0.6, linewidth: 2 })
-      ));
-      return b;
+      return new THREE.Mesh(geo, mat);
     };
 
     cargo3DMesh = new THREE.Group();

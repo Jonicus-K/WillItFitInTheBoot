@@ -978,6 +978,8 @@ body {
 .seo-guide-section {
   margin-top: 32px;
   width: 100%;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 1200px;
 }
 
 .guide-card {
@@ -3057,3 +3059,16 @@ body {
   color: var(--text-muted);
   font-size: 0.68rem;
 }
+
+/* Accessibility: honor user reduced motion preferences (WCAG 2.2 Criterion 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

@@ -15,10 +15,9 @@
 
   <!-- Web App Manifest & Favicon Configuration -->
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-  <link rel="icon" type="image/png" href="assets/favicon.png">
-  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 
   <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
   <meta property="og:type" content="website">
@@ -109,12 +108,15 @@
   <!-- Friendly Modern Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=32">
-  <!-- Three.js & OrbitControls via CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <link rel="stylesheet" href="style.css?v=33">
+  <!-- Three.js & OrbitControls via a single CDN origin. `defer` keeps execution order
+       (three -> OrbitControls -> app.js) without blocking first paint. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" integrity="sha384-wagZhIFgY4hD+7awjQjR4e2E294y6J2HSnd8eTNc15ZubTeQeVRZwhQJ+W6hnBsf" crossorigin="anonymous"></script>
+  <script defer src="app.js?v=84"></script>
 </head>
 <body>
   <div class="app-container">
@@ -123,7 +125,7 @@
       <div class="sidebar-column">
         <header class="sidebar-header">
           <h1 class="brand-title">
-            <img src="assets/logo.png" alt="Will It Fit In The Boot?" class="header-logo">
+            <img src="assets/logo.webp" alt="Will It Fit In The Boot?" class="header-logo" width="313" height="120" fetchpriority="high">
           </h1>
           <p class="subtitle">Quickly check if items will fit in your car boot</p>
         </header>
@@ -295,8 +297,8 @@
             <!-- Fast Car Search & Instant Filter -->
             <div class="car-search-wrap">
               <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="car-search-input" placeholder="Search car (e.g. Golf, Tesla, Puma)..." autocomplete="off" spellcheck="false">
-              <button type="button" id="btn-clear-car-search" class="clear-search-btn" title="Clear search" style="display:none;">✕</button>
+              <input type="text" id="car-search-input" placeholder="Search car (e.g. Golf, Tesla, Puma)..." aria-label="Search car models" autocomplete="off" spellcheck="false">
+              <button type="button" id="btn-clear-car-search" class="clear-search-btn" title="Clear search" aria-label="Clear search" style="display:none;">✕</button>
             </div>
 
             <div class="select-wrap">
@@ -1010,12 +1012,12 @@
         <!-- Dual Selectors -->
         <div class="compare-selectors-grid">
           <div class="compare-selector-box">
-            <span class="compare-box-label">Car A (Primary)</span>
+            <label class="compare-box-label" for="compare-select-a">Car A (Primary)</label>
             <select id="compare-select-a" class="select-car compare-select"></select>
           </div>
           <div class="compare-vs-badge">VS</div>
           <div class="compare-selector-box">
-            <span class="compare-box-label">Car B (Challenger)</span>
+            <label class="compare-box-label" for="compare-select-b">Car B (Challenger)</label>
             <select id="compare-select-b" class="select-car compare-select"></select>
           </div>
         </div>
@@ -1098,7 +1100,5 @@
 
   <!-- Toast Notification Container -->
   <div id="toast-notification" class="toast-notification" aria-live="polite"></div>
-
-  <script src="app.js?v=83"></script>
 </body>
 </html>

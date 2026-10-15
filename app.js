@@ -5974,6 +5974,17 @@ function update3DStudio(car, seatsFolded, fitResult) {
     : (isSaloon ? roofTopY - 4.8 // Fastback coupe saloon silhouette
     : (isSUV ? roofTopY - 2.4 : roofTopY - 1.6)); // SUV / Estate roof
 
+  // Continuous longitudinal roof camber height profile along vehicle X:
+  const getRoofY = (xVal) => {
+    if (xVal <= roofPeakX) {
+      const t = (xVal - roofFrontX) / Math.max(1, roofPeakX - roofFrontX);
+      return roofFrontY + (roofPeakY - roofFrontY) * Math.sin(t * (Math.PI / 2));
+    } else {
+      const t = (xVal - roofPeakX) / Math.max(1, roofRearX - roofPeakX);
+      return roofPeakY - (roofPeakY - roofRearY) * Math.pow(t, 1.25);
+    }
+  };
+
   // Geometry below is expensive (thousands of meshes); only rebuild when the car shape actually changes.
   if (rebuildCar) {
     // Materials: CAD Cutaway vs Showroom Paint
@@ -6873,7 +6884,9 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const zVal = tc * curW;
         // Parabolic forward bow: center curves forward by 2.4 cm into airstream
         const bow = (1 - tc * tc) * -2.4;
-        windPositions.push(xBase + bow, yVal, zVal);
+        // Transverse crown arching smoothly up to meet the crowned roof skin at header
+        const windCrown = Math.pow(tr, 1.5) * (1 - tc * tc) * 1.8;
+        windPositions.push(xBase + bow, yVal + windCrown, zVal);
         windUvs.push(c / windCols, tr);
       }
     }
@@ -6899,6 +6912,41 @@ function update3DStudio(car, seatsFolded, fitResult) {
     windshield.material.side = THREE.DoubleSide;
     addCadEdges(windshield, 0x38bdf8);
     car3DGroup.add(windshield);
+
+    // Transverse Windshield Header Cross-Member (sealing windshield glass to roof skin & cantrails)
+    const whCols = 10;
+    const whPositions = [];
+    const whIndices = [];
+    for (let c = 0; c <= whCols; c++) {
+      const tc = (c / whCols) * 2 - 1; // -1 to +1
+      const z = tc * roofZ;
+      const crown = (1 - tc * tc) * 1.8;
+      const bow = (1 - tc * tc) * -2.4;
+      const cx = roofFrontX + bow;
+      const cy = roofFrontY + crown;
+
+      // 4 vertices per cross-section:
+      whPositions.push(cx + 1.8, cy + 0.5, z); // 0: top rear
+      whPositions.push(cx - 1.6, cy + 0.4, z); // 1: top front
+      whPositions.push(cx - 1.6, cy - 2.4, z); // 2: bottom front
+      whPositions.push(cx + 1.8, cy - 2.4, z); // 3: bottom rear
+    }
+    for (let c = 0; c < whCols; c++) {
+      const b = c * 4;
+      const n = (c + 1) * 4;
+      whIndices.push(b + 0, b + 1, n + 1, b + 0, n + 1, n + 0); // top
+      whIndices.push(b + 1, b + 2, n + 2, b + 1, n + 2, n + 1); // front lip
+      whIndices.push(b + 2, b + 3, n + 3, b + 2, n + 3, n + 2); // bottom
+      whIndices.push(b + 3, b + 0, n + 0, b + 3, n + 0, n + 3); // rear
+    }
+    const whGeo = new THREE.BufferGeometry();
+    whGeo.setAttribute('position', new THREE.Float32BufferAttribute(whPositions, 3));
+    whGeo.setIndex(whIndices);
+    whGeo.computeVertexNormals();
+    const windHeader = new THREE.Mesh(whGeo, bodyPaintMat);
+    windHeader.material.side = THREE.DoubleSide;
+    addCadEdges(windHeader, 0x38bdf8);
+    car3DGroup.add(windHeader);
 
     // Left & Right Swept 3D A-Pillars (Framing Windscreen and seamlessly joining Roof Cantrails)
     [-1, 1].forEach(side => {
@@ -7081,49 +7129,115 @@ function update3DStudio(car, seatsFolded, fitResult) {
     bellyPan.position.set((frontWheelX + rearWheelX) / 2, rockerY + 0.8, 0);
     car3DGroup.add(bellyPan);
 
+    // Helper to create a continuous 3D cambered cantrail beam hugging the longitudinal roof arch
+    function createCamberedCantrail(side, rFrontX, rRearX, rZ, getYFunc, paintMat) {
+      const N = 16;
+      const positions = [];
+      const uvs = [];
+      const indices = [];
+
+      for (let i = 0; i <= N; i++) {
+        const t = i / N;
+        const x = (rFrontX - 1.2) + t * (rRearX - rFrontX + 2.4);
+        const clampX = Math.max(rFrontX, Math.min(rRearX, x));
+        const yR = getYFunc(clampX);
+
+        const yTop = yR + 0.6;
+        const yBot = yR - 4.2;
+        const zIn = side * (rZ - 1.4);
+        const zOut = side * (rZ + 2.4);
+
+        positions.push(x, yTop, zIn);
+        positions.push(x, yTop, zOut);
+        positions.push(x, yBot, zOut);
+        positions.push(x, yBot, zIn);
+
+        uvs.push(t, 0, t, 0.33, t, 0.66, t, 1);
+      }
+
+      for (let i = 0; i < N; i++) {
+        const base = i * 4;
+        const next = (i + 1) * 4;
+        if (side === 1) {
+          indices.push(base + 0, base + 1, next + 1, base + 0, next + 1, next + 0);
+          indices.push(base + 1, base + 2, next + 2, base + 1, next + 2, next + 1);
+          indices.push(base + 2, base + 3, next + 3, base + 2, next + 3, next + 2);
+          indices.push(base + 3, base + 0, next + 0, base + 3, next + 0, next + 3);
+        } else {
+          indices.push(base + 0, next + 1, base + 1, base + 0, next + 0, next + 1);
+          indices.push(base + 1, next + 2, base + 2, base + 1, next + 1, next + 2);
+          indices.push(base + 2, next + 3, base + 3, base + 2, next + 2, next + 3);
+          indices.push(base + 3, next + 0, base + 0, base + 3, next + 3, next + 0);
+        }
+      }
+
+      // Front end cap at i = 0
+      if (side === 1) {
+        indices.push(0, 3, 2, 0, 2, 1);
+      } else {
+        indices.push(0, 2, 3, 0, 1, 2);
+      }
+      // Rear end cap at i = N
+      const end = N * 4;
+      if (side === 1) {
+        indices.push(end + 0, end + 1, end + 2, end + 0, end + 2, end + 3);
+      } else {
+        indices.push(end + 0, end + 2, end + 1, end + 0, end + 3, end + 2);
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+
+      const mesh = new THREE.Mesh(geo, paintMat);
+      mesh.material.side = THREE.DoubleSide;
+      addCadEdges(mesh, 0x38bdf8);
+      return mesh;
+    }
+
     // 7. MODERN GREENHOUSE: INWARD-TUMBLED PILLARS & SIDE WINDOWS
     const cosTumble = Math.cos(tumbleAngle);
-    const bHeight = (roofTopY - (beltY - 3.0)) / cosTumble;
     const winHeight = roofTopY - beltY - 4.5;
     const winMidY = beltY + (roofTopY - beltY) / 2;
 
-    // Tumblehome-compensated local Y positions (guarantees >2cm penetration inside doors/cantrail with 0 gaps):
-    const yLocalBelt = (beltY - 2.5 - winMidY) / cosTumble;
-    const yLocalRoofFront = (roofFrontY - 2.5 - winMidY) / cosTumble;
-    const yLocalRoofRear = (roofRearY - 2.5 - winMidY) / cosTumble;
+    // Exact local Y mapping (cancels tumblehome rotation so world heights land with 100% precision):
+    const toLocalY = (worldY) => (worldY - winMidY) / cosTumble;
+    const yLocalBelt = toLocalY(beltY - 2.5);
 
     [-1, 1].forEach(side => {
       const cantrailZ = side * roofZ;
       const winMidZ = side * ((shoulderZ + roofZ) / 2);
 
-      // Aerodynamic Roof Cantrail (forming the top edge of the window frame and cantrail beam)
-      const cantrailLen = Math.abs(roofRearX - roofFrontX);
-      const cantrailGeo = new THREE.BoxGeometry(cantrailLen, 3.8, 3.2);
-      const cantrail = new THREE.Mesh(cantrailGeo, bodyPaintMat);
-      cantrail.position.set((roofFrontX + roofRearX) / 2, (roofFrontY + roofRearY) / 2 - 0.6, cantrailZ);
-      cantrail.rotation.x = -side * tumbleAngle * 0.4;
-      addCadEdges(cantrail, 0x38bdf8);
-      car3DGroup.add(cantrail);
+      // Continuous 3D Cambered Roof Cantrail (hugging longitudinal roof curvature & overlapping window tops)
+      const cantrailMesh = createCamberedCantrail(side, roofFrontX, roofRearX, roofZ, getRoofY, bodyPaintMat);
+      car3DGroup.add(cantrailMesh);
 
-      // B-Pillar (Flush High-Gloss Piano Black Pillar with inward tumble)
+      // B-Pillar (Flush High-Gloss Piano Black Pillar with inward tumble spanning beltline to roof peak)
+      const bHeight = (roofPeakY + 1.2 - (beltY - 3.0)) / cosTumble;
       const bPillarGeo = new THREE.BoxGeometry(5.5, bHeight, 2.8);
       const bPillar = new THREE.Mesh(bPillarGeo, pillarMat);
-      bPillar.position.set(bPillarX, winMidY, winMidZ);
+      bPillar.position.set(bPillarX, (beltY - 2.5 + roofPeakY + 1.2) / 2, winMidZ);
       bPillar.rotation.x = -side * tumbleAngle;
       car3DGroup.add(bPillar);
 
-      // Front Door Window (Raked compound A-pillar trapezoid with inward tumble)
+      // Front Door Window (Raked compound A-pillar trapezoid rising to roof peak)
       const fWinMidX = (cowlX + bPillarX) / 2;
       const fWinShape = new THREE.Shape();
       fWinShape.moveTo(cowlX + 3.8 - fWinMidX, yLocalBelt);
       fWinShape.lineTo(bPillarX - 2.5 - fWinMidX, yLocalBelt);
-      fWinShape.lineTo(bPillarX - 2.5 - fWinMidX, yLocalRoofFront);
-      fWinShape.lineTo(roofFrontX + 2.5 - fWinMidX, yLocalRoofFront);
+      fWinShape.lineTo(bPillarX - 2.5 - fWinMidX, toLocalY(roofPeakY + 0.8));
+      for (let s = 1; s <= 4; s++) {
+        const ts = s / 4;
+        const sx = (bPillarX - 2.5) - ts * ((bPillarX - 2.5) - (roofFrontX + 2.5));
+        fWinShape.lineTo(sx - fWinMidX, toLocalY(getRoofY(sx) + 0.8));
+      }
       fWinShape.closePath();
 
       const fWinGeo = new THREE.ExtrudeGeometry(fWinShape, { depth: 0.8, bevelEnabled: false });
       const fWin = new THREE.Mesh(fWinGeo, glassMat);
-      fWin.position.set(fWinMidX, winMidY, winMidZ - (side * 0.4));
+      fWin.position.set(fWinMidX, winMidY, winMidZ - 0.4);
       fWin.rotation.x = -side * tumbleAngle;
       car3DGroup.add(fWin);
 
@@ -7138,7 +7252,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
         // Estate: C-Pillar, D-Pillar, Rear Door Window, Panoramic Cargo Window, & D-Pillar Quarter
         const cPillarGeo = new THREE.BoxGeometry(6.0, bHeight, 2.8);
         const cPillar = new THREE.Mesh(cPillarGeo, pillarMat);
-        cPillar.position.set(cPillarX, winMidY, winMidZ);
+        cPillar.position.set(cPillarX, (beltY - 2.5 + getRoofY(cPillarX) + 1.2) / 2, winMidZ);
         cPillar.rotation.x = -side * tumbleAngle;
         car3DGroup.add(cPillar);
 
@@ -7146,12 +7260,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const rWinShape = new THREE.Shape();
         rWinShape.moveTo(bPillarX + 2.5 - rWinMidX, yLocalBelt);
         rWinShape.lineTo(cPillarX - 2.5 - rWinMidX, yLocalBelt);
-        rWinShape.lineTo(cPillarX - 2.5 - rWinMidX, yLocalRoofFront);
-        rWinShape.lineTo(bPillarX + 2.5 - rWinMidX, yLocalRoofFront);
+        rWinShape.lineTo(cPillarX - 2.5 - rWinMidX, toLocalY(getRoofY(cPillarX) + 0.8));
+        for (let s = 1; s <= 4; s++) {
+          const ts = s / 4;
+          const sx = (cPillarX - 2.5) - ts * ((cPillarX - 2.5) - (bPillarX + 2.5));
+          rWinShape.lineTo(sx - rWinMidX, toLocalY(getRoofY(sx) + 0.8));
+        }
         rWinShape.closePath();
         const rWinGeo = new THREE.ExtrudeGeometry(rWinShape, { depth: 0.8, bevelEnabled: false });
         const rWin = new THREE.Mesh(rWinGeo, glassMat);
-        rWin.position.set(rWinMidX, winMidY, winMidZ - (side * 0.4));
+        rWin.position.set(rWinMidX, winMidY, winMidZ - 0.4);
         rWin.rotation.x = -side * tumbleAngle;
         car3DGroup.add(rWin);
 
@@ -7160,12 +7278,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const cargoWinShape = new THREE.Shape();
         cargoWinShape.moveTo(cPillarX + 2.5 - cargoWinMidX, yLocalBelt);
         cargoWinShape.lineTo(roofRearX - 4 - cargoWinMidX, yLocalBelt);
-        cargoWinShape.lineTo(roofRearX - 4 - cargoWinMidX, yLocalRoofRear);
-        cargoWinShape.lineTo(cPillarX + 2.5 - cargoWinMidX, yLocalRoofRear);
+        cargoWinShape.lineTo(roofRearX - 4 - cargoWinMidX, toLocalY(roofRearY + 0.8));
+        for (let s = 1; s <= 4; s++) {
+          const ts = s / 4;
+          const sx = (roofRearX - 4) - ts * ((roofRearX - 4) - (cPillarX + 2.5));
+          cargoWinShape.lineTo(sx - cargoWinMidX, toLocalY(getRoofY(sx) + 0.8));
+        }
         cargoWinShape.closePath();
         const cargoWinGeo = new THREE.ExtrudeGeometry(cargoWinShape, { depth: 0.8, bevelEnabled: false });
         const cargoWin = new THREE.Mesh(cargoWinGeo, glassMat);
-        cargoWin.position.set(cargoWinMidX, winMidY, winMidZ - (side * 0.4));
+        cargoWin.position.set(cargoWinMidX, winMidY, winMidZ - 0.4);
         cargoWin.rotation.x = -side * tumbleAngle;
         car3DGroup.add(cargoWin);
 
@@ -7174,8 +7296,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const estateQShape = new THREE.Shape();
         estateQShape.moveTo(roofRearX - 4 - estateQMidX, yLocalBelt);
         estateQShape.lineTo(rearSillX - estateQMidX, yLocalBelt);
-        estateQShape.lineTo(roofRearX - estateQMidX, yLocalRoofRear + 0.5);
-        estateQShape.lineTo(roofRearX - 4 - estateQMidX, yLocalRoofRear + 0.5);
+        estateQShape.lineTo(roofRearX - estateQMidX, toLocalY(roofRearY + 0.8));
+        estateQShape.lineTo(roofRearX - 4 - estateQMidX, toLocalY(roofRearY + 0.8));
         estateQShape.closePath();
 
         const estateQGeo = new THREE.ExtrudeGeometry(estateQShape, {
@@ -7186,7 +7308,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
           bevelSegments: 3
         });
         const estateQMesh = new THREE.Mesh(estateQGeo, bodyPaintMat);
-        estateQMesh.position.set(estateQMidX, winMidY, winMidZ - (side * 1.5));
+        estateQMesh.position.set(estateQMidX, winMidY, winMidZ - 1.5);
         estateQMesh.rotation.x = -side * tumbleAngle;
         addCadEdges(estateQMesh, 0x38bdf8, 45);
         car3DGroup.add(estateQMesh);
@@ -7197,12 +7319,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const rWinShape = new THREE.Shape();
         rWinShape.moveTo(bPillarX + 2.5 - rWinMidX, yLocalBelt);
         rWinShape.lineTo(rearDoorEnd - 1.5 - rWinMidX, yLocalBelt);
-        rWinShape.lineTo(rearDoorEnd - 1.5 - rWinMidX, yLocalRoofFront);
-        rWinShape.lineTo(bPillarX + 2.5 - rWinMidX, yLocalRoofFront);
+        rWinShape.lineTo(rearDoorEnd - 1.5 - rWinMidX, toLocalY(getRoofY(rearDoorEnd) + 0.8));
+        for (let s = 1; s <= 4; s++) {
+          const ts = s / 4;
+          const sx = (rearDoorEnd - 1.5) - ts * ((rearDoorEnd - 1.5) - (bPillarX + 2.5));
+          rWinShape.lineTo(sx - rWinMidX, toLocalY(getRoofY(sx) + 0.8));
+        }
         rWinShape.closePath();
         const rWinGeo = new THREE.ExtrudeGeometry(rWinShape, { depth: 0.8, bevelEnabled: false });
         const rWin = new THREE.Mesh(rWinGeo, glassMat);
-        rWin.position.set(rWinMidX, winMidY, winMidZ - (side * 0.4));
+        rWin.position.set(rWinMidX, winMidY, winMidZ - 0.4);
         rWin.rotation.x = -side * tumbleAngle;
         car3DGroup.add(rWin);
 
@@ -7214,13 +7340,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
           const qWinShape = new THREE.Shape();
           qWinShape.moveTo(rearDoorEnd + 1.2 - qWinMidX, yLocalBelt);
           qWinShape.lineTo(kinkX - 1.0 - qWinMidX, yLocalBelt);
-          qWinShape.quadraticCurveTo(kinkX + 1.0 - qWinMidX, yLocalBelt + 6, Math.min(kinkX, roofRearX) - qWinMidX, yLocalRoofRear);
-          qWinShape.lineTo(rearDoorEnd + 1.2 - qWinMidX, yLocalRoofRear);
+          qWinShape.quadraticCurveTo(kinkX + 1.0 - qWinMidX, yLocalBelt + 6, Math.min(kinkX, roofRearX) - qWinMidX, toLocalY(roofRearY + 0.8));
+          qWinShape.lineTo(rearDoorEnd + 1.2 - qWinMidX, toLocalY(roofRearY + 0.8));
           qWinShape.closePath();
 
           const qWinGeo = new THREE.ExtrudeGeometry(qWinShape, { depth: 0.8, bevelEnabled: false });
           const qWin = new THREE.Mesh(qWinGeo, glassMat);
-          qWin.position.set(qWinMidX, winMidY, winMidZ - (side * 0.4));
+          qWin.position.set(qWinMidX, winMidY, winMidZ - 0.4);
           qWin.rotation.x = -side * tumbleAngle;
           car3DGroup.add(qWin);
         }
@@ -7232,8 +7358,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const saloonQShape = new THREE.Shape();
         saloonQShape.moveTo(saloonQFrontX - saloonQMidX, yLocalBelt);
         saloonQShape.lineTo(saloonQRearX - saloonQMidX, yLocalBelt);
-        saloonQShape.quadraticCurveTo(saloonQRearX - 3 - saloonQMidX, (yLocalBelt + yLocalRoofRear) / 2, roofRearX - saloonQMidX, yLocalRoofRear + 0.5);
-        saloonQShape.lineTo(saloonQFrontX - saloonQMidX, yLocalRoofRear + 0.5);
+        saloonQShape.quadraticCurveTo(saloonQRearX - 3 - saloonQMidX, (yLocalBelt + toLocalY(roofRearY + 0.8)) / 2, roofRearX - saloonQMidX, toLocalY(roofRearY + 0.8));
+        saloonQShape.lineTo(saloonQFrontX - saloonQMidX, toLocalY(getRoofY(saloonQFrontX) + 0.8));
         saloonQShape.closePath();
 
         const saloonQGeo = new THREE.ExtrudeGeometry(saloonQShape, {
@@ -7244,7 +7370,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
           bevelSegments: 3
         });
         const saloonQMesh = new THREE.Mesh(saloonQGeo, bodyPaintMat);
-        saloonQMesh.position.set(saloonQMidX, winMidY, winMidZ - (side * 1.5));
+        saloonQMesh.position.set(saloonQMidX, winMidY, winMidZ - 1.5);
         saloonQMesh.rotation.x = -side * tumbleAngle;
         addCadEdges(saloonQMesh, 0x38bdf8, 45);
         car3DGroup.add(saloonQMesh);
@@ -7255,12 +7381,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const rWinShape = new THREE.Shape();
         rWinShape.moveTo(bPillarX + 2.5 - rWinMidX, yLocalBelt);
         rWinShape.lineTo(rearDoorEnd - 1.5 - rWinMidX, yLocalBelt);
-        rWinShape.lineTo(rearDoorEnd - 1.5 - rWinMidX, yLocalRoofFront);
-        rWinShape.lineTo(bPillarX + 2.5 - rWinMidX, yLocalRoofFront);
+        rWinShape.lineTo(rearDoorEnd - 1.5 - rWinMidX, toLocalY(getRoofY(rearDoorEnd) + 0.8));
+        for (let s = 1; s <= 4; s++) {
+          const ts = s / 4;
+          const sx = (rearDoorEnd - 1.5) - ts * ((rearDoorEnd - 1.5) - (bPillarX + 2.5));
+          rWinShape.lineTo(sx - rWinMidX, toLocalY(getRoofY(sx) + 0.8));
+        }
         rWinShape.closePath();
         const rWinGeo = new THREE.ExtrudeGeometry(rWinShape, { depth: 0.8, bevelEnabled: false });
         const rWin = new THREE.Mesh(rWinGeo, glassMat);
-        rWin.position.set(rWinMidX, winMidY, winMidZ - (side * 0.4));
+        rWin.position.set(rWinMidX, winMidY, winMidZ - 0.4);
         rWin.rotation.x = -side * tumbleAngle;
         car3DGroup.add(rWin);
 
@@ -7269,12 +7399,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const qWinShape = new THREE.Shape();
         qWinShape.moveTo(rearDoorEnd + 1.5 - qWinMidX, yLocalBelt);
         qWinShape.lineTo(roofRearX - 4 - qWinMidX, yLocalBelt);
-        qWinShape.lineTo(roofRearX - 4 - qWinMidX, yLocalRoofRear);
-        qWinShape.lineTo(rearDoorEnd + 1.5 - qWinMidX, yLocalRoofRear);
+        qWinShape.lineTo(roofRearX - 4 - qWinMidX, toLocalY(roofRearY + 0.8));
+        for (let s = 1; s <= 4; s++) {
+          const ts = s / 4;
+          const sx = (roofRearX - 4) - ts * ((roofRearX - 4) - (rearDoorEnd + 1.5));
+          qWinShape.lineTo(sx - qWinMidX, toLocalY(getRoofY(sx) + 0.8));
+        }
         qWinShape.closePath();
         const qWinGeo = new THREE.ExtrudeGeometry(qWinShape, { depth: 0.8, bevelEnabled: false });
         const qWin = new THREE.Mesh(qWinGeo, glassMat);
-        qWin.position.set(qWinMidX, winMidY, winMidZ - (side * 0.4));
+        qWin.position.set(qWinMidX, winMidY, winMidZ - 0.4);
         qWin.rotation.x = -side * tumbleAngle;
         car3DGroup.add(qWin);
 
@@ -7283,8 +7417,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const suvQShape = new THREE.Shape();
         suvQShape.moveTo(roofRearX - 4 - suvQMidX, yLocalBelt);
         suvQShape.lineTo(rearSillX - suvQMidX, yLocalBelt);
-        suvQShape.lineTo(roofRearX - suvQMidX, yLocalRoofRear + 0.5);
-        suvQShape.lineTo(roofRearX - 4 - suvQMidX, yLocalRoofRear + 0.5);
+        suvQShape.lineTo(roofRearX - suvQMidX, toLocalY(roofRearY + 0.8));
+        suvQShape.lineTo(roofRearX - 4 - suvQMidX, toLocalY(roofRearY + 0.8));
         suvQShape.closePath();
 
         const suvQGeo = new THREE.ExtrudeGeometry(suvQShape, {
@@ -7295,7 +7429,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
           bevelSegments: 3
         });
         const suvQMesh = new THREE.Mesh(suvQGeo, bodyPaintMat);
-        suvQMesh.position.set(suvQMidX, winMidY, winMidZ - (side * 1.5));
+        suvQMesh.position.set(suvQMidX, winMidY, winMidZ - 1.5);
         suvQMesh.rotation.x = -side * tumbleAngle;
         addCadEdges(suvQMesh, 0x38bdf8, 45);
         car3DGroup.add(suvQMesh);
@@ -7303,7 +7437,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
         // Contemporary Floating Roof D-Pillar Accent Blade (Gloss Piano Black)
         const suvFinGeo = createSmoothBoxGeo(Math.max(6, (rearSillX - (roofRearX - 4)) * 0.45), 1.6, 2.9, 0.3, 1);
         const suvFin = new THREE.Mesh(suvFinGeo, pillarMat);
-        suvFin.position.set((roofRearX - 4 + rearSillX) / 2, roofRearY - 2.8, winMidZ - (side * 1.35));
+        suvFin.position.set((roofRearX - 4 + rearSillX) / 2, roofRearY - 2.8, winMidZ - 1.35);
         suvFin.rotation.x = -side * tumbleAngle;
         car3DGroup.add(suvFin);
 
@@ -7314,13 +7448,17 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const rWinShape = new THREE.Shape();
         rWinShape.moveTo(bPillarX + 2.5 - rWinMidX, yLocalBelt);
         rWinShape.lineTo(rearDoorEnd - 1.2 - rWinMidX, yLocalBelt);
-        rWinShape.lineTo(rearDoorEnd - 1.2 - rWinMidX, yLocalRoofFront);
-        rWinShape.lineTo(bPillarX + 2.5 - rWinMidX, yLocalRoofFront);
+        rWinShape.lineTo(rearDoorEnd - 1.2 - rWinMidX, toLocalY(getRoofY(rearDoorEnd) + 0.8));
+        for (let s = 1; s <= 4; s++) {
+          const ts = s / 4;
+          const sx = (rearDoorEnd - 1.2) - ts * ((rearDoorEnd - 1.2) - (bPillarX + 2.5));
+          rWinShape.lineTo(sx - rWinMidX, toLocalY(getRoofY(sx) + 0.8));
+        }
         rWinShape.closePath();
 
         const rWinGeo = new THREE.ExtrudeGeometry(rWinShape, { depth: 0.8, bevelEnabled: false });
         const rWin = new THREE.Mesh(rWinGeo, glassMat);
-        rWin.position.set(rWinMidX, winMidY, winMidZ - (side * 0.4));
+        rWin.position.set(rWinMidX, winMidY, winMidZ - 0.4);
         rWin.rotation.x = -side * tumbleAngle;
         car3DGroup.add(rWin);
 
@@ -7332,8 +7470,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const hatchQShape = new THREE.Shape();
         hatchQShape.moveTo(hatchQFrontX - hatchQMidX, yLocalBelt);
         hatchQShape.lineTo(hatchQRearX - hatchQMidX, yLocalBelt);
-        hatchQShape.lineTo(roofRearX - hatchQMidX, yLocalRoofRear + 0.5);
-        hatchQShape.lineTo(hatchQFrontX - 2.0 - hatchQMidX, yLocalRoofRear + 0.5);
+        hatchQShape.lineTo(roofRearX - hatchQMidX, toLocalY(roofRearY + 0.8));
+        for (let s = 1; s <= 4; s++) {
+          const ts = s / 4;
+          const sx = roofRearX - ts * (roofRearX - (hatchQFrontX - 2.0));
+          hatchQShape.lineTo(sx - hatchQMidX, toLocalY(getRoofY(sx) + 0.8));
+        }
         hatchQShape.closePath();
 
         const hatchQGeo = new THREE.ExtrudeGeometry(hatchQShape, {
@@ -7344,7 +7486,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
           bevelSegments: 2
         });
         const hatchQMesh = new THREE.Mesh(hatchQGeo, bodyPaintMat);
-        hatchQMesh.position.set(hatchQMidX, winMidY, winMidZ - (side * 1.4));
+        hatchQMesh.position.set(hatchQMidX, winMidY, winMidZ - 1.4);
         hatchQMesh.rotation.x = -side * tumbleAngle;
         addCadEdges(hatchQMesh, 0x38bdf8, 45);
         car3DGroup.add(hatchQMesh);
@@ -7529,32 +7671,25 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
     // 9. MODERN SCULPTED CROWNED ROOF, DITCHES & AERODYNAMIC SHARK-FIN
     const roofLen = Math.abs(roofRearX - roofFrontX);
-    const roofRows = 10;
-    const roofCols = 8;
+    const roofRows = 12;
+    const roofCols = 10;
     const roofPositions = [];
     const roofIndices = [];
     const roofUvs = [];
 
     for (let r = 0; r <= roofRows; r++) {
       const tr = r / roofRows;
-      const xVal = roofFrontX + tr * (roofRearX - roofFrontX);
-
-      // Longitudinal roof camber: front drops to windshield header, peaks over B-pillar, swoops back
-      let yRidge;
-      if (xVal <= roofPeakX) {
-        const t = (xVal - roofFrontX) / Math.max(1, roofPeakX - roofFrontX);
-        yRidge = roofFrontY + (roofPeakY - roofFrontY) * Math.sin(t * (Math.PI / 2));
-      } else {
-        const t = (xVal - roofPeakX) / Math.max(1, roofRearX - roofPeakX);
-        yRidge = roofPeakY - (roofPeakY - roofRearY) * Math.pow(t, 1.25);
-      }
+      const xBase = roofFrontX + tr * (roofRearX - roofFrontX);
+      const yRidge = getRoofY(xBase);
 
       for (let c = 0; c <= roofCols; c++) {
         const tc = (c / roofCols) * 2 - 1; // -1 to +1 across vehicle
         const zVal = tc * (roofZ - 0.5);
         // Modern transverse aerodynamic crown: arched parabolic camber across the roof skin
         const crown = (1 - tc * tc) * 1.8;
-        roofPositions.push(xVal, yRidge + crown, zVal);
+        // Parabolic forward bow at windshield header (r = 0), tapering smoothly back towards B-pillar
+        const bow = (1 - tr) * (1 - tc * tc) * -2.4;
+        roofPositions.push(xBase + bow, yRidge + crown, zVal);
         roofUvs.push(c / roofCols, tr);
       }
     }
@@ -7581,15 +7716,39 @@ function update3DStudio(car, seatsFolded, fitResult) {
     addCadEdges(roofMesh, 0x38bdf8);
     car3DGroup.add(roofMesh);
 
+    // Transverse Rear Roof Flange / Cross-Member (sealing rear roof skin & hinge threshold)
+    const rhCols = 8;
+    const rhPositions = [];
+    const rhIndices = [];
+    for (let c = 0; c <= rhCols; c++) {
+      const tc = (c / rhCols) * 2 - 1; // -1 to +1
+      const z = tc * roofZ;
+      const crown = (1 - tc * tc) * 1.8;
+      const cx = roofRearX;
+      const cy = roofRearY + crown;
 
-
-    // Roof Ditch Moldings / Rain Channels along both sides of roof
-    [-1, 1].forEach(side => {
-      const ditchGeo = new THREE.BoxGeometry(roofLen - 2, 0.6, 0.8);
-      const ditch = new THREE.Mesh(ditchGeo, trimMat);
-      ditch.position.set((roofFrontX + roofRearX) / 2, (roofFrontY + roofRearY) / 2 + 0.8, side * (roofZ - 1.8));
-      car3DGroup.add(ditch);
-    });
+      // 4 vertices per cross-section:
+      rhPositions.push(cx - 2.0, cy + 0.3, z);
+      rhPositions.push(cx + 1.2, cy + 0.3, z);
+      rhPositions.push(cx + 1.2, cy - 2.4, z);
+      rhPositions.push(cx - 2.0, cy - 2.4, z);
+    }
+    for (let c = 0; c < rhCols; c++) {
+      const b = c * 4;
+      const n = (c + 1) * 4;
+      rhIndices.push(b + 0, b + 1, n + 1, b + 0, n + 1, n + 0);
+      rhIndices.push(b + 1, b + 2, n + 2, b + 1, n + 2, n + 1);
+      rhIndices.push(b + 2, b + 3, n + 3, b + 2, n + 3, n + 2);
+      rhIndices.push(b + 3, b + 0, n + 0, b + 3, n + 0, n + 3);
+    }
+    const rhGeo = new THREE.BufferGeometry();
+    rhGeo.setAttribute('position', new THREE.Float32BufferAttribute(rhPositions, 3));
+    rhGeo.setIndex(rhIndices);
+    rhGeo.computeVertexNormals();
+    const rearHeader = new THREE.Mesh(rhGeo, bodyPaintMat);
+    rearHeader.material.side = THREE.DoubleSide;
+    addCadEdges(rearHeader, 0x38bdf8);
+    car3DGroup.add(rearHeader);
 
     // Modern Aerodynamic Shark-Fin Antenna (swept back aerodynamic wedge on centerline)
     const finShape = new THREE.Shape();
@@ -7605,7 +7764,9 @@ function update3DStudio(car, seatsFolded, fitResult) {
       bevelSegments: 2
     });
     const sharkFin = new THREE.Mesh(finGeo, bodyPaintMat);
-    sharkFin.position.set(roofRearX - 10, roofRearY + 0.4, -1.1);
+    const finX = roofRearX - 10;
+    const finY = getRoofY(finX) + 1.8;
+    sharkFin.position.set(finX, finY, -1.1);
     sharkFin.rotation.y = Math.PI; // Point aerodynamic apex forward
     car3DGroup.add(sharkFin);
 
@@ -7618,13 +7779,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const railGeo = new THREE.CylinderGeometry(1.5, 1.5, roofLen + (isEstate ? 16 : 8), 12);
         const rail = new THREE.Mesh(railGeo, chromeMat);
         rail.rotation.z = Math.PI / 2;
-        rail.position.set((roofFrontX + roofRearX) / 2, (roofFrontY + roofRearY) / 2 + 3.4, railZ);
+        const midX = (roofFrontX + roofRearX) / 2;
+        rail.position.set(midX, getRoofY(midX) + 4.2, railZ);
         car3DGroup.add(rail);
 
         [-0.42, 0, 0.42].forEach(offsetPct => {
+          const postX = midX + (roofLen * offsetPct);
+          const postY = getRoofY(postX);
           const postGeo = new THREE.BoxGeometry(2.8, 3.2, 2.2);
           const post = new THREE.Mesh(postGeo, chromeMat);
-          post.position.set((roofFrontX + roofRearX) / 2 + (roofLen * offsetPct), (roofFrontY + roofRearY) / 2 + 1.6, railZ);
+          post.position.set(postX, postY + 1.6, railZ);
           car3DGroup.add(post);
         });
       });

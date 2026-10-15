@@ -1241,22 +1241,6 @@ const defaultCars = [
     rake_angle_deg: 46.5
   },
   {
-    id: "bmw-3-series-saloon-e90",
-    name: "BMW 3 Series Saloon (E90, 2005–2011)",
-    body_type: "saloon",
-    overall_length: 452,
-    overall_width: 182,
-    overall_height: 142,
-    wheelbase: 276,
-    floor_length_seats_folded: 165,
-    floor_length_seats_up: 98,
-    wheel_arch_width: 92,
-    roof_height: 50,
-    aperture_width: 88,
-    aperture_height: 46,
-    rake_angle_deg: 49.0
-  },
-  {
     id: "bmw-3-series-saloon",
     name: "BMW 3 Series Saloon (G20, 2019+)",
     body_type: "saloon",
@@ -1289,36 +1273,36 @@ const defaultCars = [
     rake_angle_deg: 26.0
   },
   {
-    id: "ford-fiesta-mk7",
-    name: "Ford Fiesta (Mk7, 2008–2017)",
-    body_type: "hatchback",
-    overall_length: 395,
-    overall_width: 172,
-    overall_height: 148,
-    wheelbase: 249,
-    floor_length_seats_folded: 122,
-    floor_length_seats_up: 70,
-    wheel_arch_width: 99,
-    roof_height: 65,
-    aperture_width: 96,
-    aperture_height: 60,
-    rake_angle_deg: 30.0
+    id: "bmw-i4",
+    name: "BMW i4 Gran Coupé (2021+)",
+    body_type: "saloon",
+    overall_length: 478,
+    overall_width: 185,
+    overall_height: 145,
+    wheelbase: 286,
+    floor_length_seats_folded: 175,
+    floor_length_seats_up: 104,
+    wheel_arch_width: 96,
+    roof_height: 52,
+    aperture_width: 92,
+    aperture_height: 50,
+    rake_angle_deg: 45.0
   },
   {
-    id: "ford-focus-mk2",
-    name: "Ford Focus (Mk2, 2004–2011)",
+    id: "ford-fiesta-mk8",
+    name: "Ford Fiesta (Mk8, 2017–2023)",
     body_type: "hatchback",
-    overall_length: 434,
-    overall_width: 184,
-    overall_height: 150,
-    wheelbase: 264,
-    floor_length_seats_folded: 152,
-    floor_length_seats_up: 82,
-    wheel_arch_width: 104,
-    roof_height: 73,
-    aperture_width: 103,
-    aperture_height: 68,
-    rake_angle_deg: 28.5
+    overall_length: 404,
+    overall_width: 173,
+    overall_height: 147,
+    wheelbase: 249,
+    floor_length_seats_folded: 125,
+    floor_length_seats_up: 72,
+    wheel_arch_width: 100,
+    roof_height: 66,
+    aperture_width: 98,
+    aperture_height: 62,
+    rake_angle_deg: 29.0
   },
   {
     id: "ford-focus-estate",
@@ -1337,6 +1321,22 @@ const defaultCars = [
     rake_angle_deg: 18.0
   },
   {
+    id: "ford-focus-mk4",
+    name: "Ford Focus Hatchback (Mk4, 2018+)",
+    body_type: "hatchback",
+    overall_length: 438,
+    overall_width: 182,
+    overall_height: 145,
+    wheelbase: 270,
+    floor_length_seats_folded: 154,
+    floor_length_seats_up: 84,
+    wheel_arch_width: 104,
+    roof_height: 72,
+    aperture_width: 102,
+    aperture_height: 69,
+    rake_angle_deg: 28.0
+  },
+  {
     id: "ford-puma",
     name: "Ford Puma (2020+)",
     body_type: "suv",
@@ -1353,20 +1353,36 @@ const defaultCars = [
     rake_angle_deg: 28.0
   },
   {
-    id: "honda-civic-mk8",
-    name: "Honda Civic (Mk8, 2006–2011)",
+    id: "honda-civic-mk11",
+    name: "Honda Civic (Mk11, 2022+)",
     body_type: "hatchback",
-    overall_length: 425,
-    overall_width: 177,
-    overall_height: 146,
-    wheelbase: 263,
-    floor_length_seats_folded: 158,
-    floor_length_seats_up: 84,
+    overall_length: 455,
+    overall_width: 180,
+    overall_height: 141,
+    wheelbase: 273,
+    floor_length_seats_folded: 165,
+    floor_length_seats_up: 90,
     wheel_arch_width: 102,
-    roof_height: 73,
-    aperture_width: 103,
-    aperture_height: 71,
+    roof_height: 68,
+    aperture_width: 104,
+    aperture_height: 66,
     rake_angle_deg: 32.5
+  },
+  {
+    id: "hyundai-ioniq-5",
+    name: "Hyundai Ioniq 5 (2021+)",
+    body_type: "suv",
+    overall_length: 463,
+    overall_width: 189,
+    overall_height: 160,
+    wheelbase: 300,
+    floor_length_seats_folded: 168,
+    floor_length_seats_up: 94,
+    wheel_arch_width: 105,
+    roof_height: 73,
+    aperture_width: 106,
+    aperture_height: 70,
+    rake_angle_deg: 30.0
   },
   {
     id: "hyundai-tucson-mk4",
@@ -1433,22 +1449,6 @@ const defaultCars = [
     rake_angle_deg: 28.0
   },
   {
-    id: "nissan-qashqai-mk1",
-    name: "Nissan Qashqai (Mk1, 2006–2013)",
-    body_type: "suv",
-    overall_length: 431,
-    overall_width: 178,
-    overall_height: 161,
-    wheelbase: 263,
-    floor_length_seats_folded: 151,
-    floor_length_seats_up: 80,
-    wheel_arch_width: 100,
-    roof_height: 77,
-    aperture_width: 104,
-    aperture_height: 72,
-    rake_angle_deg: 27.5
-  },
-  {
     id: "nissan-qashqai-mk3",
     name: "Nissan Qashqai (Mk3, 2021+)",
     body_type: "suv",
@@ -1465,40 +1465,8 @@ const defaultCars = [
     rake_angle_deg: 26.5
   },
   {
-    id: "skoda-octavia-estate-mk2",
-    name: "Škoda Octavia Estate (Mk2, 2004–2013)",
-    body_type: "estate",
-    overall_length: 457,
-    overall_width: 177,
-    overall_height: 147,
-    wheelbase: 258,
-    floor_length_seats_folded: 182,
-    floor_length_seats_up: 106,
-    wheel_arch_width: 101,
-    roof_height: 80,
-    aperture_width: 104,
-    aperture_height: 76,
-    rake_angle_deg: 17.0
-  },
-  {
-    id: "skoda-octavia-estate",
-    name: "Škoda Octavia Estate (Mk4, 2020+)",
-    body_type: "estate",
-    overall_length: 469,
-    overall_width: 183,
-    overall_height: 147,
-    wheelbase: 268,
-    floor_length_seats_folded: 188,
-    floor_length_seats_up: 109,
-    wheel_arch_width: 101,
-    roof_height: 82,
-    aperture_width: 107,
-    aperture_height: 78,
-    rake_angle_deg: 16.5
-  },
-  {
     id: "tesla-model-3",
-    name: "Tesla Model 3 (2019+)",
+    name: "Tesla Model 3 (Highland, 2024+)",
     body_type: "saloon",
     overall_length: 472,
     overall_width: 185,
@@ -1545,20 +1513,20 @@ const defaultCars = [
     rake_angle_deg: 31.0
   },
   {
-    id: "vauxhall-astra-h",
-    name: "Vauxhall Astra (H, 2004–2010)",
+    id: "vauxhall-astra-l",
+    name: "Vauxhall Astra (L, 2022+)",
     body_type: "hatchback",
-    overall_length: 425,
-    overall_width: 175,
-    overall_height: 146,
-    wheelbase: 261,
-    floor_length_seats_folded: 146,
-    floor_length_seats_up: 78,
-    wheel_arch_width: 100,
-    roof_height: 70,
-    aperture_width: 98,
-    aperture_height: 64,
-    rake_angle_deg: 31.0
+    overall_length: 437,
+    overall_width: 186,
+    overall_height: 144,
+    wheelbase: 267,
+    floor_length_seats_folded: 156,
+    floor_length_seats_up: 85,
+    wheel_arch_width: 102,
+    roof_height: 71,
+    aperture_width: 103,
+    aperture_height: 68,
+    rake_angle_deg: 29.0
   },
   {
     id: "vauxhall-corsa-f",
@@ -1577,22 +1545,6 @@ const defaultCars = [
     rake_angle_deg: 32.0
   },
   {
-    id: "vw-golf-mk5",
-    name: "Volkswagen Golf (Mk5, 2003–2008)",
-    body_type: "hatchback",
-    overall_length: 420,
-    overall_width: 176,
-    overall_height: 148,
-    wheelbase: 258,
-    floor_length_seats_folded: 145,
-    floor_length_seats_up: 75,
-    wheel_arch_width: 101,
-    roof_height: 72,
-    aperture_width: 100,
-    aperture_height: 66,
-    rake_angle_deg: 29.0
-  },
-  {
     id: "vw-golf-mk8",
     name: "Volkswagen Golf (Mk8, 2020+)",
     body_type: "hatchback",
@@ -1607,6 +1559,22 @@ const defaultCars = [
     aperture_width: 102,
     aperture_height: 67,
     rake_angle_deg: 29.4
+  },
+  {
+    id: "vw-id3",
+    name: "Volkswagen ID.3 (2020+)",
+    body_type: "hatchback",
+    overall_length: 426,
+    overall_width: 181,
+    overall_height: 157,
+    wheelbase: 277,
+    floor_length_seats_folded: 152,
+    floor_length_seats_up: 77,
+    wheel_arch_width: 100,
+    roof_height: 74,
+    aperture_width: 101,
+    aperture_height: 68,
+    rake_angle_deg: 27.5
   },
   {
     id: "vw-tiguan-mk3",
@@ -1639,6 +1607,38 @@ const defaultCars = [
     aperture_width: 104,
     aperture_height: 74,
     rake_angle_deg: 22.0
+  },
+  {
+    id: "skoda-octavia-estate",
+    name: "Škoda Octavia Estate (Mk4, 2020+)",
+    body_type: "estate",
+    overall_length: 469,
+    overall_width: 183,
+    overall_height: 147,
+    wheelbase: 268,
+    floor_length_seats_folded: 188,
+    floor_length_seats_up: 109,
+    wheel_arch_width: 101,
+    roof_height: 82,
+    aperture_width: 107,
+    aperture_height: 78,
+    rake_angle_deg: 16.5
+  },
+  {
+    id: "skoda-octavia-hatch",
+    name: "Škoda Octavia Hatch (Mk4, 2020+)",
+    body_type: "hatchback",
+    overall_length: 469,
+    overall_width: 183,
+    overall_height: 147,
+    wheelbase: 268,
+    floor_length_seats_folded: 172,
+    floor_length_seats_up: 105,
+    wheel_arch_width: 101,
+    roof_height: 71,
+    aperture_width: 105,
+    aperture_height: 70,
+    rake_angle_deg: 34.0
   }
 ];
 
@@ -2054,9 +2054,24 @@ async function init() {
   // Sort vehicles in alphabetical order by name (case-insensitive & locale-aware)
   vehicles.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'en', { sensitivity: 'base', numeric: true }));
 
+  // Backward compatibility alias table for legacy car URLs
+  const CAR_ID_ALIASES = {
+    'bmw-3-series-saloon-e90': 'bmw-i4',
+    'ford-fiesta-mk7': 'ford-fiesta-mk8',
+    'ford-focus-mk2': 'ford-focus-mk4',
+    'honda-civic-mk8': 'honda-civic-mk11',
+    'nissan-qashqai-mk1': 'hyundai-ioniq-5',
+    'skoda-octavia-estate-mk2': 'skoda-octavia-hatch',
+    'vauxhall-astra-h': 'vauxhall-astra-l',
+    'vw-golf-mk5': 'vw-id3'
+  };
+
   // URL parameter support for direct deep-linking & SEO landing pages
   const urlParams = new URLSearchParams(window.location.search);
-  const paramCar = urlParams.get('car');
+  let paramCar = urlParams.get('car');
+  if (paramCar && CAR_ID_ALIASES[paramCar.toLowerCase()]) {
+    paramCar = CAR_ID_ALIASES[paramCar.toLowerCase()];
+  }
   let selectedIdx = -1;
 
   if (paramCar) {
@@ -6144,19 +6159,23 @@ function update3DStudio(car, seatsFolded, fitResult) {
     addCadEdges(mainHood, 0x38bdf8);
     car3DGroup.add(mainHood);
 
-    // Athletic Center Power Bulge / Spine
-    const spineGeo = new THREE.BoxGeometry(mainHoodLen - 6, 1.2, mainHoodAvgWidth * 0.38);
-    const spine = new THREE.Mesh(spineGeo, bodyPaintMat);
-    spine.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + noseTopY) / 2) + 0.7, 0);
-    spine.rotation.z = mainHoodSlope;
-    car3DGroup.add(spine);
+    // Modern Athletic Twin Power Strakes (tapering inward toward nose emblem)
+    [-mainHoodAvgWidth * 0.16, mainHoodAvgWidth * 0.16].forEach(sz => {
+      const strakeGeo = createSmoothBoxGeo(mainHoodLen - 4, 1.0, 1.8, 0.4, 1);
+      const strake = new THREE.Mesh(strakeGeo, bodyPaintMat);
+      strake.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + noseTopY) / 2) + 0.65, sz);
+      strake.rotation.z = mainHoodSlope;
+      addCadEdges(strake, 0x38bdf8, 20);
+      car3DGroup.add(strake);
+    });
 
-    // Dynamic Aerodynamic Swage Character Creases on Bonnet
-    [-mainHoodAvgWidth * 0.28, mainHoodAvgWidth * 0.28].forEach(sz => {
-      const creaseGeo = new THREE.BoxGeometry(mainHoodLen - 4, 0.8, 1.2);
+    // Outer Muscular Fender Crown Creases
+    [-mainHoodAvgWidth * 0.36, mainHoodAvgWidth * 0.36].forEach(sz => {
+      const creaseGeo = new THREE.BoxGeometry(mainHoodLen - 6, 0.8, 1.2);
       const crease = new THREE.Mesh(creaseGeo, bodyPaintMat);
-      crease.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + noseTopY) / 2) + 0.4, sz);
+      crease.position.set((cowlX + noseBreakX) / 2, (((cowlY - 1) + noseTopY) / 2) + 0.45, sz);
       crease.rotation.z = mainHoodSlope;
+      addCadEdges(crease, 0x38bdf8, 20);
       car3DGroup.add(crease);
     });
 
@@ -6428,49 +6447,45 @@ function update3DStudio(car, seatsFolded, fitResult) {
       car3DGroup.add(fordBar);
 
     } else if (car.id.includes('tesla')) {
-      // Tesla Model Y: Clean, aerodynamic grille-less nose with sculpted aero crease
-      const aeroCapGeo = new THREE.BoxGeometry(2.0, grilleH, grilleW);
+      // Tesla Model 3 Highland & Model Y: Ultra-aerodynamic shark nose with razor-thin LED matrix headlights
+      const aeroCapGeo = createSmoothBoxGeo(2.2, grilleH, grilleW, 0.4, 1);
       const aeroCap = new THREE.Mesh(aeroCapGeo, bodyPaintMat);
       aeroCap.position.set(grilleX, grilleY, 0);
       car3DGroup.add(aeroCap);
 
-      // Chrome Tesla 'T' Emblem
-      const tBadgeGeo = new THREE.BoxGeometry(0.6, 3.0, 3.2);
+      // Lower aerodynamic cooling slit & satin chin blade
+      const coolSlitGeo = new THREE.BoxGeometry(2.4, 1.2, grilleW * 0.72);
+      const coolSlit = new THREE.Mesh(coolSlitGeo, trimMat);
+      coolSlit.position.set(grilleX - 0.2, grilleY - (grilleH * 0.36), 0);
+      car3DGroup.add(coolSlit);
+
+      // Chrome Tesla 'T' Minimalist Hood Emblem
+      const tBadgeGeo = new THREE.BoxGeometry(0.6, 2.6, 2.8);
       const tBadge = new THREE.Mesh(tBadgeGeo, chromeMat);
-      tBadge.position.set(grilleX - 0.8, grilleY + 1.0, 0);
+      tBadge.position.set(grilleX - 0.8, grilleY + 1.2, 0);
       car3DGroup.add(tBadge);
 
     } else if (car.id.includes('bmw')) {
-      // BMW Twin Kidney Grille Bezels with Chrome Rim & Vertical Air Slats
+      // BMW 3 Series (G20 LCI), Touring (G21) & i4: Modern One-Piece Double Kidney Grille with Cerium Satin Frame & Active Louvres
       [-1, 1].forEach(side => {
         const kCenterZ = side * 8.6;
         const kW = 14.0;
-        // Chrome surround frame
-        const kTop = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.0, kW), chromeMat);
-        kTop.position.set(grilleX - 0.2, grilleY + (grilleH / 2) - 0.5, kCenterZ);
-        car3DGroup.add(kTop);
+        // Cerium Satin Frame
+        const kFrameGeo = createSmoothBoxGeo(1.8, grilleH, kW, 0.6, 1);
+        const kFrame = new THREE.Mesh(kFrameGeo, chromeMat);
+        kFrame.position.set(grilleX - 0.2, grilleY, kCenterZ);
+        car3DGroup.add(kFrame);
 
-        const kBottom = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.0, kW), chromeMat);
-        kBottom.position.set(grilleX - 0.2, grilleY - (grilleH / 2) + 0.5, kCenterZ);
-        car3DGroup.add(kBottom);
+        // Active gloss black louvres
+        const kInnerGeo = new THREE.BoxGeometry(1.4, grilleH - 1.4, kW - 1.4);
+        const kInner = new THREE.Mesh(kInnerGeo, pillarMat);
+        kInner.position.set(grilleX + 0.2, grilleY, kCenterZ);
+        car3DGroup.add(kInner);
 
-        [-1, 1].forEach(kSide => {
-          const kSideBezel = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, 1.0), chromeMat);
-          kSideBezel.position.set(grilleX - 0.2, grilleY, kCenterZ + kSide * (kW / 2 - 0.5));
-          car3DGroup.add(kSideBezel);
-        });
-
-        // Dark background mesh
-        const slatMeshGeo = new THREE.BoxGeometry(1.4, grilleH - 1.6, kW - 1.6);
-        const slatMesh = new THREE.Mesh(slatMeshGeo, trimMat);
-        slatMesh.position.set(grilleX + 0.3, grilleY, kCenterZ);
-        car3DGroup.add(slatMesh);
-
-        // Vertical kidney slats
-        [-4.0, -1.3, 1.3, 4.0].forEach(sz => {
-          const vSlat = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH - 2.0, 0.8), chromeMat);
-          vSlat.position.set(grilleX - 0.1, grilleY, kCenterZ + sz);
-          car3DGroup.add(vSlat);
+        [-3.8, -1.2, 1.2, 3.8].forEach(sz => {
+          const slat = new THREE.Mesh(new THREE.BoxGeometry(1.7, grilleH - 1.8, 0.7), pillarMat);
+          slat.position.set(grilleX - 0.1, grilleY, kCenterZ + sz);
+          car3DGroup.add(slat);
         });
       });
 
@@ -6481,8 +6496,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
       car3DGroup.add(bBadge);
 
     } else if (car.id.includes('audi')) {
-      // Audi Singleframe Grille with Satin Chrome Surround & Four Rings
-      const singleframeGeo = new THREE.BoxGeometry(1.8, grilleH + 2, grilleW - 6);
+      // Audi A4 (B9.5): Flatter, wider Singleframe Hexagonal Honeycomb Grille with Titanium Surround
+      const singleframeGeo = createSmoothBoxGeo(1.8, grilleH + 2.0, grilleW - 6, 0.6, 1);
       const singleframe = new THREE.Mesh(singleframeGeo, chromeMat);
       singleframe.position.set(grilleX - 0.2, grilleY - 1.0, 0);
       car3DGroup.add(singleframe);
@@ -6500,30 +6515,31 @@ function update3DStudio(car, seatsFolded, fitResult) {
       });
 
     } else if (car.id.includes('skoda') || car.id.includes('octavia')) {
-      // Škoda Octavia: Chrome-rimmed butterfly grille with vertical black slats
-      const skodaFrame = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, grilleW), chromeMat);
-      skodaFrame.position.set(grilleX - 0.2, grilleY, 0);
-      car3DGroup.add(skodaFrame);
+      // Škoda Octavia (Mk4): Modern butterfly grille with vertical black slats & illuminated crystalline accents
+      const skodaFrame = createSmoothBoxGeo(1.8, grilleH, grilleW, 0.5, 1);
+      const skodaFrameMesh = new THREE.Mesh(skodaFrame, chromeMat);
+      skodaFrameMesh.position.set(grilleX - 0.2, grilleY, 0);
+      car3DGroup.add(skodaFrameMesh);
 
       const skodaMesh = new THREE.Mesh(new THREE.BoxGeometry(1.4, grilleH - 1.6, grilleW - 2), grilleMeshMat);
       skodaMesh.position.set(grilleX + 0.1, grilleY, 0);
       car3DGroup.add(skodaMesh);
 
-      // Chrome Škoda Winged Arrow Badge
+      // Chrome Škoda Winged Arrow Badge on bonnet leading edge
       const skBadge = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.8, 24), chromeMat);
       skBadge.rotation.z = Math.PI / 2;
       skBadge.position.set(grilleX - 0.8, grilleY + (grilleH / 2) + 1.2, 0);
       car3DGroup.add(skBadge);
 
     } else if (car.id.includes('nissan') || car.id.includes('qashqai')) {
-      // Nissan Qashqai: Bold Chrome V-Motion Grille Surround
+      // Nissan Qashqai (Mk3): Modern Bold V-Motion Grille Surround with Piano Black Honeycomb
       const nissanMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, grilleH, grilleW), grilleMeshMat);
       nissanMesh.position.set(grilleX + 0.1, grilleY, 0);
       car3DGroup.add(nissanMesh);
 
       [-1, 1].forEach(side => {
         const vArm = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, grilleW * 0.35), chromeMat);
-        vArm.position.set(grilleX - 0.4, grilleY - (side === 1 ? 1 : 1), side * (grilleW * 0.22));
+        vArm.position.set(grilleX - 0.4, grilleY - 1.0, side * (grilleW * 0.22));
         vArm.rotation.x = side * 0.45;
         car3DGroup.add(vArm);
       });
@@ -6534,42 +6550,43 @@ function update3DStudio(car, seatsFolded, fitResult) {
       car3DGroup.add(nBadge);
 
     } else if (car.id.includes('vauxhall') || car.id.includes('corsa') || car.id.includes('astra')) {
-      // Vauxhall Astra & Corsa: Bold chrome crossbar with centered Griffin badge
-      const vizor = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH, grilleW), pillarMat);
-      vizor.position.set(grilleX, grilleY, 0);
-      car3DGroup.add(vizor);
+      // Modern Vauxhall Vizor (Astra L / Corsa F): Signature high-gloss obsidian glass aerodynamic face
+      const vizorFrame = createSmoothBoxGeo(1.8, grilleH, grilleW, 0.4, 1);
+      const vizorFrameMesh = new THREE.Mesh(vizorFrame, chromeMat);
+      vizorFrameMesh.position.set(grilleX - 0.1, grilleY, 0);
+      car3DGroup.add(vizorFrameMesh);
 
-      const vBar = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.2, grilleW - 3.0), chromeMat);
-      vBar.position.set(grilleX - 0.4, grilleY + 0.5, 0);
-      car3DGroup.add(vBar);
+      const vizorGlass = new THREE.Mesh(new THREE.BoxGeometry(1.6, grilleH - 0.8, grilleW - 1.2), pillarMat);
+      vizorGlass.position.set(grilleX, grilleY, 0);
+      car3DGroup.add(vizorGlass);
 
-      const vBadge = new THREE.Mesh(new THREE.CylinderGeometry(2.8, 2.8, 0.9, 24), chromeMat);
+      // Vizor Horizontal Illuminated Winglet Compass Blades
+      [-1, 1].forEach(side => {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.45, grilleW * 0.36), headlampDrlMat);
+        blade.position.set(grilleX - 0.35, grilleY + 0.2, side * (grilleW * 0.24));
+        car3DGroup.add(blade);
+      });
+
+      // Minimalist Modern Chrome Griffin Roundel Emblem in Center
+      const vBadge = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.8, 24), chromeMat);
       vBadge.rotation.z = Math.PI / 2;
-      vBadge.position.set(grilleX - 0.8, grilleY + 0.5, 0);
+      vBadge.position.set(grilleX - 0.8, grilleY + 0.2, 0);
       car3DGroup.add(vBadge);
 
     } else if (car.id.includes('honda') || car.id.includes('civic')) {
-      // Honda Civic (Mk8): Iconic full-width acrylic perspex glass grille band with chrome 'H'
-      const glassGrilleGeo = new THREE.BoxGeometry(1.8, grilleH, grilleW);
-      const acrylicMat = new THREE.MeshPhysicalMaterial({
-        color: 0x93c5fd,
-        transmission: 0.85,
-        opacity: 0.9,
-        transparent: true,
-        roughness: 0.1,
-        ior: 1.49
-      });
-      const glassGrille = new THREE.Mesh(glassGrilleGeo, acrylicMat);
-      glassGrille.position.set(grilleX, grilleY, 0);
-      car3DGroup.add(glassGrille);
+      // Honda Civic (Mk11, 2022+): Modern horizontal honeycomb upper grille with gloss black brow & chrome H
+      const hFrame = createSmoothBoxGeo(1.8, grilleH, grilleW, 0.4, 1);
+      const hFrameMesh = new THREE.Mesh(hFrame, pillarMat);
+      hFrameMesh.position.set(grilleX, grilleY, 0);
+      car3DGroup.add(hFrameMesh);
 
-      const hMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, grilleH - 1.2, grilleW - 2.0), grilleMeshMat);
-      hMesh.position.set(grilleX + 0.3, grilleY, 0);
+      const hMesh = new THREE.Mesh(new THREE.BoxGeometry(1.3, grilleH - 1.2, grilleW - 2.0), grilleMeshMat);
+      hMesh.position.set(grilleX + 0.2, grilleY, 0);
       car3DGroup.add(hMesh);
 
-      const hBadgeGeo = new THREE.BoxGeometry(0.7, 3.4, 3.8);
+      const hBadgeGeo = new THREE.BoxGeometry(0.7, 3.2, 3.6);
       const hBadge = new THREE.Mesh(hBadgeGeo, chromeMat);
-      hBadge.position.set(grilleX - 0.7, grilleY, 0);
+      hBadge.position.set(grilleX - 0.7, grilleY + 0.3, 0);
       car3DGroup.add(hBadge);
 
     } else if (car.id.includes('volvo')) {
@@ -6619,27 +6636,46 @@ function update3DStudio(car, seatsFolded, fitResult) {
       kiaBadge.position.set(grilleX - 0.8, grilleY + (grilleH / 2) + 1.6, 0);
       car3DGroup.add(kiaBadge);
 
-    } else if (car.id.includes('hyundai')) {
-      // Hyundai Tucson (Mk4): Parametric Jewel Geometric Faceted Grille with Winged Contours
-      const hyundaiMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, grilleH, grilleW), grilleMeshMat);
-      hyundaiMesh.position.set(grilleX + 0.1, grilleY, 0);
-      car3DGroup.add(hyundaiMesh);
+    } else if (car.id.includes('hyundai') || car.id.includes('tucson') || car.id.includes('ioniq')) {
+      if (car.id.includes('ioniq')) {
+        // Hyundai Ioniq 5: Parametric Pixel V-Shape Front LED Horizon Bar & Gloss Obsidian Visor
+        const ioniqBandGeo = createSmoothBoxGeo(1.8, grilleH * 0.75, grilleW, 0.4, 1);
+        const ioniqBand = new THREE.Mesh(ioniqBandGeo, pillarMat);
+        ioniqBand.position.set(grilleX, grilleY, 0);
+        car3DGroup.add(ioniqBand);
 
-      // Parametric Facet Wings (signature Tucson geometric jewel modules)
-      [-grilleW * 0.38, -grilleW * 0.22, grilleW * 0.22, grilleW * 0.38].forEach((fz, idx) => {
-        const facet = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH * 0.45, grilleW * 0.12), chromeMat);
-        facet.position.set(grilleX - 0.4, grilleY + (idx % 2 === 0 ? 1.5 : -1.5), fz);
-        facet.rotation.z = 0.08;
-        car3DGroup.add(facet);
-      });
+        // Parametric Pixel illuminated light guide
+        const pixelBarGeo = new THREE.BoxGeometry(2.0, 0.8, grilleW - 3);
+        const pixelBar = new THREE.Mesh(pixelBarGeo, headlampDrlMat);
+        pixelBar.position.set(grilleX - 0.35, grilleY, 0);
+        car3DGroup.add(pixelBar);
 
-      // Hyundai Slanted 'H' Oval Badge in center
-      const hyOval = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 0.8, 24), chromeMat);
-      hyOval.rotation.z = Math.PI / 2;
-      hyOval.rotation.y = 0.18; // Slanted italicized oval
-      hyOval.scale.set(1, 1, 1.4);
-      hyOval.position.set(grilleX - 0.8, grilleY + 0.5, 0);
-      car3DGroup.add(hyOval);
+        const hyOval = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 0.8, 24), chromeMat);
+        hyOval.rotation.z = Math.PI / 2;
+        hyOval.position.set(grilleX - 0.7, grilleY + (grilleH / 2) + 0.8, 0);
+        car3DGroup.add(hyOval);
+      } else {
+        // Hyundai Tucson (Mk4): Parametric Jewel Geometric Faceted Grille with Winged Contours
+        const hyundaiMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, grilleH, grilleW), grilleMeshMat);
+        hyundaiMesh.position.set(grilleX + 0.1, grilleY, 0);
+        car3DGroup.add(hyundaiMesh);
+
+        // Parametric Facet Wings (signature Tucson geometric jewel modules that illuminate)
+        [-grilleW * 0.38, -grilleW * 0.22, grilleW * 0.22, grilleW * 0.38].forEach((fz, idx) => {
+          const facet = new THREE.Mesh(new THREE.BoxGeometry(1.8, grilleH * 0.45, grilleW * 0.12), headlampDrlMat);
+          facet.position.set(grilleX - 0.4, grilleY + (idx % 2 === 0 ? 1.5 : -1.5), fz);
+          facet.rotation.z = 0.08;
+          car3DGroup.add(facet);
+        });
+
+        // Hyundai Slanted 'H' Oval Badge in center
+        const hyOval = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 0.8, 24), chromeMat);
+        hyOval.rotation.z = Math.PI / 2;
+        hyOval.rotation.y = 0.18; // Slanted italicized oval
+        hyOval.scale.set(1, 1, 1.4);
+        hyOval.position.set(grilleX - 0.8, grilleY + 0.5, 0);
+        car3DGroup.add(hyOval);
+      }
 
     } else if (car.id.includes('mercedes')) {
       // Mercedes-Benz C-Class Estate: Star-Pattern Radiator Grille with Central Chrome Louvre & Star
@@ -6717,8 +6753,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
       });
 
     } else {
-      // VW Golf Mk8 & Standard Hatchbacks: Sleek horizontal grille strip with illuminated LED lightbar
-      const grilleStripGeo = new THREE.BoxGeometry(1.8, 3.4, grilleW);
+      // VW Golf Mk8, Tiguan Mk3 & ID.3: Sleek horizontal gloss black strip with full-width illuminated LED lightbar
+      const grilleStripGeo = createSmoothBoxGeo(1.8, 3.4, grilleW, 0.4, 1);
       const grilleStrip = new THREE.Mesh(grilleStripGeo, pillarMat);
       grilleStrip.position.set(grilleX, grilleY, 0);
       car3DGroup.add(grilleStrip);
@@ -6728,7 +6764,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
       ledStrip.position.set(grilleX - 0.4, grilleY + 0.9, 0);
       car3DGroup.add(ledStrip);
 
-      // Iconic VW Centered Front Badge Roundel
+      // Modern Minimalist Flat Chrome VW Roundel
       const badgeGeo = new THREE.CylinderGeometry(2.8, 2.8, 0.8, 24);
       const badge = new THREE.Mesh(badgeGeo, chromeMat);
       badge.rotation.z = Math.PI / 2;
@@ -7184,6 +7220,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
         addCadEdges(suvQMesh, 0x38bdf8);
         car3DGroup.add(suvQMesh);
 
+        // Contemporary Floating Roof D-Pillar Accent Blade (Gloss Piano Black)
+        const suvFinGeo = createSmoothBoxGeo(Math.max(6, (rearSillX - (roofRearX - 4)) * 0.45), 1.6, 2.9, 0.3, 1);
+        const suvFin = new THREE.Mesh(suvFinGeo, pillarMat);
+        suvFin.position.set((roofRearX - 4 + rearSillX) / 2, roofRearY - 2.8, winMidZ - 1.35);
+        suvFin.rotation.x = -side * tumbleAngle;
+        car3DGroup.add(suvFin);
+
       } else {
         // Hatchback (VW Golf Mk8, Ford Fiesta Mk7, etc.):
         // Rear Passenger Door Window
@@ -7218,6 +7261,13 @@ function update3DStudio(car, seatsFolded, fitResult) {
         hatchQMesh.rotation.x = -side * tumbleAngle;
         addCadEdges(hatchQMesh, 0x38bdf8);
         car3DGroup.add(hatchQMesh);
+
+        // Contemporary Floating Roof C-Pillar Accent Blade (Gloss Piano Black)
+        const hatchFinGeo = createSmoothBoxGeo(Math.max(6, (hatchQRearX - hatchQFrontX) * 0.45), 1.6, 2.9, 0.3, 1);
+        const hatchFin = new THREE.Mesh(hatchFinGeo, pillarMat);
+        hatchFin.position.set((hatchQFrontX + hatchQRearX) / 2, roofRearY - 2.8, winMidZ - 1.35);
+        hatchFin.rotation.x = -side * tumbleAngle;
+        car3DGroup.add(hatchFin);
       }
     });
 
@@ -7351,7 +7401,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
       addCadEdges(lowerBlade, 0x38bdf8, 20);
       car3DGroup.add(lowerBlade);
 
-      // F. HIGH-TECH ERGONOMIC DOOR HANDLES (Front & Rear Doors)
+      // F. MODERN FLUSH AERODYNAMIC DOOR HANDLES & SENSORS (Front & Rear Doors)
       const handleY = beltY - 5.5;
       const frontHandleX = bPillarX - 18;
       const rearHandleX = Math.min(bPillarX + 24, rearDoorShutX - 14);
@@ -7360,34 +7410,37 @@ function update3DStudio(car, seatsFolded, fitResult) {
         { hx: frontHandleX, isFront: true },
         { hx: rearHandleX, isFront: false }
       ].forEach(({ hx, isFront }) => {
-        // 1. Recessed Finger Cup Cavity (Escutcheon Well)
-        const cupGeo = new THREE.BoxGeometry(11.5, 4.2, 0.45);
-        const cup = new THREE.Mesh(cupGeo, trimMat);
-        cup.position.set(hx, handleY, zHandleWell);
-        addCadEdges(cup, 0x1e293b, 15);
-        car3DGroup.add(cup);
+        // 1. Recessed Escutcheon Cavity (Flush Pocket)
+        const pocketGeo = createSmoothBoxGeo(11.2, 2.6, 0.4, 0.6, 1);
+        const pocket = new THREE.Mesh(pocketGeo, trimMat);
+        pocket.position.set(hx, handleY, zOuter + (side * 0.05));
+        car3DGroup.add(pocket);
 
-        // 2. Body-Color Aerodynamic Pull Bar (Grab Handle)
-        const barGeo = new THREE.BoxGeometry(9.6, 2.0, 1.6);
-        const bar = new THREE.Mesh(barGeo, bodyPaintMat);
-        bar.position.set(hx, handleY, zHandleBar);
-        addCadEdges(bar, 0x38bdf8, 15);
-        car3DGroup.add(bar);
+        // 2. Flush Aerodynamic Touch Flap / Pop-out Lever
+        const flapGeo = createSmoothBoxGeo(10.2, 1.8, 0.35, 0.5, 1);
+        const flap = new THREE.Mesh(flapGeo, bodyPaintMat);
+        flap.position.set(hx, handleY, zOuter + (side * 0.15));
+        addCadEdges(flap, 0x38bdf8, 15);
+        car3DGroup.add(flap);
 
-        // 3. High-Tech Chrome Accent / Touch-to-Unlock Sensor Strip
-        const chromeGeo = new THREE.BoxGeometry(5.0, 0.35, 0.35);
-        const chromeStrip = new THREE.Mesh(chromeGeo, chromeMat);
-        chromeStrip.position.set(hx, handleY + 0.8, zHandleChrome);
-        car3DGroup.add(chromeStrip);
-
-        // 4. Subtle Mechanical Key Lock Cylinder on Front Driver's Door
-        if (isFront) {
-          const lockGeo = new THREE.BoxGeometry(1.2, 1.2, 0.35);
-          const lockMesh = new THREE.Mesh(lockGeo, chromeMat);
-          lockMesh.position.set(hx + (side > 0 ? 3.6 : -3.6), handleY, zHandleBar + (side * 0.1));
-          car3DGroup.add(lockMesh);
-        }
+        // 3. Capacitive Touch-to-Unlock Chrome Sensor / LED Guide Strip
+        const sensorGeo = new THREE.BoxGeometry(6.5, 0.28, 0.2);
+        const sensor = new THREE.Mesh(sensorGeo, chromeMat);
+        sensor.position.set(hx, handleY + 0.45, zOuter + (side * 0.22));
+        car3DGroup.add(sensor);
       });
+
+      // Front & Rear Wheel Arch Aerodynamic Air Deflector Spats (reduces wheel drag)
+      const spatMat = isSUV ? claddingMat : trimMat;
+      const fSpatGeo = createSmoothBoxGeo(2.4, 3.8, 1.2, 0.3, 1);
+      const fSpat = new THREE.Mesh(fSpatGeo, spatMat);
+      fSpat.position.set(frontWheelX - wheelArchR - 1.2, rockerY + 1.2, side * ((totalCarWidth / 2) - 1.6));
+      car3DGroup.add(fSpat);
+
+      const rSpatGeo = createSmoothBoxGeo(2.4, 3.8, 1.2, 0.3, 1);
+      const rSpat = new THREE.Mesh(rSpatGeo, spatMat);
+      rSpat.position.set(rearWheelX - wheelArchR - 1.2, rockerY + 1.2, side * ((totalCarWidth / 2) - 1.6));
+      car3DGroup.add(rSpat);
 
       // G. GREENHOUSE WEATHERSTRIPS & DOOR FRAME SASHES
       // Beltline window weatherstrip running along glass base
@@ -7701,6 +7754,15 @@ function update3DStudio(car, seatsFolded, fitResult) {
       addCadEdges(trunkLid, 0x38bdf8);
       tailgatePivot.add(trunkLid);
 
+      // Modern Integrated Saloon Aerodynamic Ducktail Lip Spoiler (BMW G20, Model 3, Audi A4)
+      const ducktailLen = Math.max(5.5, trunkLen * 0.28);
+      const ducktailGeo = createSmoothBoxGeo(ducktailLen, 2.2, saloonLidW - 2.0, 0.4, 1);
+      const ducktail = new THREE.Mesh(ducktailGeo, bodyPaintMat);
+      ducktail.position.set(trunkLen - (ducktailLen / 2) + 0.6, 1.4, 0);
+      ducktail.rotation.z = -0.16; // Aerodynamic upward kick
+      addCadEdges(ducktail, 0x38bdf8, 20);
+      tailgatePivot.add(ducktail);
+
       // Fixed Rear Quarter Deck Shoulders on either side of the trunk lid
       [-1, 1].forEach(side => {
         const deckSideZ = side * ((saloonLidW / 2) + (deckSideW / 2));
@@ -8001,17 +8063,25 @@ function update3DStudio(car, seatsFolded, fitResult) {
         innerLightGroup.add(lens);
       });
 
-      // Sleek Illuminated Center LED Lightbar bridging both inner clusters
-      const centerBarW = Math.max(4, (halfHatchW - innerLightW - 1.6) * 2);
-      const centerBezelGeo = new THREE.BoxGeometry(1.6, 0.8, centerBarW);
-      const centerBezel = new THREE.Mesh(centerBezelGeo, taillampBezelMat);
-      centerBezel.position.set(lampHeight * 0.16, 1.1, 0);
-      innerLightGroup.add(centerBezel);
+      // Modern Full-Width Continuous 3D LED Coasting Lightbar across the entire tailgate:
+      const fullLightbarW = hatchWidth - 1.6;
+      // High-gloss smoked bezel spanning edge-to-edge
+      const lightbarBezelGeo = createSmoothBoxGeo(1.8, 1.0, fullLightbarW, 0.3, 1);
+      const lightbarBezel = new THREE.Mesh(lightbarBezelGeo, taillampBezelMat);
+      lightbarBezel.position.set(lampHeight * 0.16, 1.15, 0);
+      innerLightGroup.add(lightbarBezel);
 
-      const centerLedGeo = new THREE.BoxGeometry(1.2, 0.4, centerBarW - 0.4);
-      const centerLed = new THREE.Mesh(centerLedGeo, taillampMat);
-      centerLed.position.set(lampHeight * 0.16, 1.5, 0);
-      innerLightGroup.add(centerLed);
+      // Glowing continuous horizon ruby LED light guide line
+      const fullLedGeo = new THREE.BoxGeometry(1.4, 0.45, fullLightbarW - 0.8);
+      const fullLed = new THREE.Mesh(fullLedGeo, taillampMat);
+      fullLed.position.set(lampHeight * 0.16, 1.55, 0);
+      innerLightGroup.add(fullLed);
+
+      // Protective high-gloss ruby polycarbonate outer lens
+      const fullLensGeo = new THREE.BoxGeometry(1.6, 0.5, fullLightbarW - 0.4);
+      const fullLens = new THREE.Mesh(fullLensGeo, taillampLensMat);
+      fullLens.position.set(lampHeight * 0.16, 1.75, 0);
+      innerLightGroup.add(fullLens);
 
       tailgatePivot.add(innerLightGroup);
 
@@ -8048,8 +8118,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
       });
 
       // Integrated Aerodynamic Rear Roof Spoiler & HMSL (lifts cleanly with tailgate)
-      const spoilerLen = isHatch ? 12 : 8;
-      const spoilerGeo = new THREE.BoxGeometry(spoilerLen, 2.4, roofWidth - 2);
+      const spoilerLen = isHatch ? 13 : 9;
+      const spoilerGeo = createSmoothBoxGeo(spoilerLen, 2.4, roofWidth - 2, 0.4, 1);
       const spoiler = new THREE.Mesh(spoilerGeo, bodyPaintMat);
       spoiler.position.set((spoilerLen / 2) - 1.5, 0.8, 0);
       spoiler.rotation.z = -0.04;
@@ -8061,6 +8131,15 @@ function update3DStudio(car, seatsFolded, fitResult) {
       const hmsl = new THREE.Mesh(hmslGeo, taillampMat);
       hmsl.position.set((spoilerLen / 2) - 0.5, 0.8, 0);
       tailgatePivot.add(hmsl);
+
+      // Side Aerodynamic Aero Blades flanking rear windshield edges (Golf 8, Focus 4, Tucson, Sportage)
+      [-1, 1].forEach(side => {
+        const aeroBladeGeo = createSmoothBoxGeo(2.0, glassLen * 0.42, 1.6, 0.3, 1);
+        const aeroBlade = new THREE.Mesh(aeroBladeGeo, pillarMat);
+        aeroBlade.position.set(waistX * 0.35, waistY * 0.35, side * (halfTopW - 0.5));
+        aeroBlade.rotation.z = -glassAngle;
+        tailgatePivot.add(aeroBlade);
+      });
 
       outerLightX = roofRearX + waistX + (lowerSpanX * lightOffsetFrac);
       outerLightY = roofRearY + waistY + (lowerSpanY * lightOffsetFrac);
@@ -8172,19 +8251,50 @@ function update3DStudio(car, seatsFolded, fitResult) {
       car3DGroup.add(outerCluster);
     });
 
-    // Lower Rear Diffuser / Valance with twin chrome exhaust tips
-    const diffuserGeo = new THREE.BoxGeometry(8, 5, totalCarWidth * 0.65);
+    // Lower Rear Diffuser / Valance with 4 Vertical Aerodynamic Diffuser Strakes
+    const diffuserGeo = new THREE.BoxGeometry(8, 5.5, totalCarWidth * 0.68);
     const diffuserMesh = new THREE.Mesh(diffuserGeo, isSUV ? claddingMat : trimMat);
     diffuserMesh.position.set(rearBumperX - 1, rockerY + 2.5, 0);
     car3DGroup.add(diffuserMesh);
 
-    [-1, 1].forEach(side => {
-      const exhaustGeo = new THREE.CylinderGeometry(2.0, 2.0, 3.5, 16);
-      const exhaust = new THREE.Mesh(exhaustGeo, chromeMat);
-      exhaust.rotation.z = Math.PI / 2;
-      exhaust.position.set(rearBumperX + 1.2, rockerY + 3.5, side * 24);
-      car3DGroup.add(exhaust);
+    // 4 Vertical Aerodynamic Diffuser Strakes / Fins
+    [-24, -8, 8, 24].forEach(finZ => {
+      const finGeo = createSmoothBoxGeo(7.5, 3.8, 0.9, 0.2, 1);
+      const fin = new THREE.Mesh(finGeo, pillarMat);
+      fin.position.set(rearBumperX - 0.5, rockerY + 2.0, finZ);
+      car3DGroup.add(fin);
     });
+
+    // Slim Horizontal Outer Rear Bumper Reflectors / Fog Guides
+    [-1, 1].forEach(side => {
+      const refZ = side * ((totalCarWidth / 2) - 7);
+      const refGeo = new THREE.BoxGeometry(1.2, 1.6, 12);
+      const refMat = new THREE.MeshStandardMaterial({
+        color: 0xdc2626,
+        emissive: 0x991b1b,
+        emissiveIntensity: 0.8,
+        roughness: 0.2
+      });
+      const reflector = new THREE.Mesh(refGeo, refMat);
+      reflector.position.set(rearBumperX + 0.2, rockerY + 8.5, refZ);
+      car3DGroup.add(reflector);
+    });
+
+    // Contemporary Integrated Trapezoidal Chrome Exhaust Bezels (or flush aero undertray for EVs)
+    const isElectric = car.id.includes('tesla') || car.id.includes('id3') || car.id.includes('ioniq') || car.id.includes('i4');
+    if (!isElectric) {
+      [-1, 1].forEach(side => {
+        const exhaustGeo = createSmoothBoxGeo(3.6, 2.4, 9.0, 0.4, 1);
+        const exhaust = new THREE.Mesh(exhaustGeo, chromeMat);
+        exhaust.position.set(rearBumperX + 1.2, rockerY + 3.2, side * 28);
+        car3DGroup.add(exhaust);
+
+        const innerPipeGeo = new THREE.BoxGeometry(3.8, 1.6, 7.5);
+        const innerPipe = new THREE.Mesh(innerPipeGeo, trimMat);
+        innerPipe.position.set(rearBumperX + 1.3, rockerY + 3.2, side * 28);
+        car3DGroup.add(innerPipe);
+      });
+    }
 
     // 11. APERTURE CAD BOUNDARY GATE (Intelligent Ingress Indicator)
     // Shows the loading clearance portal when actively inspecting entrance or when colliding!

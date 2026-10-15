@@ -5882,7 +5882,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
   // FIXED VEHICLE DATUM: Rear bumper is at +X, front nose is at -X
   const rearBumperX = 70;
-  const rearSillX = rearBumperX - (isEstate ? 18 : (isSaloon ? 8 : 22));
+  const rearSillX = rearBumperX - (isEstate ? 10 : (isSaloon ? 8 : 10));
   const carFrontX = rearBumperX - totalLength;
   const carCenterX = (carFrontX + rearBumperX) / 2;
 
@@ -5926,31 +5926,27 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const frontSeatBackX = frontSeatsX + 25; // Backrest rear face aligns with cushion rear + backrest recline thickness
 
   // SPECIFICATION-ANCHORED REAR SEATS & CARGO BED ARCHITECTURE:
-  // Tandem passenger spacing: rear seats sit ~84cm behind front seats, providing ~24-26cm of realistic knee room:
-  const rearHingeX = frontSeatsX + 84;
-  const cargoBedFrontX = seatsFolded ? frontSeatBackX : (rearHingeX + 7);
-  currentFloorLen = Math.abs(rearSillX - cargoBedFrontX);
+  const trueFloorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
+  const cargoBedFrontX = rearSillX - trueFloorLen;
+  currentFloorLen = trueFloorLen;
+  const rearHingeX = cargoBedFrontX - 5;
 
   let roofRearX, deckFrontX;
   if (isSaloon) {
     // Saloon (BMW 3 Series G20, Tesla Model 3, Audi A4 B9):
-    // Fastback roofline gently arches back over passengers to roofRearX;
-    // sleek sloping rear windscreen meets deckFrontX leaving an authentic ~22cm short aerodynamic rear decklid
-    roofRearX = rearWheelX + 6;
-    deckFrontX = rearSillX - 22;
+    roofRearX = rearWheelX + 22;
+    deckFrontX = rearSillX - 16;
   } else if (isEstate) {
-    // Estate (Ford Focus Estate, BMW 3 Series Touring, Skoda Octavia Estate):
-    // Long athletic roofline carrying luggage rails back to roofRearX;
-    // tailgate glass rakes forward ~24° down to rearSillX with integrated roof spoiler
-    roofRearX = rearSillX - 26;
+    // Estate: Long athletic roofline carrying luggage rails back to roofRearX
+    roofRearX = rearSillX - 18;
     deckFrontX = rearSillX;
   } else if (isSUV) {
     // SUV: Athletic roofline with rear spoiler overhang
-    roofRearX = rearWheelX + 16;
+    roofRearX = rearSillX - 16;
     deckFrontX = rearSillX;
   } else {
     // Hatchback (Golf Mk8, Focus Mk4): Sporty compact roof tapering to rear roof spoiler
-    roofRearX = rearWheelX + 6;
+    roofRearX = rearSillX - 18;
     deckFrontX = rearSillX;
   }
 
@@ -6164,6 +6160,16 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const hoodUvs = [];
     const hoodIndices = [];
 
+    // Continuous mathematical elevation profile of outer fender edge at z = ±halfW
+    const getFenderY = (uVal) => {
+      let yb = (cowlY - 1.2) + uVal * (noseTopY - (cowlY - 1.2)) + Math.sin(uVal * Math.PI) * 1.8;
+      if (uVal > 0.65) {
+        const nu = (uVal - 0.65) / 0.35;
+        yb -= nu * nu * 4.8;
+      }
+      return yb - 2.2;
+    };
+
     for (let r = 0; r <= hoodRows; r++) {
       const u = r / hoodRows; // 0 at cowl, 1 at nose beak
       const xBase = cowlX + u * (hoodFrontX - cowlX);
@@ -6173,6 +6179,9 @@ function update3DStudio(car, seatsFolded, fitResult) {
         const nu = (u - 0.65) / 0.35;
         yBase -= nu * nu * 4.8; // Aerodynamic nose plunge into grille
       }
+
+      // Smooth sinusoidal taper: crown & strakes reach peak over engine bay and taper to 0 at nose leading edge
+      const uTaper = Math.sin(u * Math.PI);
 
       for (let c = 0; c <= hoodCols; c++) {
         const tc = (c / hoodCols) * 2 - 1; // -1 to +1 across vehicle
@@ -6185,15 +6194,15 @@ function update3DStudio(car, seatsFolded, fitResult) {
         let y = yBase;
 
         if (absTc <= 0.68) {
-          // Central Bonnet: Aerodynamic camber crown
-          const crown = (1.0 - Math.pow(absTc / 0.68, 2.0)) * 2.4;
+          // Central Bonnet: Aerodynamic camber crown smoothly tapering at nose
+          const crown = (1.0 - Math.pow(absTc / 0.68, 2.0)) * 2.4 * uTaper;
           // Muscular Twin Power Strakes at ~28% half-width
-          const strake = Math.exp(-Math.pow((absTc - 0.28) / 0.08, 2.0)) * 0.95;
+          const strake = Math.exp(-Math.pow((absTc - 0.28) / 0.08, 2.0)) * 0.95 * uTaper;
           y += crown + strake;
         } else {
-          // Front Fender / Wing: Arching crown over wheel arch rolling to beltline
+          // Front Fender / Wing: Arching crown rolling smoothly into outer flank
           const fv = (absTc - 0.68) / 0.32; // 0 to 1
-          const fenderCrown = Math.sin(fv * Math.PI) * 1.4;
+          const fenderCrown = Math.sin(fv * Math.PI) * 1.4 * uTaper;
           y += fenderCrown - (fv * 2.2);
         }
 
@@ -6277,7 +6286,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
       rockerY + 7.5,
       bumperBeamY,
       grilleBottomY,
-      grilleTopY
+      noseTopY - 4.8
     ];
     const bXOffsets = [10.0, 3.5, -1.2, 0.5, 1.8];
 
@@ -7000,9 +7009,14 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
       const fWingShape = new THREE.Shape();
       fWingShape.moveTo(chinFlankX, rockerY + 1.2);
-      fWingShape.quadraticCurveTo(beamFlankX, bumperBeamY, frontFlankX, noseTopY - 5.0);
-      fWingShape.lineTo(cowlX, beltY);
-      fWingShape.lineTo(doorFrontX, beltY);
+      fWingShape.quadraticCurveTo(beamFlankX, bumperBeamY, frontFlankX, getFenderY(1.0));
+      for (let step = 1; step <= 5; step++) {
+        const uStep = 1.0 - (step / 5);
+        const xStep = cowlX + uStep * (hoodFrontX - cowlX) + flankSweep * Math.pow(uStep, 1.2);
+        const yStep = getFenderY(uStep);
+        fWingShape.lineTo(xStep, yStep);
+      }
+      fWingShape.lineTo(doorFrontX, getFenderY(0.0));
       fWingShape.lineTo(doorFrontX, rockerY + 1.2);
       fWingShape.lineTo(frontWheelX + wheelArchR, rockerY + 1.2);
       fWingShape.absarc(frontWheelX, wheelY, wheelArchR, 0, Math.PI, false);
@@ -7531,41 +7545,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
     addCadEdges(roofMesh, 0x38bdf8);
     car3DGroup.add(roofMesh);
 
-    // Modern Panoramic Glass Sunroof Panel (Embedded into roof)
-    if (!car.id.includes('tesla')) {
-      const sunFrontX = roofFrontX + 5;
-      const sunRearX = isEstate ? (roofFrontX + (roofLen * 0.70)) : (roofFrontX + (roofLen * 0.58));
-      const sunLen = Math.max(16, sunRearX - sunFrontX);
-      const sunWidth = Math.min(roofWidth - 14, (shoulderZ * 2) * 0.58);
-      const sunY = roofTopY - 0.2;
 
-      const sunroofGlassMat = new THREE.MeshPhysicalMaterial({
-        color: 0x071526,
-        metalness: 0.35,
-        roughness: 0.04,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.02,
-        transparent: true,
-        opacity: isGhost ? 0.35 : 0.82,
-        depthWrite: false
-      });
-
-      const sunroofFrameGeo = createSmoothBoxGeo(sunLen + 2.0, 0.8, sunWidth + 2.0, 0.5, 1);
-      const sunroofFrame = new THREE.Mesh(sunroofFrameGeo, trimMat);
-      sunroofFrame.position.set((sunFrontX + sunRearX) / 2, sunY + 0.15, 0);
-      car3DGroup.add(sunroofFrame);
-
-      const sunroofGlassGeo = new THREE.BoxGeometry(sunLen, 0.6, sunWidth);
-      const sunroofGlass = new THREE.Mesh(sunroofGlassGeo, sunroofGlassMat);
-      sunroofGlass.position.set((sunFrontX + sunRearX) / 2, sunY + 0.35, 0);
-      car3DGroup.add(sunroofGlass);
-
-      // Sunroof center cross divider bar
-      const sunDivGeo = new THREE.BoxGeometry(2.0, 0.7, sunWidth);
-      const sunDiv = new THREE.Mesh(sunDivGeo, trimMat);
-      sunDiv.position.set((sunFrontX + sunRearX) / 2, sunY + 0.4, 0);
-      car3DGroup.add(sunDiv);
-    }
 
     // Roof Ditch Moldings / Rain Channels along both sides of roof
     [-1, 1].forEach(side => {
@@ -8260,14 +8240,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
     addCadEdges(rearBumperMesh, 0x38bdf8, 35);
     car3DGroup.add(rearBumperMesh);
 
-    // Upper Bumper Step / Scuff Loading Protection Sill (Hatchback, Estate & SUV only)
+    // Upper Bumper Scuff Loading Protection Sill (Hatchback, Estate & SUV only)
     if (!isSaloon) {
-      const stepStart = rearSillX + 2.0;
-      const stepEnd = rearBumperX - 1.5;
-      const stepDepth = Math.max(5.0, stepEnd - stepStart);
-      const bumperStepGeo = new THREE.BoxGeometry(stepDepth, 1.2, Math.max(20, hatchWidth - 4));
+      const scuffDepth = 3.6;
+      const bumperStepGeo = new THREE.BoxGeometry(scuffDepth, 0.8, Math.max(20, hatchWidth - 4));
       const bumperStep = new THREE.Mesh(bumperStepGeo, trimMat);
-      bumperStep.position.set((stepStart + stepEnd) / 2, sillY + 3.8, 0);
+      bumperStep.position.set(rearSillX + 1.0 + (scuffDepth / 2), sillY + 3.8, 0);
       car3DGroup.add(bumperStep);
     }
 
@@ -8603,50 +8581,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
           shelfGroup.add(pin);
         });
 
-        // Dual tailgate lift suspension cords (strings)
-        [-1, 1].forEach(side => {
-          const p1X = shelfFrontX + (shelfLen - 3.0) * Math.cos(shelfTilt) - 0.9 * Math.sin(shelfTilt);
-          const p1Y = shelfY + (shelfLen - 3.0) * Math.sin(shelfTilt) + 0.9 * Math.cos(shelfTilt);
-          const p1Z = side * (shelfWidth * 0.42);
-          const p1 = new THREE.Vector3(p1X, p1Y, p1Z);
-
-          // Calculate exact tailgate frame cord mounting eyelet
-          const hingeX = roofRearX;
-          const hingeY = roofRearY;
-          const waistX = (rearSillX + 1) - roofRearX;
-          const waistY = (beltY + 1) - roofRearY;
-          const tAngle = isTailgateOpen ? getOpenTailgateAngle(bodyType) : 0;
-          const cosA = Math.cos(tAngle);
-          const sinA = Math.sin(tAngle);
-          const waistRotX = waistX * cosA - waistY * sinA;
-          const waistRotY = waistX * sinA + waistY * cosA;
-          const pegX = hingeX + 0.65 * waistRotX;
-          const pegY = hingeY + 0.65 * waistRotY;
-          const pegZ = side * (shelfWidth * 0.38);
-          const p2 = new THREE.Vector3(pegX, pegY, pegZ);
-
-          const cordDist = p1.distanceTo(p2);
-          const cordGeo = new THREE.CylinderGeometry(0.45, 0.45, cordDist, 8);
-          const cordMat = new THREE.MeshStandardMaterial({
-            color: 0xcbd5e1, // Satin woven silver-slate cord
-            roughness: 0.45,
-            metalness: 0.25
-          });
-          const cord = new THREE.Mesh(cordGeo, cordMat);
-          cord.position.copy(p1.clone().add(p2).multiplyScalar(0.5));
-          cord.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p2.clone().sub(p1).normalize());
-          car3DGroup.add(cord);
-
-          // Rubber Cord Retaining Balls at top and bottom
-          const ballGeo = new THREE.SphereGeometry(1.0, 12, 12);
-          const ballMat = new THREE.MeshStandardMaterial({ color: 0x090e17, roughness: 0.8 });
-          const b1 = new THREE.Mesh(ballGeo, ballMat);
-          b1.position.copy(p1);
-          car3DGroup.add(b1);
-          const b2 = new THREE.Mesh(ballGeo, ballMat);
-          b2.position.copy(p2);
-          car3DGroup.add(b2);
-        });
       }
 
       car3DGroup.add(shelfGroup);
@@ -9315,7 +9249,7 @@ function updateCargoSimulationFrame(p) {
   if (!cargoSimulationBaseGroup || !lastFitResult || !lastFitResult.rot) return;
 
   const rearBumperX = 70;
-  const rearSillX = rearBumperX - (selectedCar.body_type === 'estate' ? 18 : (selectedCar.body_type === 'saloon' ? 24 : 22));
+  const rearSillX = rearBumperX - (selectedCar.body_type === 'estate' ? 10 : (selectedCar.body_type === 'saloon' ? 8 : 10));
   const rotL = lastFitResult.rot.l;
 
   // Calculate positive start offset outside behind the tailgate

@@ -4830,11 +4830,14 @@ function updateTailgateGasStruts() {
     s.strutGroup.position.copy(s.bodyMount);
     s.strutGroup.quaternion.setFromUnitVectors(upVec, dir);
 
-    const cylLen = totalLen * 0.56;
-    const rodLen = totalLen * 0.48;
+    const cylLen = totalLen * 0.58;
+    const rodLen = totalLen * 0.52;
     s.cylMesh.scale.set(1, cylLen, 1);
     s.rodMesh.position.set(0, totalLen - rodLen, 0);
     s.rodMesh.scale.set(1, rodLen, 1);
+    if (s.topBallMesh) {
+      s.topBallMesh.position.set(0, totalLen, 0);
+    }
     s.strutGroup.visible = currentTailgateAngle > 0.05;
   });
 }
@@ -6953,6 +6956,59 @@ function update3DStudio(car, seatsFolded, fitResult) {
       buildNodeMeshes(tailNode, tailgatePivot, true);
     }
 
+    // 5b. 1:1 SCULPTED AERODYNAMIC WING MIRROR ASSEMBLIES (Door Pedestal + Painted Aero Shell + LED Repeater + Mirror Glass)
+    [-1, 1].forEach(side => {
+      const mirrorX = cowlX + 8.5;
+      const baseGasketGeo = createSmoothBoxGeo(9.5, 4.2, 2.8, 0.7, 2);
+      const baseGasket = new THREE.Mesh(baseGasketGeo, trimMat);
+      baseGasket.position.set(mirrorX, beltY + 0.6, side * (shoulderZ - 0.3));
+      car3DGroup.add(baseGasket);
+
+      const stalkGeo = createSmoothBoxGeo(5.6, 3.0, 9.2, 0.8, 2);
+      const stalkMesh = new THREE.Mesh(stalkGeo, trimMat);
+      stalkMesh.position.set(mirrorX + 0.8, beltY + 2.5, side * (shoulderZ + 3.2));
+      stalkMesh.rotation.x = -side * 0.44;
+      stalkMesh.rotation.y = side * -0.18;
+      car3DGroup.add(stalkMesh);
+
+      const mirrorHeadGroup = new THREE.Group();
+      mirrorHeadGroup.position.set(mirrorX + 2.2, beltY + 5.8, side * (shoulderZ + 11.2));
+      mirrorHeadGroup.rotation.y = side * -0.26;
+      mirrorHeadGroup.rotation.x = -side * 0.05;
+
+      // Sculpted body-colored aerodynamic outer shell (10.5cm deep x 11.2cm tall x 16.5cm wide)
+      const capGeo = createSmoothBoxGeo(10.5, 11.2, 16.5, 2.6, 3);
+      const capMesh = new THREE.Mesh(capGeo, bodyPaintMat);
+      addCadEdges(capMesh, 0x38bdf8, 42);
+      mirrorHeadGroup.add(capMesh);
+
+      // Gloss black lower aerodynamic under-cap molding
+      const lowerCapGeo = createSmoothBoxGeo(9.6, 3.0, 15.6, 1.0, 2);
+      const lowerCapMesh = new THREE.Mesh(lowerCapGeo, pillarMat);
+      lowerCapMesh.position.set(0.3, -4.2, 0);
+      mirrorHeadGroup.add(lowerCapMesh);
+
+      // Integrated LED turn-signal repeater strip across outer leading edge
+      const ledStripGeo = new THREE.BoxGeometry(1.4, 1.1, 11.8);
+      const ledStripMesh = new THREE.Mesh(ledStripGeo, amberMat);
+      ledStripMesh.position.set(-4.8, -0.3, side * 1.5);
+      mirrorHeadGroup.add(ledStripMesh);
+
+      // Rear-facing dark bezel surround
+      const bezelGeo = createSmoothBoxGeo(2.4, 10.2, 15.2, 1.4, 2);
+      const bezelMesh = new THREE.Mesh(bezelGeo, trimMat);
+      bezelMesh.position.set(4.4, 0, 0);
+      mirrorHeadGroup.add(bezelMesh);
+
+      // Recessed reflective mirror glass facing driver (+X)
+      const mirrorGlassGeo = createSmoothBoxGeo(1.0, 8.6, 13.6, 0.8, 2);
+      const mirrorGlassMesh = new THREE.Mesh(mirrorGlassGeo, chromeMat);
+      mirrorGlassMesh.position.set(5.25, 0, 0);
+      mirrorHeadGroup.add(mirrorGlassMesh);
+
+      car3DGroup.add(mirrorHeadGroup);
+    });
+
     targetTailgateAngle = isTailgateOpen ? openAngle : 0;
     if (rebuildCar) {
       currentTailgateAngle = targetTailgateAngle;
@@ -6960,50 +7016,83 @@ function update3DStudio(car, seatsFolded, fitResult) {
     tailgatePivot.rotation.z = currentTailgateAngle;
     car3DGroup.add(tailgatePivot);
 
-    // Twin Hydraulic Tailgate Gas Struts connecting body pillar frame to open tailgate
+    // Twin Hydraulic Tailgate Gas Struts connecting body pillar frame to open tailgate with 3D ball-stud brackets
     const strutCylMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4, metalness: 0.7 });
     const strutRodMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.15, metalness: 0.95 });
+    const bracketMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.8 });
     if (isSaloon) {
+      const saloonWallZ = (archW / 2) + 12.0 + 1.5;
       [-1, 1].forEach(side => {
-        const zStrut = side * ((saloonLidW / 2) - 2.5);
-        const bodyMount = new THREE.Vector3(deckFrontX + 8.0, beltY - 8.5, zStrut);
-        const localTailMount = new THREE.Vector3(Math.abs(rearSillX - deckFrontX) * 0.45, -1.2, zStrut);
+        const zStrut = side * Math.min((saloonLidW / 2) - 1.5, saloonWallZ);
+        const bodyMount = new THREE.Vector3(deckFrontX + 8.0, beltY - 0.6, zStrut);
+        const localTailMount = new THREE.Vector3(Math.abs(rearSillX - deckFrontX) * 0.45, -1.0, zStrut);
+
+        const bodyBracket = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.2, 3.2), bracketMat);
+        bodyBracket.position.set(bodyMount.x, bodyMount.y - 0.4, bodyMount.z + side * 0.8);
+        car3DGroup.add(bodyBracket);
+
+        const tailBracket = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.8, 2.6), bracketMat);
+        tailBracket.position.set(localTailMount.x, localTailMount.y + 0.5, localTailMount.z);
+        tailgatePivot.add(tailBracket);
+
         const strutGroup = new THREE.Group();
-        const cylGeo = new THREE.CylinderGeometry(0.50, 0.50, 1, 10);
+        const cylGeo = new THREE.CylinderGeometry(0.65, 0.65, 1, 12);
         cylGeo.translate(0, 0.5, 0);
         const cylMesh = new THREE.Mesh(cylGeo, strutCylMat);
-        const rodGeo = new THREE.CylinderGeometry(0.28, 0.28, 1, 10);
+        const rodGeo = new THREE.CylinderGeometry(0.36, 0.36, 1, 12);
         rodGeo.translate(0, 0.5, 0);
         const rodMesh = new THREE.Mesh(rodGeo, strutRodMat);
+        const botBallMesh = new THREE.Mesh(new THREE.SphereGeometry(0.95, 10, 10), bracketMat);
+        const topBallMesh = new THREE.Mesh(new THREE.SphereGeometry(0.95, 10, 10), bracketMat);
         strutGroup.add(cylMesh);
         strutGroup.add(rodMesh);
+        strutGroup.add(botBallMesh);
+        strutGroup.add(topBallMesh);
         car3DGroup.add(strutGroup);
-        tailgateGasStruts.push({ strutGroup, cylMesh, rodMesh, bodyMount, localTailMount, pivotPos: new THREE.Vector3(deckFrontX, beltY, 0) });
+        tailgateGasStruts.push({ strutGroup, cylMesh, rodMesh, topBallMesh, bodyMount, localTailMount, pivotPos: new THREE.Vector3(deckFrontX, beltY, 0) });
       });
     } else {
+      const uBody = 0.44;
+      const uTail = 0.52;
+      const zOuterBody = shoulderZ - (shoulderZ - roofZ) * Math.pow(uBody, 0.88);
+      const zOuterTail = shoulderZ - (shoulderZ - roofZ) * Math.pow(uTail, 0.88);
       [-1, 1].forEach(side => {
-        const zStrut = side * ((roofWidth / 2) - 3.5);
         const bodyMount = new THREE.Vector3(
-          roofRearX + (rearSillX - roofRearX) * 0.42 - 2.0,
-          roofRearY + (beltY - roofRearY) * 0.42 - 1.5,
-          zStrut
+          rearSillX + (roofRearX - rearSillX) * uBody - 4.2,
+          beltY + (roofRearY - beltY) * uBody,
+          side * (zOuterBody - 1.2)
         );
         const localTailMount = new THREE.Vector3(
-          ((rearSillX - roofRearX) * 0.34),
-          ((beltY - roofRearY) * 0.34) - 0.8,
-          zStrut
+          (rearSillX - roofRearX) * (1 - uTail) - 1.5,
+          (beltY - roofRearY) * (1 - uTail) - 0.6,
+          side * (zOuterTail - 2.2)
         );
+
+        // 3D Pillar Ball-Stud Mounting Bracket anchored flush into inner face of C/D-pillar
+        const bodyBracket = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.4, 1.8), bracketMat);
+        bodyBracket.position.set(bodyMount.x, bodyMount.y, side * (zOuterBody - 0.9));
+        car3DGroup.add(bodyBracket);
+
+        // 3D Tailgate Ball-Stud Mounting Bracket anchored into underside of open tailgate side frame
+        const tailBracket = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.8, 2.6), bracketMat);
+        tailBracket.position.set(localTailMount.x, localTailMount.y + 0.5, localTailMount.z);
+        tailgatePivot.add(tailBracket);
+
         const strutGroup = new THREE.Group();
-        const cylGeo = new THREE.CylinderGeometry(0.55, 0.55, 1, 10);
+        const cylGeo = new THREE.CylinderGeometry(0.70, 0.70, 1, 12);
         cylGeo.translate(0, 0.5, 0);
         const cylMesh = new THREE.Mesh(cylGeo, strutCylMat);
-        const rodGeo = new THREE.CylinderGeometry(0.32, 0.32, 1, 10);
+        const rodGeo = new THREE.CylinderGeometry(0.40, 0.40, 1, 12);
         rodGeo.translate(0, 0.5, 0);
         const rodMesh = new THREE.Mesh(rodGeo, strutRodMat);
+        const botBallMesh = new THREE.Mesh(new THREE.SphereGeometry(1.05, 10, 10), bracketMat);
+        const topBallMesh = new THREE.Mesh(new THREE.SphereGeometry(1.05, 10, 10), bracketMat);
         strutGroup.add(cylMesh);
         strutGroup.add(rodMesh);
+        strutGroup.add(botBallMesh);
+        strutGroup.add(topBallMesh);
         car3DGroup.add(strutGroup);
-        tailgateGasStruts.push({ strutGroup, cylMesh, rodMesh, bodyMount, localTailMount, pivotPos: new THREE.Vector3(roofRearX, roofRearY, 0) });
+        tailgateGasStruts.push({ strutGroup, cylMesh, rodMesh, topBallMesh, bodyMount, localTailMount, pivotPos: new THREE.Vector3(roofRearX, roofRearY, 0) });
       });
     }
     updateTailgateGasStruts();

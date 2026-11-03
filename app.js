@@ -6126,7 +6126,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
   // - Fixed boot floor behind rear seats is always car.floor_length_seats_up
   // - Rear seat hinge is at rearSillX - car.floor_length_seats_up
   // - Folded rear seatbacks span from rearHingeX forward to rearSillX - car.floor_length_seats_folded
-  // - Front seat backrests sit directly at rearSillX - car.floor_length_seats_folded (the true forward cargo limit)
   const fixedBootLen = car.floor_length_seats_up;
   const foldedTotalLen = car.floor_length_seats_folded;
   const rearHingeX = rearSillX - fixedBootLen;
@@ -6135,8 +6134,12 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const cargoBedFrontX = rearSillX - trueFloorLen;
   currentFloorLen = trueFloorLen;
 
-  const frontSeatBackX = cargoFoldedFrontX - 12;
-  const frontSeatsX = frontSeatBackX - 25;
+  const rearDoorShutX = rearWheelX - Math.max(12, wheelArchR * 0.35);
+  // B-pillar splits the side greenhouse proportionally (~56% from cowl to rear door shut) so front & rear windows are balanced
+  const bPillarX = Math.round(cowlX + (rearDoorShutX - cowlX) * 0.56);
+  // Front seat backrest rear face (frontSeatsX + 25) aligns flush with the B-pillar so the entire front seat sits in the front window
+  const frontSeatsX = bPillarX - 26;
+  const frontSeatBackX = frontSeatsX + 25;
 
   let roofRearX, deckFrontX;
   if (isSaloon) {
@@ -6158,10 +6161,6 @@ function update3DStudio(car, seatsFolded, fitResult) {
     roofRearX = (rearSillX - 6) - Math.max(30, Math.min(40, hatchRakeRun));
     deckFrontX = rearSillX;
   }
-
-  // B-pillar station on exterior body shell
-  const bPillarX = Math.round(cowlX + 89);
-  const rearDoorShutX = rearWheelX - Math.max(12, wheelArchR * 0.35);
   const rearDoorEnd = rearDoorShutX;
   const cPillarX = isEstate ? rearDoorShutX : (isSaloon ? deckFrontX : roofRearX);
   const dPillarX = isEstate ? roofRearX : null;

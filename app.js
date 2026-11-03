@@ -7138,10 +7138,14 @@ function update3DStudio(car, seatsFolded, fitResult) {
     });
 
     [-1, 1].forEach(side => {
-      const carpetWallZ = side * (innerArchZ + tubThickness);
+      const wallInnerAbsZ = innerArchZ + tubThickness;
+      const carpetWallZ = side * wallInnerAbsZ;
+      const bootSideFrontX = Math.min(rearSillX - car.floor_length_seats_up - 6, rearWheelX - (tubLen / 2) - 4);
+      const archFrontX = rearWheelX - (tubLen / 2);
+      const archRearX = rearWheelX + (tubLen / 2);
 
-      // 1. Boot Floor Side Tray (behind wheel arches from rearWheelX + (tubLen / 2) to rearSillX)
-      const trayLen = Math.max(4, rearSillX - (rearWheelX + (tubLen / 2)));
+      // 1. Rear Boot Floor Side Tray (behind wheel arches from archRearX to rearSillX)
+      const trayLen = Math.max(4, rearSillX - archRearX);
       const trayWidth = tubThickness;
       const trayCenterZ = side * (innerArchZ + (trayWidth / 2));
       const trayGeo = new THREE.BoxGeometry(trayLen, 2.5, trayWidth);
@@ -7149,12 +7153,25 @@ function update3DStudio(car, seatsFolded, fitResult) {
       trayMesh.position.set(rearSillX - (trayLen / 2), sillY + 1.25, trayCenterZ);
       car3DGroup.add(trayMesh);
 
-      // 2. Vertical Boot Interior Carpet Side Wall (Behind wheel arch from rearWheelX + (tubLen / 2) to rearSillX)
+      // 1b. Forward Boot Floor Side Tray (in front of wheel arches from bootSideFrontX to archFrontX)
+      const frontTrayLen = Math.max(2, archFrontX - bootSideFrontX);
+      const frontTrayGeo = new THREE.BoxGeometry(frontTrayLen, 2.5, trayWidth);
+      const frontTrayMesh = new THREE.Mesh(frontTrayGeo, bootFloorMat);
+      frontTrayMesh.position.set(bootSideFrontX + (frontTrayLen / 2), sillY + 1.25, trayCenterZ);
+      car3DGroup.add(frontTrayMesh);
+
+      // 2. Vertical Boot Interior Carpet Side Wall (Behind wheel arch from archRearX to rearSillX)
       const rearWallHeight = Math.max(10, beltY - (sillY + 1.25));
       const rearWallGeo = new THREE.BoxGeometry(trayLen, rearWallHeight, 1.2);
       const rearWallMesh = new THREE.Mesh(rearWallGeo, sideLinerMat);
       rearWallMesh.position.set(rearSillX - (trayLen / 2), sillY + 1.25 + (rearWallHeight / 2), carpetWallZ);
       car3DGroup.add(rearWallMesh);
+
+      // 2b. Forward Vertical Boot Interior Carpet Side Wall (In front of wheel arch from bootSideFrontX to archFrontX)
+      const frontWallGeo = new THREE.BoxGeometry(frontTrayLen, rearWallHeight, 1.2);
+      const frontWallMesh = new THREE.Mesh(frontWallGeo, sideLinerMat);
+      frontWallMesh.position.set(bootSideFrontX + (frontTrayLen / 2), sillY + 1.25 + (rearWallHeight / 2), carpetWallZ);
+      car3DGroup.add(frontWallMesh);
 
       // 3. Upper wall lining sitting safely on top of wheel arch tub (never intersects tyre)
       const upperWallHeight = Math.max(4, beltY - (sillY + 1.25 + tubHeight));
@@ -7162,6 +7179,22 @@ function update3DStudio(car, seatsFolded, fitResult) {
       const upperWallMesh = new THREE.Mesh(upperWallGeo, sideLinerMat);
       upperWallMesh.position.set(rearWheelX, sillY + 1.25 + tubHeight + (upperWallHeight / 2), carpetWallZ);
       car3DGroup.add(upperWallMesh);
+
+      // 4. Horizontal Upper Boot Side Trim Deck / Parcel-Shelf Support Ledge (Caps cavity over the rear wheels out to body flank)
+      const deckInnerZ = wallInnerAbsZ - 0.6;
+      const deckOuterZ = Math.max(deckInnerZ + 2.0, shoulderZ - 0.6);
+      const deckWidth = deckOuterZ - deckInnerZ;
+      const deckLen = Math.max(10, (rearSillX - 0.4) - bootSideFrontX);
+      const deckGeo = new THREE.BoxGeometry(deckLen, 1.6, deckWidth);
+      const deckMesh = new THREE.Mesh(deckGeo, sideLinerMat);
+      deckMesh.position.set(bootSideFrontX + (deckLen / 2), beltY - 0.8, side * (deckInnerZ + (deckWidth / 2)));
+      car3DGroup.add(deckMesh);
+
+      // 5. Rear Quarter Aperture Trim Cap (Seals rear vertical gap between inner boot wall and outer quarter panel/taillight)
+      const rearCapGeo = new THREE.BoxGeometry(1.6, rearWallHeight, deckWidth);
+      const rearCapMesh = new THREE.Mesh(rearCapGeo, sideLinerMat);
+      rearCapMesh.position.set(rearSillX - 0.8, sillY + 1.25 + (rearWallHeight / 2), side * (deckInnerZ + (deckWidth / 2)));
+      car3DGroup.add(rearCapMesh);
     });
 
     // 3. RETRACTABLE / RIGID TONNEAU PARCEL SHELF (Authentic Modern Luggage Load Cover)

@@ -5547,7 +5547,7 @@ function createCockpit3D(cabinWidth, cowlX, cowlY, beltY, frontSeatsX, cabinFloo
 
   // 1. AUTHENTIC DASHBOARD DECK & INSTRUMENT PANEL
   // Modern automotive dashboard depth from base of windshield (cowl) to driver fascia is ~30 cm.
-  const ipDepth = 30;
+  const ipDepth = 32;
   const dashFrontX = cowlX;
   const dashFaceX = cowlX + ipDepth; // Driver-facing dashboard edge / fascia
   const dashCenterX = cowlX + (ipDepth / 2);
@@ -6122,16 +6122,21 @@ function update3DStudio(car, seatsFolded, fitResult) {
   const windshieldRun = isSaloon ? 38 : (isSUV ? 34 : (isEstate ? 36 : 34));
   const roofFrontX = cowlX + windshieldRun;
 
-  // Ergonomic driving position: dashboard is 30cm deep, steering column extends 14cm,
-  // and driver sits 30cm behind steering wheel (total ~74cm from windshield cowl):
-  const frontSeatsX = Math.round(cowlX + 74);
-  const frontSeatBackX = frontSeatsX + 25; // Backrest rear face aligns with cushion rear + backrest recline thickness
-
-  // SPECIFICATION-ANCHORED REAR SEATS & CARGO BED ARCHITECTURE:
-  const trueFloorLen = seatsFolded ? car.floor_length_seats_folded : car.floor_length_seats_up;
+  // SPECIFICATION-ANCHORED REAR SEATS, FRONT SEATS & CARGO BED ARCHITECTURE (1:1 with solver):
+  // - Fixed boot floor behind rear seats is always car.floor_length_seats_up
+  // - Rear seat hinge is at rearSillX - car.floor_length_seats_up
+  // - Folded rear seatbacks span from rearHingeX forward to rearSillX - car.floor_length_seats_folded
+  // - Front seat backrests sit directly at rearSillX - car.floor_length_seats_folded (the true forward cargo limit)
+  const fixedBootLen = car.floor_length_seats_up;
+  const foldedTotalLen = car.floor_length_seats_folded;
+  const rearHingeX = rearSillX - fixedBootLen;
+  const cargoFoldedFrontX = rearSillX - foldedTotalLen;
+  const trueFloorLen = seatsFolded ? foldedTotalLen : fixedBootLen;
   const cargoBedFrontX = rearSillX - trueFloorLen;
   currentFloorLen = trueFloorLen;
-  const rearHingeX = cargoBedFrontX - 5;
+
+  const frontSeatBackX = cargoFoldedFrontX - 12;
+  const frontSeatsX = frontSeatBackX - 25;
 
   let roofRearX, deckFrontX;
   if (isSaloon) {
@@ -6154,8 +6159,8 @@ function update3DStudio(car, seatsFolded, fitResult) {
     deckFrontX = rearSillX;
   }
 
-  // B-pillar is aligned directly beside the driver's seat
-  const bPillarX = frontSeatsX + 15;
+  // B-pillar station on exterior body shell
+  const bPillarX = Math.round(cowlX + 89);
   const rearDoorShutX = rearWheelX - Math.max(12, wheelArchR * 0.35);
   const rearDoorEnd = rearDoorShutX;
   const cPillarX = isEstate ? rearDoorShutX : (isSaloon ? deckFrontX : roofRearX);
@@ -7183,7 +7188,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
 
     // 12. INTERIOR CARGO BAY, COCKPIT & SEATING ARCHITECTURE
     // Cargo Floor Carpet (Smooth plush anthracite automotive lining)
-    const bootFloorGeo = new THREE.BoxGeometry(currentFloorLen, 2.5, archW);
+    const bootFloorGeo = new THREE.BoxGeometry(fixedBootLen, 2.5, archW);
     const bootFloorMat = new THREE.MeshStandardMaterial({
       color: 0x141f30,
       roughness: 0.88,
@@ -7192,7 +7197,7 @@ function update3DStudio(car, seatsFolded, fitResult) {
       opacity: isGhost ? 0.70 : 1.0
     });
     const bootFloorMesh = new THREE.Mesh(bootFloorGeo, bootFloorMat);
-    bootFloorMesh.position.set(rearSillX - (currentFloorLen / 2), sillY + 1.25, 0);
+    bootFloorMesh.position.set(rearSillX - (fixedBootLen / 2), sillY + 1.25, 0);
     car3DGroup.add(bootFloorMesh);
 
     // Stainless steel scuff plate at rear sill threshold
@@ -7484,23 +7489,30 @@ function update3DStudio(car, seatsFolded, fitResult) {
     const rearSeatWidth = cabinWidth - 6;
 
     if (seatsFolded) {
-      // FOLDED REAR SEATS FLAT (60/40 Split Heavy-Duty Cargo Deck with Luggage Skid Rails)
-      const foldedLen = Math.max(38, Math.abs(rearHingeX - cargoBedFrontX));
-      const foldedY = sillY + 2.5;
+      // FOLDED REAR SEATS FLAT (60/40 Split Heavy-Duty Cargo Deck spanning exactly rearHingeX -> cargoFoldedFrontX)
+      const foldedLen = Math.max(20, foldedTotalLen - fixedBootLen);
+      const foldedY = sillY + 1.25;
       const split60Width = rearSeatWidth * 0.60;
       const split40Width = rearSeatWidth * 0.40;
       const splitGap = 1.0;
 
-      // 60% Left Folded Backrest (Passenger side, +Z)
-      const left60Geo = new THREE.BoxGeometry(foldedLen, 5.5, split60Width - splitGap);
+      // Lower folded cushion base underneath folded backrest
+      const foldedBaseHeight = Math.max(8, sillY - cabinFloorY);
+      const foldedBaseGeo = new THREE.BoxGeometry(foldedLen - 2, foldedBaseHeight, rearSeatWidth - 4);
+      const foldedBase = new THREE.Mesh(foldedBaseGeo, rearBolsterMat);
+      foldedBase.position.set(rearHingeX - (foldedLen / 2), cabinFloorY + (foldedBaseHeight / 2), 0);
+      rearSeatGroup.add(foldedBase);
+
+      // 60% Left Folded Backrest (Passenger side, +Z) flush with boot floor (top at sillY + 2.5)
+      const left60Geo = new THREE.BoxGeometry(foldedLen, 2.5, split60Width - splitGap);
       const left60 = new THREE.Mesh(left60Geo, carpetBackMat);
       const leftZ = (rearSeatWidth / 2) - (split60Width / 2);
       left60.position.set(rearHingeX - (foldedLen / 2), foldedY, leftZ);
       addCadEdges(left60, 0x38bdf8);
       rearSeatGroup.add(left60);
 
-      // 40% Right Folded Backrest (Driver side, -Z)
-      const right40Geo = new THREE.BoxGeometry(foldedLen, 5.5, split40Width - splitGap);
+      // 40% Right Folded Backrest (Driver side, -Z) flush with boot floor (top at sillY + 2.5)
+      const right40Geo = new THREE.BoxGeometry(foldedLen, 2.5, split40Width - splitGap);
       const right40 = new THREE.Mesh(right40Geo, carpetBackMat);
       const rightZ = -(rearSeatWidth / 2) + (split40Width / 2);
       right40.position.set(rearHingeX - (foldedLen / 2), foldedY, rightZ);
@@ -7515,31 +7527,32 @@ function update3DStudio(car, seatsFolded, fitResult) {
         (rearSeatWidth / 2) - (split60Width * 0.55),
         (rearSeatWidth / 2) - (split60Width * 0.85)
       ].forEach(ribZ => {
-        const ribGeo = new THREE.BoxGeometry(foldedLen - 10, 0.8, 1.8);
+        const ribGeo = new THREE.BoxGeometry(Math.max(8, foldedLen - 10), 0.4, 1.8);
         const rib = new THREE.Mesh(ribGeo, chromeMatLocal);
-        rib.position.set(rearHingeX - (foldedLen / 2), foldedY + 2.8, ribZ);
+        rib.position.set(rearHingeX - (foldedLen / 2), sillY + 2.55, ribZ);
         rearSeatGroup.add(rib);
       });
 
       // Chrome Seatback Split Latch Releases on Shoulder
       [-split40Width / 2, split60Width / 2].forEach(offsetZ => {
-        const latchGeo = new THREE.BoxGeometry(4.5, 1.2, 5.0);
+        const latchGeo = new THREE.BoxGeometry(4.5, 0.8, 5.0);
         const latch = new THREE.Mesh(latchGeo, chromeMatLocal);
-        latch.position.set(rearHingeX - 4, foldedY + 3.0, offsetZ);
+        latch.position.set(rearHingeX - 4, sillY + 2.6, offsetZ);
         rearSeatGroup.add(latch);
 
         // Red unlatched indicator flag
-        const redFlagGeo = new THREE.BoxGeometry(1.2, 0.5, 2.0);
+        const redFlagGeo = new THREE.BoxGeometry(1.2, 0.4, 2.0);
         const redFlag = new THREE.Mesh(redFlagGeo, new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-        redFlag.position.set(rearHingeX - 4, foldedY + 3.5, offsetZ);
+        redFlag.position.set(rearHingeX - 4, sillY + 3.0, offsetZ);
         rearSeatGroup.add(redFlag);
       });
 
-      // Folded Headrests nestled at the front edge into passenger footwell
+      // Folded Headrests nestled at the front edge of folded seatbacks against front seat backrests
       [-1, 1].forEach(side => {
-        const headFoldGeo = new THREE.BoxGeometry(8, 12, 18);
+        const headFoldGeo = new THREE.BoxGeometry(11, 14, 20);
         const headFold = new THREE.Mesh(headFoldGeo, rearSeatMat);
-        headFold.position.set(rearHingeX - foldedLen + 4, foldedY - 2.5, side * (rearSeatWidth * 0.28));
+        headFold.position.set(cargoFoldedFrontX - 5.5, sillY + 4.5, side * (rearSeatWidth * 0.28));
+        headFold.rotation.z = 0.22;
         rearSeatGroup.add(headFold);
       });
 
